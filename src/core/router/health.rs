@@ -293,3 +293,401 @@ pub struct RouterHealthStatus {
     /// Last check time
     pub last_check: Instant,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ==================== ProviderHealthStatus Tests ====================
+
+    #[test]
+    fn test_provider_health_status_default() {
+        let status = ProviderHealthStatus::default();
+        assert!(status.healthy);
+        assert!(status.last_success.is_none());
+        assert!(status.last_error.is_none());
+        assert!(status.response_time.is_none());
+        assert_eq!(status.consecutive_failures, 0);
+    }
+
+    #[test]
+    fn test_provider_health_status_clone() {
+        let mut status = ProviderHealthStatus::default();
+        status.healthy = false;
+        status.consecutive_failures = 5;
+        status.last_error = Some("Connection refused".to_string());
+        status.response_time = Some(Duration::from_millis(100));
+
+        let cloned = status.clone();
+        assert!(!cloned.healthy);
+        assert_eq!(cloned.consecutive_failures, 5);
+        assert_eq!(cloned.last_error, Some("Connection refused".to_string()));
+        assert_eq!(cloned.response_time, Some(Duration::from_millis(100)));
+    }
+
+    #[test]
+    fn test_provider_health_status_debug() {
+        let status = ProviderHealthStatus::default();
+        let debug = format!("{:?}", status);
+        assert!(debug.contains("ProviderHealthStatus"));
+        assert!(debug.contains("healthy"));
+        assert!(debug.contains("consecutive_failures"));
+    }
+
+    #[test]
+    fn test_provider_health_status_with_success() {
+        let mut status = ProviderHealthStatus::default();
+        status.healthy = true;
+        status.last_success = Some(Instant::now());
+        status.response_time = Some(Duration::from_millis(50));
+        status.consecutive_failures = 0;
+
+        assert!(status.healthy);
+        assert!(status.last_success.is_some());
+        assert_eq!(status.response_time, Some(Duration::from_millis(50)));
+    }
+
+    #[test]
+    fn test_provider_health_status_with_error() {
+        let mut status = ProviderHealthStatus::default();
+        status.healthy = false;
+        status.last_error = Some("Timeout".to_string());
+        status.consecutive_failures = 3;
+
+        assert!(!status.healthy);
+        assert_eq!(status.last_error, Some("Timeout".to_string()));
+        assert_eq!(status.consecutive_failures, 3);
+    }
+
+    #[test]
+    fn test_provider_health_status_reset_after_success() {
+        let mut status = ProviderHealthStatus::default();
+
+        // Simulate failures
+        status.consecutive_failures = 2;
+        status.last_error = Some("Previous error".to_string());
+
+        // Simulate success
+        status.healthy = true;
+        status.consecutive_failures = 0;
+        status.last_success = Some(Instant::now());
+        status.last_error = None;
+        status.response_time = Some(Duration::from_millis(25));
+
+        assert!(status.healthy);
+        assert_eq!(status.consecutive_failures, 0);
+        assert!(status.last_error.is_none());
+    }
+
+    // ==================== RouterHealthStatus Tests ====================
+
+    #[test]
+    fn test_router_health_status_debug() {
+        let status = RouterHealthStatus {
+            healthy: true,
+            providers: HashMap::new(),
+            last_check: Instant::now(),
+        };
+        let debug = format!("{:?}", status);
+        assert!(debug.contains("RouterHealthStatus"));
+        assert!(debug.contains("healthy"));
+    }
+
+    #[test]
+    fn test_router_health_status_clone() {
+        let mut providers = HashMap::new();
+        providers.insert("openai".to_string(), ProviderHealthStatus::default());
+
+        let status = RouterHealthStatus {
+            healthy: true,
+            providers,
+            last_check: Instant::now(),
+        };
+
+        let cloned = status.clone();
+        assert!(cloned.healthy);
+        assert!(cloned.providers.contains_key("openai"));
+    }
+
+    #[test]
+    fn test_router_health_status_empty_providers() {
+        let status = RouterHealthStatus {
+            healthy: false,
+            providers: HashMap::new(),
+            last_check: Instant::now(),
+        };
+
+        assert!(!status.healthy);
+        assert!(status.providers.is_empty());
+    }
+
+    #[test]
+    fn test_router_health_status_with_mixed_providers() {
+        let mut providers = HashMap::new();
+
+        let mut healthy_provider = ProviderHealthStatus::default();
+        healthy_provider.healthy = true;
+
+        let mut unhealthy_provider = ProviderHealthStatus::default();
+        unhealthy_provider.healthy = false;
+
+        providers.insert("openai".to_string(), healthy_provider);
+        providers.insert("anthropic".to_string(), unhealthy_provider);
+
+        let status = RouterHealthStatus {
+            healthy: true, // At least one provider is healthy
+            providers,
+            last_check: Instant::now(),
+        };
+
+        assert!(status.healthy);
+        assert_eq!(status.providers.len(), 2);
+        assert!(status.providers.get("openai").unwrap().healthy);
+        assert!(!status.providers.get("anthropic").unwrap().healthy);
+    }
+
+    // ==================== Health Status Calculation Tests ====================
+
+    #[test]
+    fn test_overall_health_any_healthy() {
+        let mut providers = HashMap::new();
+
+        let mut status1 = ProviderHealthStatus::default();
+        status1.healthy = false;
+
+        let mut status2 = ProviderHealthStatus::default();
+        status2.healthy = true;
+
+        let mut status3 = ProviderHealthStatus::default();
+        status3.healthy = false;
+
+        providers.insert("p1".to_string(), status1);
+        providers.insert("p2".to_string(), status2);
+        providers.insert("p3".to_string(), status3);
+
+        // At least one provider is healthy
+        let overall_healthy = providers.values().any(|s| s.healthy);
+        assert!(overall_healthy);
+    }
+
+    #[test]
+    fn test_overall_health_all_unhealthy() {
+        let mut providers = HashMap::new();
+
+        let mut status1 = ProviderHealthStatus::default();
+        status1.healthy = false;
+
+        let mut status2 = ProviderHealthStatus::default();
+        status2.healthy = false;
+
+        providers.insert("p1".to_string(), status1);
+        providers.insert("p2".to_string(), status2);
+
+        // No provider is healthy
+        let overall_healthy = providers.values().any(|s| s.healthy);
+        assert!(!overall_healthy);
+    }
+
+    #[test]
+    fn test_overall_health_all_healthy() {
+        let mut providers = HashMap::new();
+
+        let mut status1 = ProviderHealthStatus::default();
+        status1.healthy = true;
+
+        let mut status2 = ProviderHealthStatus::default();
+        status2.healthy = true;
+
+        providers.insert("p1".to_string(), status1);
+        providers.insert("p2".to_string(), status2);
+
+        let overall_healthy = providers.values().any(|s| s.healthy);
+        assert!(overall_healthy);
+
+        let all_healthy = providers.values().all(|s| s.healthy);
+        assert!(all_healthy);
+    }
+
+    // ==================== Failure Counting Tests ====================
+
+    #[test]
+    fn test_consecutive_failures_increment() {
+        let mut status = ProviderHealthStatus::default();
+        assert_eq!(status.consecutive_failures, 0);
+
+        status.consecutive_failures += 1;
+        assert_eq!(status.consecutive_failures, 1);
+
+        status.consecutive_failures += 1;
+        assert_eq!(status.consecutive_failures, 2);
+
+        status.consecutive_failures += 1;
+        assert_eq!(status.consecutive_failures, 3);
+    }
+
+    #[test]
+    fn test_consecutive_failures_threshold() {
+        let max_failures = 3u32;
+        let mut status = ProviderHealthStatus::default();
+
+        // Below threshold
+        status.consecutive_failures = 2;
+        assert!(status.consecutive_failures < max_failures);
+        assert!(status.healthy);
+
+        // At threshold
+        status.consecutive_failures = 3;
+        if status.consecutive_failures >= max_failures {
+            status.healthy = false;
+        }
+        assert!(!status.healthy);
+    }
+
+    #[test]
+    fn test_failure_reset_on_success() {
+        let mut status = ProviderHealthStatus::default();
+
+        // Accumulate failures
+        status.consecutive_failures = 2;
+        status.last_error = Some("Error".to_string());
+        status.healthy = true; // Still healthy, not yet at threshold
+
+        // Success resets counters
+        status.consecutive_failures = 0;
+        status.last_success = Some(Instant::now());
+        status.last_error = None;
+
+        assert_eq!(status.consecutive_failures, 0);
+        assert!(status.last_error.is_none());
+        assert!(status.last_success.is_some());
+    }
+
+    // ==================== Response Time Tests ====================
+
+    #[test]
+    fn test_response_time_tracking() {
+        let mut status = ProviderHealthStatus::default();
+        assert!(status.response_time.is_none());
+
+        status.response_time = Some(Duration::from_millis(150));
+        assert_eq!(status.response_time, Some(Duration::from_millis(150)));
+
+        // Update response time
+        status.response_time = Some(Duration::from_millis(75));
+        assert_eq!(status.response_time, Some(Duration::from_millis(75)));
+    }
+
+    #[test]
+    fn test_response_time_timeout_check() {
+        let timeout = Duration::from_secs(10);
+        let response_time = Duration::from_millis(500);
+
+        // Fast response - healthy
+        assert!(response_time <= timeout);
+
+        let slow_response = Duration::from_secs(15);
+        // Slow response - timeout
+        assert!(slow_response > timeout);
+    }
+
+    // ==================== Provider Filtering Tests ====================
+
+    #[test]
+    fn test_filter_healthy_providers() {
+        let mut providers = HashMap::new();
+
+        let mut status1 = ProviderHealthStatus::default();
+        status1.healthy = true;
+
+        let mut status2 = ProviderHealthStatus::default();
+        status2.healthy = false;
+
+        let mut status3 = ProviderHealthStatus::default();
+        status3.healthy = true;
+
+        providers.insert("openai".to_string(), status1);
+        providers.insert("anthropic".to_string(), status2);
+        providers.insert("google".to_string(), status3);
+
+        let healthy: Vec<String> = providers
+            .iter()
+            .filter(|(_, status)| status.healthy)
+            .map(|(name, _)| name.clone())
+            .collect();
+
+        assert_eq!(healthy.len(), 2);
+        assert!(healthy.contains(&"openai".to_string()));
+        assert!(healthy.contains(&"google".to_string()));
+        assert!(!healthy.contains(&"anthropic".to_string()));
+    }
+
+    #[test]
+    fn test_filter_unhealthy_providers() {
+        let mut providers = HashMap::new();
+
+        let mut status1 = ProviderHealthStatus::default();
+        status1.healthy = true;
+
+        let mut status2 = ProviderHealthStatus::default();
+        status2.healthy = false;
+        status2.last_error = Some("Rate limited".to_string());
+
+        providers.insert("openai".to_string(), status1);
+        providers.insert("anthropic".to_string(), status2);
+
+        let unhealthy: Vec<String> = providers
+            .iter()
+            .filter(|(_, status)| !status.healthy)
+            .map(|(name, _)| name.clone())
+            .collect();
+
+        assert_eq!(unhealthy.len(), 1);
+        assert!(unhealthy.contains(&"anthropic".to_string()));
+    }
+
+    // ==================== Edge Cases ====================
+
+    #[test]
+    fn test_empty_provider_map() {
+        let providers: HashMap<String, ProviderHealthStatus> = HashMap::new();
+
+        let healthy: Vec<String> = providers
+            .iter()
+            .filter(|(_, status)| status.healthy)
+            .map(|(name, _)| name.clone())
+            .collect();
+
+        assert!(healthy.is_empty());
+
+        // Overall health with no providers
+        let overall_healthy = providers.values().any(|s| s.healthy);
+        assert!(!overall_healthy);
+    }
+
+    #[test]
+    fn test_status_with_long_error_message() {
+        let mut status = ProviderHealthStatus::default();
+        let long_error = "a".repeat(10000);
+        status.last_error = Some(long_error.clone());
+
+        assert_eq!(status.last_error.as_ref().unwrap().len(), 10000);
+    }
+
+    #[test]
+    fn test_status_timestamps() {
+        let before = Instant::now();
+        let status = ProviderHealthStatus::default();
+        let after = Instant::now();
+
+        // last_check should be between before and after
+        assert!(status.last_check >= before);
+        assert!(status.last_check <= after);
+    }
+
+    #[test]
+    fn test_high_failure_count() {
+        let mut status = ProviderHealthStatus::default();
+        status.consecutive_failures = u32::MAX;
+        assert_eq!(status.consecutive_failures, u32::MAX);
+    }
+}
