@@ -63,21 +63,126 @@ pub async fn log_api_usage(context: &RequestContext, model: &str, tokens_used: u
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::models::user::types::User;
+    use crate::core::models::{Metadata, UsageStats};
+
+    fn create_test_user() -> User {
+        User::new(
+            "testuser".to_string(),
+            "test@example.com".to_string(),
+            "hash".to_string(),
+        )
+    }
+
+    fn create_test_api_key() -> ApiKey {
+        ApiKey {
+            metadata: Metadata::new(),
+            name: "test-key".to_string(),
+            key_hash: "hash".to_string(),
+            key_prefix: "sk-test".to_string(),
+            user_id: None,
+            team_id: None,
+            permissions: vec![],
+            rate_limits: None,
+            expires_at: None,
+            is_active: true,
+            last_used_at: None,
+            usage_stats: UsageStats::default(),
+        }
+    }
+
+    // ==================== check_permission Tests ====================
 
     #[test]
-    fn test_check_permission() {
-        // Test with no authentication
+    fn test_check_permission_no_auth() {
         assert!(!check_permission(None, None, "chat"));
-
-        // Test with user (would need actual User instance in real test)
-        // assert!(check_permission(Some(&user), None, "chat"));
     }
+
+    #[test]
+    fn test_check_permission_with_user() {
+        let user = create_test_user();
+        assert!(check_permission(Some(&user), None, "chat"));
+    }
+
+    #[test]
+    fn test_check_permission_with_api_key() {
+        let api_key = create_test_api_key();
+        assert!(check_permission(None, Some(&api_key), "chat"));
+    }
+
+    #[test]
+    fn test_check_permission_with_both() {
+        let user = create_test_user();
+        let api_key = create_test_api_key();
+        assert!(check_permission(Some(&user), Some(&api_key), "chat"));
+    }
+
+    #[test]
+    fn test_check_permission_various_operations() {
+        let user = create_test_user();
+        assert!(check_permission(Some(&user), None, "chat"));
+        assert!(check_permission(Some(&user), None, "completions"));
+        assert!(check_permission(Some(&user), None, "embeddings"));
+        assert!(check_permission(Some(&user), None, "images"));
+    }
+
+    // ==================== get_authenticated_user Tests ====================
+
+    #[test]
+    fn test_get_authenticated_user_returns_none() {
+        let headers = HeaderMap::new();
+        assert!(get_authenticated_user(&headers).is_none());
+    }
+
+    // ==================== get_authenticated_api_key Tests ====================
+
+    #[test]
+    fn test_get_authenticated_api_key_returns_none() {
+        let headers = HeaderMap::new();
+        assert!(get_authenticated_api_key(&headers).is_none());
+    }
+
+    // ==================== log_api_usage Tests ====================
 
     #[tokio::test]
     async fn test_log_api_usage() {
-        // This would require actual state in a real test
-        // For now, just test that the function doesn't panic
         let context = RequestContext::new();
         log_api_usage(&context, "gpt-4", 100, 0.002).await;
+        // Function should not panic
+    }
+
+    #[tokio::test]
+    async fn test_log_api_usage_various_models() {
+        let context = RequestContext::new();
+        log_api_usage(&context, "gpt-3.5-turbo", 50, 0.001).await;
+        log_api_usage(&context, "claude-3-opus", 200, 0.005).await;
+        log_api_usage(&context, "gemini-pro", 75, 0.0015).await;
+    }
+
+    #[tokio::test]
+    async fn test_log_api_usage_zero_tokens() {
+        let context = RequestContext::new();
+        log_api_usage(&context, "gpt-4", 0, 0.0).await;
+    }
+
+    #[tokio::test]
+    async fn test_log_api_usage_large_values() {
+        let context = RequestContext::new();
+        log_api_usage(&context, "gpt-4", 100000, 100.0).await;
+    }
+
+    #[tokio::test]
+    async fn test_log_api_usage_with_user_id() {
+        let mut context = RequestContext::new();
+        context.user_id = Some(uuid::Uuid::new_v4());
+        log_api_usage(&context, "gpt-4", 100, 0.002).await;
+    }
+
+    // ==================== RequestContext Tests ====================
+
+    #[test]
+    fn test_request_context_new() {
+        let context = RequestContext::new();
+        assert!(context.user_id.is_none());
     }
 }
