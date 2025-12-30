@@ -155,18 +155,223 @@ impl RequestMetrics {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_request_metrics_creation() {
-        let metrics = RequestMetrics::new(
+    fn create_test_metrics() -> RequestMetrics {
+        RequestMetrics::new(
             "req-123".to_string(),
             "gpt-4".to_string(),
             "openai".to_string(),
             "chat_completion".to_string(),
-        );
+        )
+    }
+
+    // ==================== RequestMetrics Creation Tests ====================
+
+    #[test]
+    fn test_request_metrics_creation() {
+        let metrics = create_test_metrics();
 
         assert_eq!(metrics.request_id, "req-123");
         assert_eq!(metrics.model, "gpt-4");
         assert_eq!(metrics.provider, "openai");
         assert!(matches!(metrics.status, RequestStatus::Success));
+    }
+
+    #[test]
+    fn test_request_metrics_default_values() {
+        let metrics = create_test_metrics();
+
+        assert!(metrics.user_id.is_none());
+        assert!(metrics.team_id.is_none());
+        assert!(metrics.api_key_id.is_none());
+        assert_eq!(metrics.status_code, 200);
+        assert_eq!(metrics.response_time_ms, 0);
+        assert_eq!(metrics.queue_time_ms, 0);
+        assert_eq!(metrics.provider_time_ms, 0);
+        assert!(metrics.error.is_none());
+        assert!(metrics.extra.is_empty());
+    }
+
+    // ==================== Builder Pattern Tests ====================
+
+    #[test]
+    fn test_with_user() {
+        let user_id = Uuid::new_v4();
+        let team_id = Uuid::new_v4();
+        let metrics = create_test_metrics().with_user(user_id, Some(team_id));
+
+        assert_eq!(metrics.user_id, Some(user_id));
+        assert_eq!(metrics.team_id, Some(team_id));
+    }
+
+    #[test]
+    fn test_with_user_no_team() {
+        let user_id = Uuid::new_v4();
+        let metrics = create_test_metrics().with_user(user_id, None);
+
+        assert_eq!(metrics.user_id, Some(user_id));
+        assert!(metrics.team_id.is_none());
+    }
+
+    #[test]
+    fn test_with_api_key() {
+        let api_key_id = Uuid::new_v4();
+        let metrics = create_test_metrics().with_api_key(api_key_id);
+
+        assert_eq!(metrics.api_key_id, Some(api_key_id));
+    }
+
+    #[test]
+    fn test_with_timing() {
+        let metrics = create_test_metrics().with_timing(100, 10, 80);
+
+        assert_eq!(metrics.response_time_ms, 100);
+        assert_eq!(metrics.queue_time_ms, 10);
+        assert_eq!(metrics.provider_time_ms, 80);
+    }
+
+    #[test]
+    fn test_with_timing_zero_values() {
+        let metrics = create_test_metrics().with_timing(0, 0, 0);
+
+        assert_eq!(metrics.response_time_ms, 0);
+        assert_eq!(metrics.queue_time_ms, 0);
+        assert_eq!(metrics.provider_time_ms, 0);
+    }
+
+    #[test]
+    fn test_with_tokens() {
+        let metrics = create_test_metrics().with_tokens(1000, 500);
+
+        assert_eq!(metrics.token_usage.input_tokens, 1000);
+        assert_eq!(metrics.token_usage.output_tokens, 500);
+        assert_eq!(metrics.token_usage.total_tokens, 1500);
+    }
+
+    #[test]
+    fn test_with_cost() {
+        let metrics = create_test_metrics().with_cost(0.01, 0.02, "USD".to_string());
+
+        assert_eq!(metrics.cost.input_cost, 0.01);
+        assert_eq!(metrics.cost.output_cost, 0.02);
+        assert_eq!(metrics.cost.total_cost, 0.03);
+        assert_eq!(metrics.cost.currency, "USD");
+    }
+
+    #[test]
+    fn test_with_error() {
+        let error = ErrorInfo {
+            code: "rate_limit".to_string(),
+            message: "Too many requests".to_string(),
+            error_type: "rate_limit_error".to_string(),
+            provider_code: None,
+            stack_trace: None,
+        };
+        let metrics = create_test_metrics().with_error(error);
+
+        assert!(matches!(metrics.status, RequestStatus::Error));
+        assert!(metrics.error.is_some());
+        assert_eq!(metrics.error.as_ref().unwrap().code, "rate_limit");
+    }
+
+    #[test]
+    fn test_with_cache() {
+        let cache = CacheMetrics {
+            hit: true,
+            ..Default::default()
+        };
+        let metrics = create_test_metrics().with_cache(cache);
+
+        assert!(metrics.cache.hit);
+    }
+
+    // ==================== Builder Chaining Tests ====================
+
+    #[test]
+    fn test_builder_chain() {
+        let user_id = Uuid::new_v4();
+        let api_key_id = Uuid::new_v4();
+
+        let metrics = create_test_metrics()
+            .with_user(user_id, None)
+            .with_api_key(api_key_id)
+            .with_timing(150, 20, 120)
+            .with_tokens(2000, 1000)
+            .with_cost(0.05, 0.10, "EUR".to_string());
+
+        assert_eq!(metrics.user_id, Some(user_id));
+        assert_eq!(metrics.api_key_id, Some(api_key_id));
+        assert_eq!(metrics.response_time_ms, 150);
+        assert_eq!(metrics.token_usage.total_tokens, 3000);
+        assert!((metrics.cost.total_cost - 0.15).abs() < 1e-10);
+    }
+
+    // ==================== RequestStatus Tests ====================
+
+    #[test]
+    fn test_request_status_success() {
+        let metrics = create_test_metrics();
+        assert!(matches!(metrics.status, RequestStatus::Success));
+    }
+
+    #[test]
+    fn test_request_status_error() {
+        let error = ErrorInfo {
+            code: "error".to_string(),
+            message: "Error".to_string(),
+            error_type: "generic_error".to_string(),
+            provider_code: None,
+            stack_trace: None,
+        };
+        let metrics = create_test_metrics().with_error(error);
+        assert!(matches!(metrics.status, RequestStatus::Error));
+    }
+
+    // ==================== Serialization Tests ====================
+
+    #[test]
+    fn test_request_status_serialization() {
+        let status = RequestStatus::RateLimit;
+        let json = serde_json::to_value(&status).unwrap();
+        assert_eq!(json, "rate_limit");
+    }
+
+    #[test]
+    fn test_request_status_deserialization() {
+        let json = "\"quota_exceeded\"";
+        let status: RequestStatus = serde_json::from_str(json).unwrap();
+        assert!(matches!(status, RequestStatus::QuotaExceeded));
+    }
+
+    #[test]
+    fn test_request_metrics_serialization() {
+        let metrics = create_test_metrics();
+        let json = serde_json::to_value(&metrics).unwrap();
+
+        assert_eq!(json["request_id"], "req-123");
+        assert_eq!(json["model"], "gpt-4");
+        assert_eq!(json["provider"], "openai");
+    }
+
+    // ==================== Clone Tests ====================
+
+    #[test]
+    fn test_request_metrics_clone() {
+        let original = create_test_metrics().with_tokens(100, 50);
+        let cloned = original.clone();
+
+        assert_eq!(original.request_id, cloned.request_id);
+        assert_eq!(original.token_usage.input_tokens, cloned.token_usage.input_tokens);
+    }
+
+    // ==================== Extra Metadata Tests ====================
+
+    #[test]
+    fn test_extra_metadata() {
+        let mut metrics = create_test_metrics();
+        metrics.extra.insert("custom_key".to_string(), serde_json::json!("custom_value"));
+        metrics.extra.insert("numeric".to_string(), serde_json::json!(42));
+
+        assert_eq!(metrics.extra.len(), 2);
+        assert_eq!(metrics.extra.get("custom_key").unwrap(), "custom_value");
     }
 }
