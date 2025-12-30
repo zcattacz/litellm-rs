@@ -110,3 +110,509 @@ pub struct FunctionCallDelta {
     /// Incremental function arguments
     pub arguments: Option<String>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ==================== Event Tests ====================
+
+    #[test]
+    fn test_event_new() {
+        let event = Event::new();
+        assert!(event.event.is_none());
+        assert!(event.data.is_empty());
+    }
+
+    #[test]
+    fn test_event_default() {
+        let event = Event::default();
+        assert!(event.event.is_none());
+        assert!(event.data.is_empty());
+    }
+
+    #[test]
+    fn test_event_with_data() {
+        let event = Event::default().data("Hello, World!");
+        assert!(event.event.is_none());
+        assert_eq!(event.data, "Hello, World!");
+    }
+
+    #[test]
+    fn test_event_with_event_type() {
+        let event = Event::default().event("message");
+        assert_eq!(event.event, Some("message".to_string()));
+        assert!(event.data.is_empty());
+    }
+
+    #[test]
+    fn test_event_with_both() {
+        let event = Event::default().event("message").data("test data");
+        assert_eq!(event.event, Some("message".to_string()));
+        assert_eq!(event.data, "test data");
+    }
+
+    #[test]
+    fn test_event_builder_chain() {
+        let event = Event::new().event("error").data("{\"error\": \"test\"}");
+        assert_eq!(event.event, Some("error".to_string()));
+        assert_eq!(event.data, "{\"error\": \"test\"}");
+    }
+
+    #[test]
+    fn test_event_to_bytes_data_only() {
+        let event = Event::default().data("test");
+        let bytes = event.to_bytes();
+        let result = String::from_utf8_lossy(&bytes);
+        assert_eq!(result, "data: test\n\n");
+    }
+
+    #[test]
+    fn test_event_to_bytes_with_event_type() {
+        let event = Event::default().event("message").data("test");
+        let bytes = event.to_bytes();
+        let result = String::from_utf8_lossy(&bytes);
+        assert_eq!(result, "event: message\ndata: test\n\n");
+    }
+
+    #[test]
+    fn test_event_to_bytes_empty() {
+        let event = Event::default();
+        let bytes = event.to_bytes();
+        let result = String::from_utf8_lossy(&bytes);
+        assert_eq!(result, "data: \n\n");
+    }
+
+    #[test]
+    fn test_event_to_bytes_json_data() {
+        let event = Event::default().data("{\"choices\":[{\"delta\":{\"content\":\"Hi\"}}]}");
+        let bytes = event.to_bytes();
+        let result = String::from_utf8_lossy(&bytes);
+        assert!(result.contains("data: {\"choices\""));
+        assert!(result.ends_with("\n\n"));
+    }
+
+    #[test]
+    fn test_event_clone() {
+        let event1 = Event::default().event("test").data("data");
+        let event2 = event1.clone();
+        assert_eq!(event1.event, event2.event);
+        assert_eq!(event1.data, event2.data);
+    }
+
+    // ==================== ChatCompletionChunk Tests ====================
+
+    #[test]
+    fn test_chat_completion_chunk_serialize() {
+        let chunk = ChatCompletionChunk {
+            id: "chatcmpl-123".to_string(),
+            object: "chat.completion.chunk".to_string(),
+            created: 1234567890,
+            model: "gpt-4".to_string(),
+            system_fingerprint: None,
+            choices: vec![],
+            usage: None,
+        };
+
+        let json = serde_json::to_string(&chunk).unwrap();
+        assert!(json.contains("chatcmpl-123"));
+        assert!(json.contains("chat.completion.chunk"));
+        assert!(json.contains("gpt-4"));
+    }
+
+    #[test]
+    fn test_chat_completion_chunk_deserialize() {
+        let json = r#"{
+            "id": "chatcmpl-abc",
+            "object": "chat.completion.chunk",
+            "created": 1700000000,
+            "model": "gpt-4-turbo",
+            "choices": []
+        }"#;
+
+        let chunk: ChatCompletionChunk = serde_json::from_str(json).unwrap();
+        assert_eq!(chunk.id, "chatcmpl-abc");
+        assert_eq!(chunk.object, "chat.completion.chunk");
+        assert_eq!(chunk.created, 1700000000);
+        assert_eq!(chunk.model, "gpt-4-turbo");
+        assert!(chunk.choices.is_empty());
+    }
+
+    #[test]
+    fn test_chat_completion_chunk_with_choices() {
+        let chunk = ChatCompletionChunk {
+            id: "test".to_string(),
+            object: "chat.completion.chunk".to_string(),
+            created: 0,
+            model: "gpt-4".to_string(),
+            system_fingerprint: Some("fp_123".to_string()),
+            choices: vec![ChatCompletionChunkChoice {
+                index: 0,
+                delta: ChatCompletionDelta {
+                    role: Some(MessageRole::Assistant),
+                    content: Some("Hello".to_string()),
+                    tool_calls: None,
+                },
+                finish_reason: None,
+                logprobs: None,
+            }],
+            usage: None,
+        };
+
+        assert_eq!(chunk.choices.len(), 1);
+        assert_eq!(chunk.choices[0].delta.content, Some("Hello".to_string()));
+    }
+
+    #[test]
+    fn test_chat_completion_chunk_with_usage() {
+        let usage = Usage {
+            prompt_tokens: 10,
+            completion_tokens: 20,
+            total_tokens: 30,
+            prompt_tokens_details: None,
+            completion_tokens_details: None,
+        };
+
+        let chunk = ChatCompletionChunk {
+            id: "test".to_string(),
+            object: "chat.completion.chunk".to_string(),
+            created: 0,
+            model: "gpt-4".to_string(),
+            system_fingerprint: None,
+            choices: vec![],
+            usage: Some(usage),
+        };
+
+        assert!(chunk.usage.is_some());
+        assert_eq!(chunk.usage.unwrap().total_tokens, 30);
+    }
+
+    #[test]
+    fn test_chat_completion_chunk_clone() {
+        let chunk = ChatCompletionChunk {
+            id: "test".to_string(),
+            object: "chat.completion.chunk".to_string(),
+            created: 123,
+            model: "gpt-4".to_string(),
+            system_fingerprint: None,
+            choices: vec![],
+            usage: None,
+        };
+
+        let cloned = chunk.clone();
+        assert_eq!(chunk.id, cloned.id);
+        assert_eq!(chunk.created, cloned.created);
+    }
+
+    // ==================== ChatCompletionChunkChoice Tests ====================
+
+    #[test]
+    fn test_chunk_choice_serialize() {
+        let choice = ChatCompletionChunkChoice {
+            index: 0,
+            delta: ChatCompletionDelta {
+                role: Some(MessageRole::Assistant),
+                content: Some("Test".to_string()),
+                tool_calls: None,
+            },
+            finish_reason: None,
+            logprobs: None,
+        };
+
+        let json = serde_json::to_string(&choice).unwrap();
+        assert!(json.contains("\"index\":0"));
+        assert!(json.contains("Test"));
+    }
+
+    #[test]
+    fn test_chunk_choice_with_finish_reason() {
+        let choice = ChatCompletionChunkChoice {
+            index: 0,
+            delta: ChatCompletionDelta {
+                role: None,
+                content: None,
+                tool_calls: None,
+            },
+            finish_reason: Some("stop".to_string()),
+            logprobs: None,
+        };
+
+        assert_eq!(choice.finish_reason, Some("stop".to_string()));
+    }
+
+    #[test]
+    fn test_chunk_choice_deserialize() {
+        let json = r#"{
+            "index": 1,
+            "delta": {"content": "hello"},
+            "finish_reason": null
+        }"#;
+
+        let choice: ChatCompletionChunkChoice = serde_json::from_str(json).unwrap();
+        assert_eq!(choice.index, 1);
+        assert_eq!(choice.delta.content, Some("hello".to_string()));
+        assert!(choice.finish_reason.is_none());
+    }
+
+    // ==================== ChatCompletionDelta Tests ====================
+
+    #[test]
+    fn test_delta_empty() {
+        let delta = ChatCompletionDelta {
+            role: None,
+            content: None,
+            tool_calls: None,
+        };
+
+        assert!(delta.role.is_none());
+        assert!(delta.content.is_none());
+        assert!(delta.tool_calls.is_none());
+    }
+
+    #[test]
+    fn test_delta_with_role() {
+        let delta = ChatCompletionDelta {
+            role: Some(MessageRole::Assistant),
+            content: None,
+            tool_calls: None,
+        };
+
+        assert_eq!(delta.role, Some(MessageRole::Assistant));
+    }
+
+    #[test]
+    fn test_delta_with_content() {
+        let delta = ChatCompletionDelta {
+            role: None,
+            content: Some("Hello world".to_string()),
+            tool_calls: None,
+        };
+
+        assert_eq!(delta.content, Some("Hello world".to_string()));
+    }
+
+    #[test]
+    fn test_delta_serialize() {
+        let delta = ChatCompletionDelta {
+            role: Some(MessageRole::User),
+            content: Some("test".to_string()),
+            tool_calls: None,
+        };
+
+        let json = serde_json::to_string(&delta).unwrap();
+        assert!(json.contains("\"content\":\"test\""));
+    }
+
+    #[test]
+    fn test_delta_deserialize() {
+        let json = r#"{"role": "assistant", "content": "Hi"}"#;
+        let delta: ChatCompletionDelta = serde_json::from_str(json).unwrap();
+        assert_eq!(delta.role, Some(MessageRole::Assistant));
+        assert_eq!(delta.content, Some("Hi".to_string()));
+    }
+
+    // ==================== ToolCallDelta Tests ====================
+
+    #[test]
+    fn test_tool_call_delta_empty() {
+        let tool_call = ToolCallDelta {
+            index: 0,
+            id: None,
+            tool_type: None,
+            function: None,
+        };
+
+        assert_eq!(tool_call.index, 0);
+        assert!(tool_call.id.is_none());
+        assert!(tool_call.function.is_none());
+    }
+
+    #[test]
+    fn test_tool_call_delta_first_chunk() {
+        let tool_call = ToolCallDelta {
+            index: 0,
+            id: Some("call_123".to_string()),
+            tool_type: Some("function".to_string()),
+            function: Some(FunctionCallDelta {
+                name: Some("get_weather".to_string()),
+                arguments: None,
+            }),
+        };
+
+        assert_eq!(tool_call.id, Some("call_123".to_string()));
+        assert_eq!(tool_call.tool_type, Some("function".to_string()));
+        assert!(tool_call.function.is_some());
+    }
+
+    #[test]
+    fn test_tool_call_delta_serialize() {
+        let tool_call = ToolCallDelta {
+            index: 0,
+            id: Some("call_abc".to_string()),
+            tool_type: Some("function".to_string()),
+            function: None,
+        };
+
+        let json = serde_json::to_string(&tool_call).unwrap();
+        assert!(json.contains("call_abc"));
+        // Check that type is renamed correctly
+        assert!(json.contains("\"type\":"));
+    }
+
+    #[test]
+    fn test_tool_call_delta_deserialize() {
+        let json = r#"{
+            "index": 0,
+            "id": "call_xyz",
+            "type": "function",
+            "function": {"name": "test_func"}
+        }"#;
+
+        let tool_call: ToolCallDelta = serde_json::from_str(json).unwrap();
+        assert_eq!(tool_call.index, 0);
+        assert_eq!(tool_call.id, Some("call_xyz".to_string()));
+        assert_eq!(tool_call.tool_type, Some("function".to_string()));
+    }
+
+    // ==================== FunctionCallDelta Tests ====================
+
+    #[test]
+    fn test_function_call_delta_empty() {
+        let func = FunctionCallDelta {
+            name: None,
+            arguments: None,
+        };
+
+        assert!(func.name.is_none());
+        assert!(func.arguments.is_none());
+    }
+
+    #[test]
+    fn test_function_call_delta_with_name() {
+        let func = FunctionCallDelta {
+            name: Some("get_weather".to_string()),
+            arguments: None,
+        };
+
+        assert_eq!(func.name, Some("get_weather".to_string()));
+    }
+
+    #[test]
+    fn test_function_call_delta_with_arguments() {
+        let func = FunctionCallDelta {
+            name: None,
+            arguments: Some("{\"location\":".to_string()),
+        };
+
+        assert_eq!(func.arguments, Some("{\"location\":".to_string()));
+    }
+
+    #[test]
+    fn test_function_call_delta_full() {
+        let func = FunctionCallDelta {
+            name: Some("search".to_string()),
+            arguments: Some("{\"query\": \"rust\"}".to_string()),
+        };
+
+        assert_eq!(func.name, Some("search".to_string()));
+        assert_eq!(func.arguments, Some("{\"query\": \"rust\"}".to_string()));
+    }
+
+    #[test]
+    fn test_function_call_delta_serialize() {
+        let func = FunctionCallDelta {
+            name: Some("test".to_string()),
+            arguments: Some("{}".to_string()),
+        };
+
+        let json = serde_json::to_string(&func).unwrap();
+        assert!(json.contains("\"name\":\"test\""));
+        assert!(json.contains("\"arguments\":\"{}\""));
+    }
+
+    #[test]
+    fn test_function_call_delta_deserialize() {
+        let json = r#"{"name": "calculate", "arguments": "{\"x\": 1}"}"#;
+        let func: FunctionCallDelta = serde_json::from_str(json).unwrap();
+        assert_eq!(func.name, Some("calculate".to_string()));
+        assert_eq!(func.arguments, Some("{\"x\": 1}".to_string()));
+    }
+
+    #[test]
+    fn test_function_call_delta_clone() {
+        let func = FunctionCallDelta {
+            name: Some("test".to_string()),
+            arguments: Some("args".to_string()),
+        };
+
+        let cloned = func.clone();
+        assert_eq!(func.name, cloned.name);
+        assert_eq!(func.arguments, cloned.arguments);
+    }
+
+    // ==================== Integration Tests ====================
+
+    #[test]
+    fn test_full_streaming_chunk() {
+        let chunk = ChatCompletionChunk {
+            id: "chatcmpl-streaming".to_string(),
+            object: "chat.completion.chunk".to_string(),
+            created: 1700000000,
+            model: "gpt-4".to_string(),
+            system_fingerprint: Some("fp_abc123".to_string()),
+            choices: vec![ChatCompletionChunkChoice {
+                index: 0,
+                delta: ChatCompletionDelta {
+                    role: Some(MessageRole::Assistant),
+                    content: Some("Hello!".to_string()),
+                    tool_calls: None,
+                },
+                finish_reason: None,
+                logprobs: None,
+            }],
+            usage: None,
+        };
+
+        let json = serde_json::to_string(&chunk).unwrap();
+        let parsed: ChatCompletionChunk = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(parsed.id, chunk.id);
+        assert_eq!(parsed.choices.len(), 1);
+        assert_eq!(parsed.choices[0].delta.content, Some("Hello!".to_string()));
+    }
+
+    #[test]
+    fn test_streaming_with_tool_calls() {
+        let chunk = ChatCompletionChunk {
+            id: "test".to_string(),
+            object: "chat.completion.chunk".to_string(),
+            created: 0,
+            model: "gpt-4".to_string(),
+            system_fingerprint: None,
+            choices: vec![ChatCompletionChunkChoice {
+                index: 0,
+                delta: ChatCompletionDelta {
+                    role: Some(MessageRole::Assistant),
+                    content: None,
+                    tool_calls: Some(vec![ToolCallDelta {
+                        index: 0,
+                        id: Some("call_123".to_string()),
+                        tool_type: Some("function".to_string()),
+                        function: Some(FunctionCallDelta {
+                            name: Some("get_weather".to_string()),
+                            arguments: Some("{\"city\":\"NYC\"}".to_string()),
+                        }),
+                    }]),
+                },
+                finish_reason: None,
+                logprobs: None,
+            }],
+            usage: None,
+        };
+
+        let json = serde_json::to_string(&chunk).unwrap();
+        assert!(json.contains("tool_calls"));
+        assert!(json.contains("get_weather"));
+        assert!(json.contains("NYC"));
+    }
+}
