@@ -45,3 +45,245 @@ pub fn anthropic_provider(name: &str, api_key: &str) -> Result<ProviderConfigBui
         .add_model("claude-3-haiku")
         .rate_limit(1000))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ==================== dev_server Tests ====================
+
+    #[test]
+    fn test_dev_server_host() {
+        let builder = dev_server();
+        assert_eq!(builder.host, Some("127.0.0.1".to_string()));
+    }
+
+    #[test]
+    fn test_dev_server_port() {
+        let builder = dev_server();
+        assert_eq!(builder.port, Some(8080));
+    }
+
+    #[test]
+    fn test_dev_server_workers() {
+        let builder = dev_server();
+        assert_eq!(builder.workers, Some(1));
+    }
+
+    #[test]
+    fn test_dev_server_cors_enabled() {
+        let builder = dev_server();
+        assert!(builder.enable_cors);
+    }
+
+    #[test]
+    fn test_dev_server_cors_origin() {
+        let builder = dev_server();
+        assert_eq!(builder.cors_origins, vec!["*"]);
+    }
+
+    #[test]
+    fn test_dev_server_build() {
+        let config = dev_server().build();
+        assert_eq!(config.host, "127.0.0.1");
+        assert_eq!(config.port, 8080);
+        assert_eq!(config.workers, Some(1));
+        assert!(config.cors.enabled);
+    }
+
+    // ==================== prod_server Tests ====================
+
+    #[test]
+    fn test_prod_server_host() {
+        let builder = prod_server();
+        assert_eq!(builder.host, Some("0.0.0.0".to_string()));
+    }
+
+    #[test]
+    fn test_prod_server_port() {
+        let builder = prod_server();
+        assert_eq!(builder.port, Some(8080));
+    }
+
+    #[test]
+    fn test_prod_server_workers() {
+        let builder = prod_server();
+        // Workers should be set to number of CPUs
+        assert!(builder.workers.is_some());
+        assert!(builder.workers.unwrap() >= 1);
+    }
+
+    #[test]
+    fn test_prod_server_max_connections() {
+        let builder = prod_server();
+        assert_eq!(builder.max_connections, Some(10000));
+    }
+
+    #[test]
+    fn test_prod_server_timeout() {
+        let builder = prod_server();
+        assert_eq!(builder.timeout, Some(Duration::from_secs(60)));
+    }
+
+    #[test]
+    fn test_prod_server_build() {
+        let config = prod_server().build();
+        assert_eq!(config.host, "0.0.0.0");
+        assert_eq!(config.port, 8080);
+        assert_eq!(config.timeout, 60);
+    }
+
+    #[test]
+    fn test_prod_server_cors_default() {
+        let builder = prod_server();
+        // CORS not explicitly enabled in prod_server
+        assert!(!builder.enable_cors);
+    }
+
+    // ==================== openai_provider Tests ====================
+
+    #[test]
+    fn test_openai_provider_success() {
+        let result = openai_provider("my-openai", "sk-test-key");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_openai_provider_name() {
+        let builder = openai_provider("my-openai", "sk-test").unwrap();
+        assert!(builder.name.is_some());
+    }
+
+    #[test]
+    fn test_openai_provider_type() {
+        let builder = openai_provider("test", "key").unwrap();
+        assert!(builder.provider_type.is_some());
+    }
+
+    #[test]
+    fn test_openai_provider_api_key() {
+        let builder = openai_provider("test", "sk-my-api-key").unwrap();
+        assert_eq!(builder.api_key, Some("sk-my-api-key".to_string()));
+    }
+
+    #[test]
+    fn test_openai_provider_models() {
+        let builder = openai_provider("test", "key").unwrap();
+        assert_eq!(builder.models.len(), 2);
+        assert!(builder.models.contains(&"gpt-3.5-turbo".to_string()));
+        assert!(builder.models.contains(&"gpt-4".to_string()));
+    }
+
+    #[test]
+    fn test_openai_provider_rate_limit() {
+        let builder = openai_provider("test", "key").unwrap();
+        assert_eq!(builder.max_requests_per_minute, Some(3000));
+    }
+
+    #[test]
+    fn test_openai_provider_build() {
+        let config = openai_provider("openai-prod", "sk-real-key")
+            .unwrap()
+            .build()
+            .unwrap();
+        assert_eq!(config.name, "openai-prod");
+        assert_eq!(config.provider_type, "openai");
+        assert_eq!(config.api_key, "sk-real-key");
+        assert_eq!(config.rpm, 3000);
+    }
+
+    #[test]
+    fn test_openai_provider_empty_name_fails() {
+        let result = openai_provider("", "key");
+        assert!(result.is_err());
+    }
+
+    // ==================== anthropic_provider Tests ====================
+
+    #[test]
+    fn test_anthropic_provider_success() {
+        let result = anthropic_provider("my-anthropic", "sk-ant-test");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_anthropic_provider_name() {
+        let builder = anthropic_provider("claude-provider", "key").unwrap();
+        assert!(builder.name.is_some());
+    }
+
+    #[test]
+    fn test_anthropic_provider_type() {
+        let builder = anthropic_provider("test", "key").unwrap();
+        assert!(builder.provider_type.is_some());
+    }
+
+    #[test]
+    fn test_anthropic_provider_api_key() {
+        let builder = anthropic_provider("test", "sk-ant-key123").unwrap();
+        assert_eq!(builder.api_key, Some("sk-ant-key123".to_string()));
+    }
+
+    #[test]
+    fn test_anthropic_provider_models() {
+        let builder = anthropic_provider("test", "key").unwrap();
+        assert_eq!(builder.models.len(), 2);
+        assert!(builder.models.contains(&"claude-3-sonnet".to_string()));
+        assert!(builder.models.contains(&"claude-3-haiku".to_string()));
+    }
+
+    #[test]
+    fn test_anthropic_provider_rate_limit() {
+        let builder = anthropic_provider("test", "key").unwrap();
+        assert_eq!(builder.max_requests_per_minute, Some(1000));
+    }
+
+    #[test]
+    fn test_anthropic_provider_build() {
+        let config = anthropic_provider("anthropic-prod", "sk-ant-real")
+            .unwrap()
+            .build()
+            .unwrap();
+        assert_eq!(config.name, "anthropic-prod");
+        assert_eq!(config.provider_type, "anthropic");
+        assert_eq!(config.api_key, "sk-ant-real");
+        assert_eq!(config.rpm, 1000);
+    }
+
+    #[test]
+    fn test_anthropic_provider_empty_name_fails() {
+        let result = anthropic_provider("", "key");
+        assert!(result.is_err());
+    }
+
+    // ==================== Comparison Tests ====================
+
+    #[test]
+    fn test_dev_vs_prod_workers() {
+        let dev = dev_server();
+        let prod = prod_server();
+
+        // Dev has 1 worker, prod has multiple (CPU count)
+        assert_eq!(dev.workers, Some(1));
+        assert!(prod.workers.unwrap() >= 1);
+    }
+
+    #[test]
+    fn test_dev_vs_prod_host() {
+        let dev = dev_server();
+        let prod = prod_server();
+
+        // Dev binds to localhost, prod to all interfaces
+        assert_eq!(dev.host, Some("127.0.0.1".to_string()));
+        assert_eq!(prod.host, Some("0.0.0.0".to_string()));
+    }
+
+    #[test]
+    fn test_openai_vs_anthropic_rate_limit() {
+        let openai = openai_provider("o", "k").unwrap();
+        let anthropic = anthropic_provider("a", "k").unwrap();
+
+        // OpenAI has higher rate limit
+        assert!(openai.max_requests_per_minute.unwrap() > anthropic.max_requests_per_minute.unwrap());
+    }
+}
