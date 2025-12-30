@@ -71,3 +71,428 @@ pub fn convert_usage(usage: &crate::core::types::Usage) -> Usage {
         thinking_usage: usage.thinking_usage.clone(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::types::{
+        ChatChoice, FinishReason, MessageContent, MessageRole, ThinkingUsage,
+    };
+    use std::collections::HashMap;
+
+    // ==================== Helper Functions ====================
+
+    fn create_test_message(role: MessageRole, content: &str) -> ChatMessage {
+        ChatMessage {
+            role,
+            content: Some(MessageContent::Text(content.to_string())),
+            ..Default::default()
+        }
+    }
+
+    fn create_test_usage() -> crate::core::types::Usage {
+        crate::core::types::Usage {
+            prompt_tokens: 100,
+            completion_tokens: 50,
+            total_tokens: 150,
+            prompt_tokens_details: None,
+            completion_tokens_details: None,
+            thinking_usage: None,
+        }
+    }
+
+    fn create_test_chat_response() -> ChatResponse {
+        ChatResponse {
+            id: "chatcmpl-123".to_string(),
+            object: "chat.completion".to_string(),
+            created: 1234567890,
+            model: "gpt-4".to_string(),
+            choices: vec![ChatChoice {
+                index: 0,
+                message: create_test_message(MessageRole::Assistant, "Hello, world!"),
+                finish_reason: Some(FinishReason::Stop),
+                logprobs: None,
+            }],
+            usage: Some(create_test_usage()),
+            system_fingerprint: None,
+        }
+    }
+
+    // ==================== convert_to_chat_completion_request Tests ====================
+
+    #[test]
+    fn test_convert_to_chat_completion_request_basic() {
+        let messages = vec![
+            create_test_message(MessageRole::User, "Hello"),
+        ];
+        let options = CompletionOptions::default();
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert_eq!(result.model, "gpt-4");
+        assert_eq!(result.messages.len(), 1);
+        assert!(!result.stream);
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_with_temperature() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        options.temperature = Some(0.7);
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert_eq!(result.temperature, Some(0.7));
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_with_max_tokens() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        options.max_tokens = Some(1000);
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert_eq!(result.max_tokens, Some(1000));
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_with_top_p() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        options.top_p = Some(0.9);
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert_eq!(result.top_p, Some(0.9));
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_with_penalties() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        options.frequency_penalty = Some(0.5);
+        options.presence_penalty = Some(0.3);
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert_eq!(result.frequency_penalty, Some(0.5));
+        assert_eq!(result.presence_penalty, Some(0.3));
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_with_stop() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        options.stop = Some(vec!["END".to_string(), "STOP".to_string()]);
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert_eq!(result.stop, Some(vec!["END".to_string(), "STOP".to_string()]));
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_with_stream() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        options.stream = true;
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert!(result.stream);
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_with_user() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        options.user = Some("user_123".to_string());
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert_eq!(result.user, Some("user_123".to_string()));
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_with_seed() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        options.seed = Some(42);
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert_eq!(result.seed, Some(42));
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_with_n() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        options.n = Some(3);
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert_eq!(result.n, Some(3));
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_with_logprobs() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        options.logprobs = Some(true);
+        options.top_logprobs = Some(5);
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert_eq!(result.logprobs, Some(true));
+        assert_eq!(result.top_logprobs, Some(5));
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_with_extra_params() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        let mut extra = HashMap::new();
+        extra.insert("custom_field".to_string(), serde_json::json!("custom_value"));
+        options.extra_params = extra;
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert!(result.extra_params.contains_key("custom_field"));
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_multiple_messages() {
+        let messages = vec![
+            create_test_message(MessageRole::System, "You are helpful"),
+            create_test_message(MessageRole::User, "Hello"),
+            create_test_message(MessageRole::Assistant, "Hi there!"),
+            create_test_message(MessageRole::User, "How are you?"),
+        ];
+        let options = CompletionOptions::default();
+
+        let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
+
+        assert_eq!(result.messages.len(), 4);
+        assert_eq!(result.messages[0].role, MessageRole::System);
+        assert_eq!(result.messages[1].role, MessageRole::User);
+        assert_eq!(result.messages[2].role, MessageRole::Assistant);
+        assert_eq!(result.messages[3].role, MessageRole::User);
+    }
+
+    #[test]
+    fn test_convert_to_chat_completion_request_all_options() {
+        let messages = vec![create_test_message(MessageRole::User, "Test")];
+        let mut options = CompletionOptions::default();
+        options.temperature = Some(0.8);
+        options.max_tokens = Some(500);
+        options.top_p = Some(0.95);
+        options.frequency_penalty = Some(0.2);
+        options.presence_penalty = Some(0.1);
+        options.stop = Some(vec!["END".to_string()]);
+        options.stream = true;
+        options.user = Some("user_456".to_string());
+        options.seed = Some(123);
+        options.n = Some(2);
+
+        let result = convert_to_chat_completion_request("claude-3", messages, options).unwrap();
+
+        assert_eq!(result.model, "claude-3");
+        assert_eq!(result.temperature, Some(0.8));
+        assert_eq!(result.max_tokens, Some(500));
+        assert_eq!(result.top_p, Some(0.95));
+        assert_eq!(result.frequency_penalty, Some(0.2));
+        assert_eq!(result.presence_penalty, Some(0.1));
+        assert!(result.stream);
+        assert_eq!(result.user, Some("user_456".to_string()));
+        assert_eq!(result.seed, Some(123));
+        assert_eq!(result.n, Some(2));
+    }
+
+    // ==================== convert_from_chat_completion_response Tests ====================
+
+    #[test]
+    fn test_convert_from_chat_completion_response_basic() {
+        let response = create_test_chat_response();
+
+        let result = convert_from_chat_completion_response(response).unwrap();
+
+        assert_eq!(result.id, "chatcmpl-123");
+        assert_eq!(result.object, "chat.completion");
+        assert_eq!(result.created, 1234567890);
+        assert_eq!(result.model, "gpt-4");
+        assert_eq!(result.choices.len(), 1);
+    }
+
+    #[test]
+    fn test_convert_from_chat_completion_response_choice_fields() {
+        let response = create_test_chat_response();
+
+        let result = convert_from_chat_completion_response(response).unwrap();
+
+        let choice = &result.choices[0];
+        assert_eq!(choice.index, 0);
+        assert_eq!(choice.message.role, MessageRole::Assistant);
+        assert_eq!(choice.finish_reason, Some(FinishReason::Stop));
+    }
+
+    #[test]
+    fn test_convert_from_chat_completion_response_with_usage() {
+        let response = create_test_chat_response();
+
+        let result = convert_from_chat_completion_response(response).unwrap();
+
+        assert!(result.usage.is_some());
+        let usage = result.usage.unwrap();
+        assert_eq!(usage.prompt_tokens, 100);
+        assert_eq!(usage.completion_tokens, 50);
+        assert_eq!(usage.total_tokens, 150);
+    }
+
+    #[test]
+    fn test_convert_from_chat_completion_response_multiple_choices() {
+        let mut response = create_test_chat_response();
+        response.choices = vec![
+            ChatChoice {
+                index: 0,
+                message: create_test_message(MessageRole::Assistant, "Response 1"),
+                finish_reason: Some(FinishReason::Stop),
+                logprobs: None,
+            },
+            ChatChoice {
+                index: 1,
+                message: create_test_message(MessageRole::Assistant, "Response 2"),
+                finish_reason: Some(FinishReason::Stop),
+                logprobs: None,
+            },
+            ChatChoice {
+                index: 2,
+                message: create_test_message(MessageRole::Assistant, "Response 3"),
+                finish_reason: Some(FinishReason::Length),
+                logprobs: None,
+            },
+        ];
+
+        let result = convert_from_chat_completion_response(response).unwrap();
+
+        assert_eq!(result.choices.len(), 3);
+        assert_eq!(result.choices[0].index, 0);
+        assert_eq!(result.choices[1].index, 1);
+        assert_eq!(result.choices[2].index, 2);
+        assert_eq!(result.choices[2].finish_reason, Some(FinishReason::Length));
+    }
+
+    #[test]
+    fn test_convert_from_chat_completion_response_without_usage() {
+        let mut response = create_test_chat_response();
+        response.usage = None;
+
+        let result = convert_from_chat_completion_response(response).unwrap();
+
+        assert!(result.usage.is_none());
+    }
+
+    #[test]
+    fn test_convert_from_chat_completion_response_empty_choices() {
+        let mut response = create_test_chat_response();
+        response.choices = vec![];
+
+        let result = convert_from_chat_completion_response(response).unwrap();
+
+        assert!(result.choices.is_empty());
+    }
+
+    #[test]
+    fn test_convert_from_chat_completion_response_different_finish_reasons() {
+        let finish_reasons = vec![
+            FinishReason::Stop,
+            FinishReason::Length,
+            FinishReason::ToolCalls,
+            FinishReason::ContentFilter,
+        ];
+
+        for (i, reason) in finish_reasons.into_iter().enumerate() {
+            let mut response = create_test_chat_response();
+            response.choices[0].finish_reason = Some(reason.clone());
+
+            let result = convert_from_chat_completion_response(response).unwrap();
+
+            assert_eq!(result.choices[0].finish_reason, Some(reason), "Failed at index {}", i);
+        }
+    }
+
+    // ==================== convert_usage Tests ====================
+
+    #[test]
+    fn test_convert_usage_basic() {
+        let usage = create_test_usage();
+
+        let result = convert_usage(&usage);
+
+        assert_eq!(result.prompt_tokens, 100);
+        assert_eq!(result.completion_tokens, 50);
+        assert_eq!(result.total_tokens, 150);
+    }
+
+    #[test]
+    fn test_convert_usage_clears_details() {
+        let usage = create_test_usage();
+
+        let result = convert_usage(&usage);
+
+        assert!(result.prompt_tokens_details.is_none());
+        assert!(result.completion_tokens_details.is_none());
+    }
+
+    #[test]
+    fn test_convert_usage_with_thinking_usage() {
+        let mut usage = create_test_usage();
+        usage.thinking_usage = Some(ThinkingUsage {
+            thinking_tokens: Some(25),
+            budget_tokens: None,
+            thinking_cost: None,
+            provider: None,
+        });
+
+        let result = convert_usage(&usage);
+
+        assert!(result.thinking_usage.is_some());
+        assert_eq!(result.thinking_usage.unwrap().thinking_tokens, Some(25));
+    }
+
+    #[test]
+    fn test_convert_usage_zero_tokens() {
+        let usage = crate::core::types::Usage {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+            prompt_tokens_details: None,
+            completion_tokens_details: None,
+            thinking_usage: None,
+        };
+
+        let result = convert_usage(&usage);
+
+        assert_eq!(result.prompt_tokens, 0);
+        assert_eq!(result.completion_tokens, 0);
+        assert_eq!(result.total_tokens, 0);
+    }
+
+    #[test]
+    fn test_convert_usage_large_values() {
+        let usage = crate::core::types::Usage {
+            prompt_tokens: 100000,
+            completion_tokens: 50000,
+            total_tokens: 150000,
+            prompt_tokens_details: None,
+            completion_tokens_details: None,
+            thinking_usage: None,
+        };
+
+        let result = convert_usage(&usage);
+
+        assert_eq!(result.prompt_tokens, 100000);
+        assert_eq!(result.completion_tokens, 50000);
+        assert_eq!(result.total_tokens, 150000);
+    }
+}
