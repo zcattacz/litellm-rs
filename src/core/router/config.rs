@@ -92,3 +92,259 @@ impl Default for RouterConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ==================== RoutingStrategy Tests ====================
+
+    #[test]
+    fn test_routing_strategy_default() {
+        let strategy = RoutingStrategy::default();
+        assert_eq!(strategy, RoutingStrategy::SimpleShuffle);
+    }
+
+    #[test]
+    fn test_routing_strategy_all_variants() {
+        let strategies = vec![
+            RoutingStrategy::SimpleShuffle,
+            RoutingStrategy::LeastBusy,
+            RoutingStrategy::UsageBased,
+            RoutingStrategy::LatencyBased,
+            RoutingStrategy::CostBased,
+            RoutingStrategy::RateLimitAware,
+            RoutingStrategy::RoundRobin,
+        ];
+
+        assert_eq!(strategies.len(), 7);
+    }
+
+    #[test]
+    fn test_routing_strategy_equality() {
+        let s1 = RoutingStrategy::LeastBusy;
+        let s2 = RoutingStrategy::LeastBusy;
+        let s3 = RoutingStrategy::LatencyBased;
+
+        assert_eq!(s1, s2);
+        assert_ne!(s1, s3);
+    }
+
+    #[test]
+    fn test_routing_strategy_clone() {
+        let original = RoutingStrategy::CostBased;
+        let cloned = original;
+        assert_eq!(original, cloned);
+    }
+
+    #[test]
+    fn test_routing_strategy_copy() {
+        let s1 = RoutingStrategy::RoundRobin;
+        let s2 = s1; // Copy
+        assert_eq!(s1, s2);
+    }
+
+    #[test]
+    fn test_routing_strategy_debug() {
+        let strategy = RoutingStrategy::LatencyBased;
+        let debug_str = format!("{:?}", strategy);
+        assert!(debug_str.contains("LatencyBased"));
+    }
+
+    // ==================== RouterConfig Tests ====================
+
+    #[test]
+    fn test_router_config_default() {
+        let config = RouterConfig::default();
+
+        assert_eq!(config.routing_strategy, RoutingStrategy::SimpleShuffle);
+        assert_eq!(config.num_retries, 3);
+        assert_eq!(config.retry_after_secs, 0);
+        assert_eq!(config.allowed_fails, 3);
+        assert_eq!(config.cooldown_time_secs, 5);
+        assert_eq!(config.timeout_secs, 60);
+        assert_eq!(config.max_fallbacks, 5);
+        assert!(config.enable_pre_call_checks);
+    }
+
+    #[test]
+    fn test_router_config_custom() {
+        let config = RouterConfig {
+            routing_strategy: RoutingStrategy::LatencyBased,
+            num_retries: 5,
+            retry_after_secs: 2,
+            allowed_fails: 5,
+            cooldown_time_secs: 10,
+            timeout_secs: 120,
+            max_fallbacks: 10,
+            enable_pre_call_checks: false,
+        };
+
+        assert_eq!(config.routing_strategy, RoutingStrategy::LatencyBased);
+        assert_eq!(config.num_retries, 5);
+        assert_eq!(config.retry_after_secs, 2);
+        assert!(!config.enable_pre_call_checks);
+    }
+
+    #[test]
+    fn test_router_config_clone() {
+        let config = RouterConfig::default();
+        let cloned = config.clone();
+
+        assert_eq!(cloned.routing_strategy, config.routing_strategy);
+        assert_eq!(cloned.num_retries, config.num_retries);
+        assert_eq!(cloned.timeout_secs, config.timeout_secs);
+    }
+
+    #[test]
+    fn test_router_config_debug() {
+        let config = RouterConfig::default();
+        let debug_str = format!("{:?}", config);
+
+        assert!(debug_str.contains("RouterConfig"));
+        assert!(debug_str.contains("SimpleShuffle"));
+        assert!(debug_str.contains("num_retries"));
+    }
+
+    #[test]
+    fn test_router_config_high_availability() {
+        // Configuration for high availability scenarios
+        let config = RouterConfig {
+            routing_strategy: RoutingStrategy::LeastBusy,
+            num_retries: 10,
+            retry_after_secs: 1,
+            allowed_fails: 10,
+            cooldown_time_secs: 30,
+            timeout_secs: 30,
+            max_fallbacks: 20,
+            enable_pre_call_checks: true,
+        };
+
+        assert!(config.num_retries > 5);
+        assert!(config.max_fallbacks > 10);
+    }
+
+    #[test]
+    fn test_router_config_low_latency() {
+        // Configuration for low latency scenarios
+        let config = RouterConfig {
+            routing_strategy: RoutingStrategy::LatencyBased,
+            num_retries: 1,
+            retry_after_secs: 0,
+            allowed_fails: 1,
+            cooldown_time_secs: 2,
+            timeout_secs: 10,
+            max_fallbacks: 2,
+            enable_pre_call_checks: false,
+        };
+
+        assert_eq!(config.routing_strategy, RoutingStrategy::LatencyBased);
+        assert!(config.timeout_secs < 30);
+        assert!(!config.enable_pre_call_checks);
+    }
+
+    #[test]
+    fn test_router_config_cost_optimized() {
+        // Configuration for cost optimization
+        let config = RouterConfig {
+            routing_strategy: RoutingStrategy::CostBased,
+            num_retries: 3,
+            retry_after_secs: 5,
+            allowed_fails: 5,
+            cooldown_time_secs: 60,
+            timeout_secs: 120,
+            max_fallbacks: 3,
+            enable_pre_call_checks: true,
+        };
+
+        assert_eq!(config.routing_strategy, RoutingStrategy::CostBased);
+    }
+
+    #[test]
+    fn test_router_config_rate_limit_aware() {
+        // Configuration to avoid rate limits
+        let config = RouterConfig {
+            routing_strategy: RoutingStrategy::RateLimitAware,
+            num_retries: 5,
+            retry_after_secs: 10,
+            allowed_fails: 2,
+            cooldown_time_secs: 60,
+            timeout_secs: 60,
+            max_fallbacks: 10,
+            enable_pre_call_checks: true,
+        };
+
+        assert_eq!(config.routing_strategy, RoutingStrategy::RateLimitAware);
+        assert!(config.retry_after_secs > 0);
+    }
+
+    // ==================== Integration Tests ====================
+
+    #[test]
+    fn test_config_with_all_strategies() {
+        let strategies = vec![
+            RoutingStrategy::SimpleShuffle,
+            RoutingStrategy::LeastBusy,
+            RoutingStrategy::UsageBased,
+            RoutingStrategy::LatencyBased,
+            RoutingStrategy::CostBased,
+            RoutingStrategy::RateLimitAware,
+            RoutingStrategy::RoundRobin,
+        ];
+
+        for strategy in strategies {
+            let config = RouterConfig {
+                routing_strategy: strategy,
+                ..RouterConfig::default()
+            };
+            assert_eq!(config.routing_strategy, strategy);
+        }
+    }
+
+    #[test]
+    fn test_config_retry_behavior() {
+        // Test that retry settings are consistent
+        let config = RouterConfig {
+            num_retries: 5,
+            retry_after_secs: 2,
+            allowed_fails: 3,
+            cooldown_time_secs: 10,
+            ..RouterConfig::default()
+        };
+
+        // Max total retry wait time
+        let max_retry_wait = config.num_retries as u64 * config.retry_after_secs;
+        assert_eq!(max_retry_wait, 10);
+
+        // Cooldown should be longer than retry wait
+        assert!(config.cooldown_time_secs >= max_retry_wait);
+    }
+
+    #[test]
+    fn test_config_timeout_vs_cooldown() {
+        let config = RouterConfig::default();
+
+        // Timeout should be longer than cooldown for typical scenarios
+        assert!(config.timeout_secs >= config.cooldown_time_secs);
+    }
+
+    #[test]
+    fn test_config_zero_retries() {
+        let config = RouterConfig {
+            num_retries: 0,
+            retry_after_secs: 0,
+            ..RouterConfig::default()
+        };
+
+        assert_eq!(config.num_retries, 0);
+    }
+
+    #[test]
+    fn test_config_disabled_pre_call_checks() {
+        let mut config = RouterConfig::default();
+        assert!(config.enable_pre_call_checks);
+
+        config.enable_pre_call_checks = false;
+        assert!(!config.enable_pre_call_checks);
+    }
+}
