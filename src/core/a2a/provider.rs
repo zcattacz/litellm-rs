@@ -286,6 +286,8 @@ pub fn get_provider_adapter(provider: AgentProvider) -> Arc<dyn A2AProviderAdapt
 mod tests {
     use super::*;
 
+    // ==================== GenericA2AProvider Tests ====================
+
     #[test]
     fn test_generic_provider_creation() {
         let provider = GenericA2AProvider::new();
@@ -295,10 +297,62 @@ mod tests {
     }
 
     #[test]
+    fn test_generic_provider_default() {
+        let provider = GenericA2AProvider::default();
+        assert_eq!(provider.provider_type(), AgentProvider::A2A);
+    }
+
+    #[test]
+    fn test_generic_provider_with_custom_client() {
+        let client = reqwest::Client::new();
+        let provider = GenericA2AProvider::with_client(client);
+        assert_eq!(provider.provider_type(), AgentProvider::A2A);
+    }
+
+    #[test]
+    fn test_generic_provider_get_client_default_timeout() {
+        let provider = GenericA2AProvider::new();
+        // 60 seconds is the default, should return cached client
+        let client = provider.get_client(60000);
+        assert!(Arc::ptr_eq(&client, &provider.default_client));
+    }
+
+    #[test]
+    fn test_generic_provider_get_client_custom_timeout() {
+        let provider = GenericA2AProvider::new();
+        // Non-60s timeout should get different client from cache
+        let client = provider.get_client(30000);
+        // Should not be the same as default
+        assert!(!Arc::ptr_eq(&client, &provider.default_client));
+    }
+
+    // ==================== LangGraphProvider Tests ====================
+
+    #[test]
     fn test_langgraph_provider_creation() {
         let provider = LangGraphProvider::new();
         assert_eq!(provider.provider_type(), AgentProvider::LangGraph);
     }
+
+    #[test]
+    fn test_langgraph_provider_default() {
+        let provider = LangGraphProvider::default();
+        assert_eq!(provider.provider_type(), AgentProvider::LangGraph);
+    }
+
+    #[test]
+    fn test_langgraph_provider_streaming_support() {
+        let provider = LangGraphProvider::new();
+        assert!(provider.supports_streaming());
+    }
+
+    #[test]
+    fn test_langgraph_provider_async_tasks_support() {
+        let provider = LangGraphProvider::new();
+        assert!(provider.supports_async_tasks());
+    }
+
+    // ==================== get_provider_adapter Tests ====================
 
     #[test]
     fn test_get_provider_adapter() {
@@ -307,5 +361,218 @@ mod tests {
 
         let adapter = get_provider_adapter(AgentProvider::A2A);
         assert_eq!(adapter.provider_type(), AgentProvider::A2A);
+    }
+
+    #[test]
+    fn test_get_provider_adapter_vertex_ai() {
+        let adapter = get_provider_adapter(AgentProvider::VertexAI);
+        // Currently uses GenericA2AProvider which returns A2A
+        assert_eq!(adapter.provider_type(), AgentProvider::A2A);
+    }
+
+    #[test]
+    fn test_get_provider_adapter_azure_ai_foundry() {
+        let adapter = get_provider_adapter(AgentProvider::AzureAIFoundry);
+        assert_eq!(adapter.provider_type(), AgentProvider::A2A);
+    }
+
+    #[test]
+    fn test_get_provider_adapter_bedrock_agent_core() {
+        let adapter = get_provider_adapter(AgentProvider::BedrockAgentCore);
+        assert_eq!(adapter.provider_type(), AgentProvider::A2A);
+    }
+
+    #[test]
+    fn test_get_provider_adapter_pydantic_ai() {
+        let adapter = get_provider_adapter(AgentProvider::PydanticAI);
+        assert_eq!(adapter.provider_type(), AgentProvider::A2A);
+    }
+
+    #[test]
+    fn test_get_provider_adapter_custom() {
+        let adapter = get_provider_adapter(AgentProvider::Custom);
+        assert_eq!(adapter.provider_type(), AgentProvider::A2A);
+    }
+
+    // ==================== Provider Adapter Capabilities Tests ====================
+
+    #[test]
+    fn test_all_adapters_support_async_tasks() {
+        let providers = [
+            AgentProvider::LangGraph,
+            AgentProvider::VertexAI,
+            AgentProvider::AzureAIFoundry,
+            AgentProvider::BedrockAgentCore,
+            AgentProvider::PydanticAI,
+            AgentProvider::A2A,
+            AgentProvider::Custom,
+        ];
+
+        for provider in providers {
+            let adapter = get_provider_adapter(provider);
+            assert!(
+                adapter.supports_async_tasks(),
+                "Provider {:?} should support async tasks",
+                provider
+            );
+        }
+    }
+
+    #[test]
+    fn test_all_adapters_support_streaming() {
+        let providers = [
+            AgentProvider::LangGraph,
+            AgentProvider::A2A,
+        ];
+
+        for provider in providers {
+            let adapter = get_provider_adapter(provider);
+            assert!(
+                adapter.supports_streaming(),
+                "Provider {:?} should support streaming",
+                provider
+            );
+        }
+    }
+
+    // ==================== Build Request Tests ====================
+
+    #[test]
+    fn test_build_request_basic() {
+        let provider = GenericA2AProvider::new();
+        let config = AgentConfig::new("test-agent", "https://example.com/api");
+        let message = A2AMessage::send("Hello, agent!");
+
+        let request = provider.build_request(&config, &message);
+        // Request should be built without error
+        let _ = request;
+    }
+
+    #[test]
+    fn test_build_request_with_api_key() {
+        let provider = GenericA2AProvider::new();
+        let mut config = AgentConfig::new("test-agent", "https://example.com/api");
+        config.api_key = Some("test-api-key".to_string());
+        let message = A2AMessage::send("Hello!");
+
+        let request = provider.build_request(&config, &message);
+        let _ = request;
+    }
+
+    #[test]
+    fn test_build_request_with_headers() {
+        let provider = GenericA2AProvider::new();
+        let mut config = AgentConfig::new("test-agent", "https://example.com/api");
+        config.headers.insert("X-Custom-Header".to_string(), "custom-value".to_string());
+        let message = A2AMessage::send("Hello!");
+
+        let request = provider.build_request(&config, &message);
+        let _ = request;
+    }
+
+    #[test]
+    fn test_build_request_with_multiple_headers() {
+        let provider = GenericA2AProvider::new();
+        let mut config = AgentConfig::new("test-agent", "https://example.com/api");
+        config.headers.insert("X-Header-1".to_string(), "value1".to_string());
+        config.headers.insert("X-Header-2".to_string(), "value2".to_string());
+        config.headers.insert("X-Header-3".to_string(), "value3".to_string());
+        let message = A2AMessage::send("Hello!");
+
+        let request = provider.build_request(&config, &message);
+        let _ = request;
+    }
+
+    // ==================== A2AMessage Factory Tests ====================
+
+    #[test]
+    fn test_a2a_message_send() {
+        let message = A2AMessage::send("Test content");
+        assert_eq!(message.method, "message/send");
+        assert!(message.params.is_some());
+    }
+
+    #[test]
+    fn test_a2a_message_get_task() {
+        let message = A2AMessage::get_task("task-123");
+        assert_eq!(message.method, "tasks/get");
+        assert!(message.params.is_some());
+    }
+
+    #[test]
+    fn test_a2a_message_cancel_task() {
+        let message = A2AMessage::cancel_task("task-456");
+        assert_eq!(message.method, "tasks/cancel");
+        assert!(message.params.is_some());
+    }
+
+    // ==================== Provider Type Coverage ====================
+
+    #[test]
+    fn test_provider_type_generic() {
+        let provider = GenericA2AProvider::new();
+        assert_eq!(provider.provider_type(), AgentProvider::A2A);
+    }
+
+    #[test]
+    fn test_provider_type_langgraph() {
+        let provider = LangGraphProvider::new();
+        assert_eq!(provider.provider_type(), AgentProvider::LangGraph);
+    }
+
+    // ==================== Default Trait Implementations ====================
+
+    #[test]
+    fn test_trait_default_streaming() {
+        // Test the default implementation returns false
+        struct TestProvider;
+        impl A2AProviderAdapter for TestProvider {
+            fn provider_type(&self) -> AgentProvider {
+                AgentProvider::Custom
+            }
+            fn send_message<'life0, 'life1, 'async_trait>(
+                &'life0 self,
+                _config: &'life1 AgentConfig,
+                _message: A2AMessage,
+            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = A2AResult<A2AResponse>> + Send + 'async_trait>>
+            where
+                'life0: 'async_trait,
+                'life1: 'async_trait,
+                Self: 'async_trait,
+            {
+                Box::pin(async { Err(A2AError::ProtocolError { message: "not implemented".to_string() }) })
+            }
+            fn get_task<'life0, 'life1, 'life2, 'async_trait>(
+                &'life0 self,
+                _config: &'life1 AgentConfig,
+                _task_id: &'life2 str,
+            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = A2AResult<TaskResult>> + Send + 'async_trait>>
+            where
+                'life0: 'async_trait,
+                'life1: 'async_trait,
+                'life2: 'async_trait,
+                Self: 'async_trait,
+            {
+                Box::pin(async { Err(A2AError::ProtocolError { message: "not implemented".to_string() }) })
+            }
+            fn cancel_task<'life0, 'life1, 'life2, 'async_trait>(
+                &'life0 self,
+                _config: &'life1 AgentConfig,
+                _task_id: &'life2 str,
+            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = A2AResult<()>> + Send + 'async_trait>>
+            where
+                'life0: 'async_trait,
+                'life1: 'async_trait,
+                'life2: 'async_trait,
+                Self: 'async_trait,
+            {
+                Box::pin(async { Err(A2AError::ProtocolError { message: "not implemented".to_string() }) })
+            }
+        }
+
+        let provider = TestProvider;
+        // Default implementations
+        assert!(!provider.supports_streaming());
+        assert!(provider.supports_async_tasks());
     }
 }
