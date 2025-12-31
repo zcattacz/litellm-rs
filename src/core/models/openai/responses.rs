@@ -6,7 +6,9 @@
 use serde::{Deserialize, Serialize};
 
 use super::audio::AudioDelta;
-use super::messages::{ChatMessage, MessageContent, MessageRole};
+use super::messages::{ChatMessage, MessageRole};
+#[cfg(test)]
+use super::messages::MessageContent;
 use super::tools::{FunctionCallDelta, ToolCallDelta};
 
 /// Chat completion response

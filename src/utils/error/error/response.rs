@@ -616,7 +616,7 @@ mod tests {
             ("RATE_LIMIT_EXCEEDED", GatewayError::RateLimit("test".to_string())),
         ];
 
-        for (expected_code, error) in error_codes {
+        for (_expected_code, error) in error_codes {
             let response = error.error_response();
             // Just verify the response is created successfully
             assert!(response.status().is_client_error() || response.status().is_server_error());

@@ -198,7 +198,7 @@ mod tests {
         let filter = ProfanityFilter::new();
         // Note: filter() doesn't do case-insensitive replacement by default
         // It only replaces exact matches
-        let filtered = filter.filter("BADWORD1");
+        let _filtered = filter.filter("BADWORD1");
         // Contains check is case-insensitive, but filter uses exact match
         assert!(filter.contains_profanity("BADWORD1"));
     }

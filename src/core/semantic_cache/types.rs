@@ -594,7 +594,7 @@ mod tests {
         let mut data = CacheData::default();
 
         // Add initial entry
-        let mut entry = create_test_cache_entry();
+        let entry = create_test_cache_entry();
         let entry_id = entry.id.clone();
         data.entries.insert(entry_id.clone(), entry.clone());
         data.stats.total_entries = 1;

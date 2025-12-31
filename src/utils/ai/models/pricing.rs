@@ -112,7 +112,7 @@ mod tests {
     fn test_get_model_pricing_gpt35() {
         let pricing = ModelUtils::get_model_pricing("gpt-3.5-turbo");
         assert!(pricing.is_some());
-        let (input, output) = pricing.unwrap();
+        let (input, _output) = pricing.unwrap();
         assert!((input - 0.0015).abs() < f64::EPSILON);
     }
 

@@ -359,7 +359,7 @@ mod tests {
 
     #[test]
     fn test_full_request_lifecycle() {
-        let config = HttpClientConfig::default();
+        let _config = HttpClientConfig::default();
         let retry_config = RetryConfig::default();
 
         let mut metrics = RequestMetrics::new("openai".to_string(), "gpt-4".to_string());

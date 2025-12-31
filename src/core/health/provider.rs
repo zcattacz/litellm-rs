@@ -541,7 +541,7 @@ mod tests {
     #[test]
     fn test_provider_health_last_healthy_updated() {
         let mut health = ProviderHealth::new("test".to_string());
-        let initial_last_healthy = health.last_healthy;
+        let _initial_last_healthy = health.last_healthy;
 
         // Add unhealthy - should not update last_healthy
         health.update(create_test_health_result(HealthStatus::Unhealthy, 0));

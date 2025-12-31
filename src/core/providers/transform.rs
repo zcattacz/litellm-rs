@@ -404,7 +404,7 @@ impl TransformEngine for DefaultTransformEngine {
         };
 
         let mut transformations = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
 
         // Convert request to JSON for pipeline processing
         let mut request_json = serde_json::to_value(request)
@@ -583,7 +583,7 @@ impl TransformEngine for DefaultTransformEngine {
 }
 
 impl DefaultTransformEngine {
-    async fn build_anthropic_request(&self, _request: Value, context: &TransformContext) -> ProviderResult<ProviderRequest> {
+    async fn build_anthropic_request(&self, _request: Value, _context: &TransformContext) -> ProviderResult<ProviderRequest> {
         // Build Anthropic-specific request format
         Ok(ProviderRequest {
             endpoint: "/v1/messages".to_string(),
@@ -648,13 +648,13 @@ impl GoogleParameterTransform {
 
 #[async_trait]
 impl Transform for AnthropicMessageTransform {
-    async fn transform_request(&self, mut request: Value, _context: &TransformContext) -> ProviderResult<Value> {
+    async fn transform_request(&self, request: Value, _context: &TransformContext) -> ProviderResult<Value> {
         // Transform OpenAI messages to Anthropic format
         // Implementation would handle message role mapping, content structure, etc.
         Ok(request)
     }
 
-    async fn transform_response(&self, mut response: Value, _context: &TransformContext) -> ProviderResult<Value> {
+    async fn transform_response(&self, response: Value, _context: &TransformContext) -> ProviderResult<Value> {
         // Transform Anthropic response back to OpenAI format
         Ok(response)
     }
@@ -666,7 +666,7 @@ impl Transform for AnthropicMessageTransform {
 
 #[async_trait]
 impl Transform for AnthropicParameterTransform {
-    async fn transform_request(&self, mut request: Value, _context: &TransformContext) -> ProviderResult<Value> {
+    async fn transform_request(&self, request: Value, _context: &TransformContext) -> ProviderResult<Value> {
         // Transform OpenAI parameters to Anthropic equivalents
         Ok(request)
     }

@@ -282,6 +282,107 @@ impl BedrockClient {
 mod tests {
     use super::*;
 
+    fn create_test_config() -> BedrockConfig {
+        BedrockConfig {
+            aws_access_key_id: "AKIATEST123456789012".to_string(),
+            aws_secret_access_key: "test-secret-key-1234567890".to_string(),
+            aws_session_token: None,
+            aws_region: "us-east-1".to_string(),
+            timeout_seconds: 30,
+            max_retries: 3,
+        }
+    }
+
+    fn create_test_client() -> BedrockClient {
+        BedrockClient::new(create_test_config()).unwrap()
+    }
+
+    // ==================== Client Creation Tests ====================
+
+    #[tokio::test]
+    async fn test_client_creation() {
+        let config = BedrockConfig {
+            aws_access_key_id: "AKIATEST123456789012".to_string(),
+            aws_secret_access_key: "test-secret-key".to_string(),
+            aws_session_token: None,
+            aws_region: "us-east-1".to_string(),
+            timeout_seconds: 30,
+            max_retries: 3,
+        };
+
+        let client = BedrockClient::new(config);
+        assert!(client.is_ok());
+
+        let client = client.unwrap();
+        assert_eq!(client.auth().credentials().region, "us-east-1");
+        assert!(!client.auth().is_temporary_credentials());
+    }
+
+    #[test]
+    fn test_client_creation_with_session_token() {
+        let config = BedrockConfig {
+            aws_access_key_id: "AKIATEST123456789012".to_string(),
+            aws_secret_access_key: "test-secret-key".to_string(),
+            aws_session_token: Some("session-token-12345".to_string()),
+            aws_region: "us-west-2".to_string(),
+            timeout_seconds: 60,
+            max_retries: 5,
+        };
+
+        let client = BedrockClient::new(config);
+        assert!(client.is_ok());
+
+        let client = client.unwrap();
+        assert!(client.auth().is_temporary_credentials());
+    }
+
+    #[test]
+    fn test_invalid_region() {
+        let config = BedrockConfig {
+            aws_access_key_id: "AKIATEST123456789012".to_string(),
+            aws_secret_access_key: "test-secret-key".to_string(),
+            aws_session_token: None,
+            aws_region: "invalid-region".to_string(),
+            timeout_seconds: 30,
+            max_retries: 3,
+        };
+
+        let client = BedrockClient::new(config);
+        assert!(client.is_err());
+    }
+
+    #[test]
+    fn test_empty_access_key() {
+        let config = BedrockConfig {
+            aws_access_key_id: "".to_string(),
+            aws_secret_access_key: "test-secret-key".to_string(),
+            aws_session_token: None,
+            aws_region: "us-east-1".to_string(),
+            timeout_seconds: 30,
+            max_retries: 3,
+        };
+
+        let client = BedrockClient::new(config);
+        assert!(client.is_err());
+    }
+
+    #[test]
+    fn test_empty_secret_key() {
+        let config = BedrockConfig {
+            aws_access_key_id: "AKIATEST123456789012".to_string(),
+            aws_secret_access_key: "".to_string(),
+            aws_session_token: None,
+            aws_region: "us-east-1".to_string(),
+            timeout_seconds: 30,
+            max_retries: 3,
+        };
+
+        let client = BedrockClient::new(config);
+        assert!(client.is_err());
+    }
+
+    // ==================== URL Building Tests ====================
+
     #[test]
     fn test_url_building() {
         let config = BedrockConfig {
@@ -320,37 +421,189 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_client_creation() {
-        let config = BedrockConfig {
-            aws_access_key_id: "AKIATEST123456789012".to_string(),
-            aws_secret_access_key: "test-secret-key".to_string(),
-            aws_session_token: None,
-            aws_region: "us-east-1".to_string(),
-            timeout_seconds: 30,
-            max_retries: 3,
-        };
+    #[test]
+    fn test_url_building_converse_stream() {
+        let client = create_test_client();
 
-        let client = BedrockClient::new(config);
-        assert!(client.is_ok());
-
-        let client = client.unwrap();
-        assert_eq!(client.auth().credentials().region, "us-east-1");
-        assert!(!client.auth().is_temporary_credentials());
+        let url = client.build_url("anthropic.claude-3-haiku-20240307", "converse-stream");
+        assert_eq!(
+            url,
+            "https://bedrock-runtime.us-east-1.amazonaws.com/model/anthropic.claude-3-haiku-20240307/converse-stream"
+        );
     }
 
     #[test]
-    fn test_invalid_region() {
+    fn test_url_building_list_foundation_models() {
+        let client = create_test_client();
+
+        let url = client.build_url("", "list-foundation-models");
+        assert_eq!(
+            url,
+            "https://bedrock.us-east-1.amazonaws.com/foundation-models"
+        );
+    }
+
+    #[test]
+    fn test_url_building_custom_operation() {
+        let client = create_test_client();
+
+        let url = client.build_url("some-model", "custom-operation");
+        assert_eq!(
+            url,
+            "https://bedrock-runtime.us-east-1.amazonaws.com/model/some-model/custom-operation"
+        );
+    }
+
+    #[test]
+    fn test_url_building_different_regions() {
+        // us-west-2
         let config = BedrockConfig {
             aws_access_key_id: "AKIATEST123456789012".to_string(),
             aws_secret_access_key: "test-secret-key".to_string(),
             aws_session_token: None,
-            aws_region: "invalid-region".to_string(),
+            aws_region: "us-west-2".to_string(),
             timeout_seconds: 30,
             max_retries: 3,
         };
+        let client = BedrockClient::new(config).unwrap();
+        let url = client.build_url("anthropic.claude-3-opus-20240229", "invoke");
+        assert!(url.contains("us-west-2"));
 
-        let client = BedrockClient::new(config);
-        assert!(client.is_err());
+        // eu-west-1
+        let config = BedrockConfig {
+            aws_access_key_id: "AKIATEST123456789012".to_string(),
+            aws_secret_access_key: "test-secret-key".to_string(),
+            aws_session_token: None,
+            aws_region: "eu-west-1".to_string(),
+            timeout_seconds: 30,
+            max_retries: 3,
+        };
+        let client = BedrockClient::new(config).unwrap();
+        let url = client.build_url("anthropic.claude-3-opus-20240229", "invoke");
+        assert!(url.contains("eu-west-1"));
+    }
+
+    // ==================== Auth Access Tests ====================
+
+    #[test]
+    fn test_auth_access() {
+        let client = create_test_client();
+
+        let auth = client.auth();
+        assert_eq!(auth.credentials().region, "us-east-1");
+        assert_eq!(auth.credentials().access_key_id, "AKIATEST123456789012");
+    }
+
+    #[test]
+    fn test_inner_client_access() {
+        let client = create_test_client();
+
+        let _inner = client.inner();
+        // Just verify we can access the inner client
+    }
+
+    // ==================== Signed Headers Tests ====================
+
+    #[tokio::test]
+    async fn test_create_signed_headers() {
+        let client = create_test_client();
+
+        let headers = client
+            .create_signed_headers(
+                "https://bedrock-runtime.us-east-1.amazonaws.com/model/test/invoke",
+                r#"{"test": "body"}"#,
+                "POST",
+            )
+            .await;
+
+        assert!(headers.is_ok());
+        let headers = headers.unwrap();
+
+        // Should have authorization header
+        assert!(headers.contains_key("authorization"));
+        // Should have x-amz-date header
+        assert!(headers.contains_key("x-amz-date"));
+        // Should have host header
+        assert!(headers.contains_key("host"));
+    }
+
+    #[tokio::test]
+    async fn test_create_signed_headers_get() {
+        let client = create_test_client();
+
+        let headers = client
+            .create_signed_headers(
+                "https://bedrock.us-east-1.amazonaws.com/foundation-models",
+                "",
+                "GET",
+            )
+            .await;
+
+        assert!(headers.is_ok());
+    }
+
+    // ==================== Clone/Debug Tests ====================
+
+    #[test]
+    fn test_client_clone() {
+        let client = create_test_client();
+        let cloned = client.clone();
+
+        assert_eq!(client.auth().credentials().region, cloned.auth().credentials().region);
+        assert_eq!(
+            client.auth().credentials().access_key_id,
+            cloned.auth().credentials().access_key_id
+        );
+    }
+
+    #[test]
+    fn test_client_debug() {
+        let client = create_test_client();
+        let debug_str = format!("{:?}", client);
+
+        assert!(debug_str.contains("BedrockClient"));
+    }
+
+    // ==================== Multiple Region Tests ====================
+
+    #[test]
+    fn test_supported_regions() {
+        let regions = vec![
+            "us-east-1",
+            "us-west-2",
+            "eu-west-1",
+            "eu-central-1",
+            "ap-northeast-1",
+            "ap-southeast-1",
+        ];
+
+        for region in regions {
+            let config = BedrockConfig {
+                aws_access_key_id: "AKIATEST123456789012".to_string(),
+                aws_secret_access_key: "test-secret-key".to_string(),
+                aws_session_token: None,
+                aws_region: region.to_string(),
+                timeout_seconds: 30,
+                max_retries: 3,
+            };
+
+            let client = BedrockClient::new(config);
+            assert!(client.is_ok(), "Region {} should be supported", region);
+        }
+    }
+
+    // ==================== URL Building Edge Cases ====================
+
+    #[test]
+    fn test_url_building_special_model_ids() {
+        let client = create_test_client();
+
+        // Model with version suffix
+        let url = client.build_url("meta.llama3-70b-instruct-v1:0", "invoke");
+        assert!(url.contains("meta.llama3-70b-instruct-v1:0"));
+
+        // Model with dots
+        let url = client.build_url("ai21.jamba-1-5-large-v1:0", "invoke");
+        assert!(url.contains("ai21.jamba-1-5-large-v1:0"));
     }
 }

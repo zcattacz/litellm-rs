@@ -617,7 +617,7 @@ impl AnthropicClient {
 mod tests {
     use super::*;
     use crate::core::providers::anthropic::config::AnthropicConfig;
-    use crate::core::types::{MessageContent, requests::ContentPart};
+    use crate::core::types::MessageContent;
 
     // ==================== Client Creation Tests ====================
 

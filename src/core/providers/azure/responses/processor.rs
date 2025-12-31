@@ -831,7 +831,6 @@ mod tests {
 
     #[test]
     fn test_collect_warnings_empty_choices() {
-        let processor = AzureResponseProcessor::new();
         let config = ResponseProcessingConfig {
             validate_structure: false,
             ..Default::default()

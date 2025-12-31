@@ -535,7 +535,7 @@ mod tests {
 
         // Check if any distill models exist (may be loaded from pricing DB)
         let models = registry.get_all_models();
-        let distill_count = models.iter().filter(|m| m.id.contains("distill")).count();
+        let _distill_count = models.iter().filter(|m| m.id.contains("distill")).count();
 
         // If we have distill models, verify they have proper properties
         for model in models {
