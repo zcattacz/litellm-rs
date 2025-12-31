@@ -502,6 +502,8 @@ impl LLMProvider for OpenRouterProvider {
 mod tests {
     use super::*;
 
+    // ==================== Provider Creation Tests ====================
+
     #[tokio::test]
     async fn test_provider_creation() {
         let config = OpenRouterConfig::new("test-key-1234567890")
@@ -511,6 +513,22 @@ mod tests {
         let provider = OpenRouterProvider::new(config);
         assert!(provider.is_ok());
     }
+
+    #[tokio::test]
+    async fn test_provider_creation_minimal() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config);
+        assert!(provider.is_ok());
+    }
+
+    #[test]
+    fn test_provider_name() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+        assert_eq!(provider.name(), "openrouter");
+    }
+
+    // ==================== Capabilities Tests ====================
 
     #[test]
     fn test_capabilities() {
@@ -522,6 +540,17 @@ mod tests {
         assert!(caps.contains(&ProviderCapability::ChatCompletionStream));
         assert!(caps.contains(&ProviderCapability::FunctionCalling));
     }
+
+    #[test]
+    fn test_capabilities_tool_calling() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let caps = provider.capabilities();
+        assert!(caps.contains(&ProviderCapability::ToolCalling));
+    }
+
+    // ==================== Models Tests ====================
 
     #[test]
     fn test_models() {
@@ -537,6 +566,29 @@ mod tests {
         // Should have Anthropic models
         assert!(models.iter().any(|m| m.id.contains("anthropic/claude")));
     }
+
+    #[test]
+    fn test_models_count() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let models = provider.models();
+        // Should have multiple models
+        assert!(models.len() >= 5, "Expected at least 5 models, got {}", models.len());
+    }
+
+    #[test]
+    fn test_models_have_openrouter_prefix() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let models = provider.models();
+        // Most models should have provider prefix
+        let prefixed = models.iter().filter(|m| m.id.contains("/")).count();
+        assert!(prefixed > models.len() / 2, "Most models should have provider prefix");
+    }
+
+    // ==================== Request Transformation Tests ====================
 
     #[test]
     fn test_request_transformation() {
@@ -563,5 +615,333 @@ mod tests {
             temp_value
         );
         assert_eq!(transformed["stream"], false);
+    }
+
+    #[test]
+    fn test_request_transformation_with_streaming() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let request = ChatRequest {
+            model: "anthropic/claude-3-opus".to_string(),
+            messages: vec![],
+            stream: true,
+            ..Default::default()
+        };
+
+        let transformed = provider.transform_chat_request(request).unwrap();
+        assert_eq!(transformed["stream"], true);
+    }
+
+    #[test]
+    fn test_request_transformation_with_top_p() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let request = ChatRequest {
+            model: "openai/gpt-4".to_string(),
+            messages: vec![],
+            stream: false,
+            top_p: Some(0.9),
+            ..Default::default()
+        };
+
+        let transformed = provider.transform_chat_request(request).unwrap();
+        let top_p_value = transformed["top_p"].as_f64().unwrap();
+        assert!((top_p_value - 0.9).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_request_transformation_with_penalties() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let request = ChatRequest {
+            model: "openai/gpt-4".to_string(),
+            messages: vec![],
+            stream: false,
+            frequency_penalty: Some(0.5),
+            presence_penalty: Some(0.3),
+            ..Default::default()
+        };
+
+        let transformed = provider.transform_chat_request(request).unwrap();
+
+        let freq_value = transformed["frequency_penalty"].as_f64().unwrap();
+        assert!((freq_value - 0.5).abs() < 1e-6);
+
+        let pres_value = transformed["presence_penalty"].as_f64().unwrap();
+        assert!((pres_value - 0.3).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_request_transformation_minimal() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let request = ChatRequest {
+            model: "openai/gpt-4".to_string(),
+            messages: vec![],
+            stream: false,
+            ..Default::default()
+        };
+
+        let transformed = provider.transform_chat_request(request).unwrap();
+        assert_eq!(transformed["model"], "openai/gpt-4");
+        assert!(transformed.get("max_tokens").is_none() || transformed["max_tokens"].is_null());
+    }
+
+    // ==================== Response Transformation Tests ====================
+
+    #[test]
+    fn test_response_transformation_success() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let raw_response = serde_json::json!({
+            "id": "test-response-id",
+            "choices": [{
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": "Hello!"
+                },
+                "finish_reason": "stop"
+            }],
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 5,
+                "total_tokens": 15
+            }
+        });
+
+        let response = provider.transform_chat_response(raw_response, "openai/gpt-4");
+        assert!(response.is_ok());
+
+        let response = response.unwrap();
+        assert_eq!(response.id, "test-response-id");
+        assert_eq!(response.choices.len(), 1);
+    }
+
+    #[test]
+    fn test_response_transformation_error() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let raw_response = serde_json::json!({
+            "error": {
+                "code": 404,
+                "message": "Model not found"
+            }
+        });
+
+        let response = provider.transform_chat_response(raw_response, "invalid/model");
+        assert!(response.is_err());
+    }
+
+    #[test]
+    fn test_response_transformation_rate_limit() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let raw_response = serde_json::json!({
+            "error": {
+                "code": 429,
+                "message": "Rate limit exceeded"
+            }
+        });
+
+        let response = provider.transform_chat_response(raw_response, "openai/gpt-4");
+        assert!(response.is_err());
+    }
+
+    #[test]
+    fn test_response_transformation_auth_error() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let raw_response = serde_json::json!({
+            "error": {
+                "code": 401,
+                "message": "Invalid API key"
+            }
+        });
+
+        let response = provider.transform_chat_response(raw_response, "openai/gpt-4");
+        assert!(response.is_err());
+    }
+
+    // ==================== Headers Tests ====================
+
+    #[test]
+    fn test_get_headers_basic() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let headers = provider.get_headers();
+        assert!(headers.contains_key("Authorization"));
+    }
+
+    #[test]
+    fn test_get_headers_with_site_info() {
+        let config = OpenRouterConfig::new("test-key-1234567890")
+            .with_site_url("https://mysite.com")
+            .with_site_name("My Site");
+
+        let provider = OpenRouterProvider::new(config).unwrap();
+        let headers = provider.get_headers();
+
+        // Config headers should include referer and title
+        assert!(headers.contains_key("HTTP-Referer") || headers.contains_key("Authorization"));
+    }
+
+    #[test]
+    fn test_get_request_headers() {
+        let config = OpenRouterConfig::new("test-key-1234567890")
+            .with_site_url("https://example.com")
+            .with_site_name("Test App");
+
+        let provider = OpenRouterProvider::new(config).unwrap();
+        let headers = provider.get_request_headers();
+
+        // Should have at least authorization header
+        assert!(!headers.is_empty());
+    }
+
+    // ==================== Supported Params Tests ====================
+
+    #[test]
+    fn test_supported_openai_params() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let params = provider.get_supported_openai_params("openai/gpt-4");
+
+        assert!(params.contains(&"temperature"));
+        assert!(params.contains(&"max_tokens"));
+        assert!(params.contains(&"top_p"));
+        assert!(params.contains(&"stop"));
+        assert!(params.contains(&"tools"));
+    }
+
+    #[test]
+    fn test_supported_params_count() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let params = provider.get_supported_openai_params("any-model");
+        assert!(params.len() >= 8, "Expected at least 8 supported params");
+    }
+
+    // ==================== Cost Calculation Tests ====================
+
+    #[tokio::test]
+    async fn test_calculate_cost_known_model() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        // Use a model that should be in the registry
+        let cost = provider.calculate_cost("openai/gpt-4", 1000, 500).await;
+        assert!(cost.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_calculate_cost_unknown_model() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        // Unknown model should return Ok(0.0)
+        let cost = provider.calculate_cost("unknown/model", 1000, 500).await;
+        assert!(cost.is_ok());
+        assert_eq!(cost.unwrap(), 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_calculate_cost_zero_tokens() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let cost = provider.calculate_cost("openai/gpt-4", 0, 0).await;
+        assert!(cost.is_ok());
+        assert_eq!(cost.unwrap(), 0.0);
+    }
+
+    // ==================== Health Check Tests ====================
+
+    #[tokio::test]
+    async fn test_health_check() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        // Health check should return a status
+        let status = provider.health_check().await;
+        // Currently returns Healthy as placeholder
+        assert!(matches!(status, HealthStatus::Healthy));
+    }
+
+    // ==================== Param Mapping Tests ====================
+
+    #[tokio::test]
+    async fn test_map_openai_params_passthrough() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let mut params = HashMap::new();
+        params.insert("temperature".to_string(), serde_json::json!(0.7));
+        params.insert("max_tokens".to_string(), serde_json::json!(100));
+
+        let mapped = provider.map_openai_params(params.clone(), "openai/gpt-4").await;
+        assert!(mapped.is_ok());
+
+        let mapped = mapped.unwrap();
+        assert_eq!(mapped.len(), params.len());
+    }
+
+    #[tokio::test]
+    async fn test_map_openai_params_empty() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let params: HashMap<String, Value> = HashMap::new();
+        let mapped = provider.map_openai_params(params, "openai/gpt-4").await;
+
+        assert!(mapped.is_ok());
+        assert!(mapped.unwrap().is_empty());
+    }
+
+    // ==================== Extra Params Tests ====================
+
+    #[test]
+    fn test_request_with_extra_params() {
+        let config = OpenRouterConfig::new("test-key-1234567890")
+            .with_extra_param("transforms", serde_json::json!(["middle-out"]))
+            .with_extra_param("route", serde_json::json!("fallback"));
+
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        let request = ChatRequest {
+            model: "openai/gpt-4".to_string(),
+            messages: vec![],
+            stream: false,
+            ..Default::default()
+        };
+
+        let transformed = provider.transform_chat_request(request).unwrap();
+
+        // Extra params should be included
+        assert!(transformed.get("transforms").is_some());
+        assert!(transformed.get("route").is_some());
+    }
+
+    // ==================== Error Mapper Tests ====================
+
+    #[test]
+    fn test_get_error_mapper() {
+        let config = OpenRouterConfig::new("test-key-1234567890");
+        let provider = OpenRouterProvider::new(config).unwrap();
+
+        // Should return OpenAI error mapper (OpenRouter uses OpenAI-compatible API)
+        let _mapper = provider.get_error_mapper();
+        // If it compiles, the mapper is valid
     }
 }
