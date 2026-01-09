@@ -22,10 +22,13 @@ pub mod gemini;
 pub mod github;
 pub mod github_copilot;
 pub mod groq;
+pub mod hyperbolic;
+pub mod infinity;
 pub mod meta_llama;
 pub mod minimax;
 pub mod mistral;
 pub mod moonshot;
+pub mod novita;
 pub mod openai;
 pub mod openrouter;
 pub mod perplexity;
@@ -102,6 +105,9 @@ pub enum ProviderType {
     AmazonNova,
     GitHub,
     GitHubCopilot,
+    Hyperbolic,
+    Infinity,
+    Novita,
     Custom(String),
 }
 
@@ -132,6 +138,9 @@ impl From<&str> for ProviderType {
             "amazon_nova" | "amazon-nova" | "nova" => ProviderType::AmazonNova,
             "github" | "github-models" => ProviderType::GitHub,
             "github_copilot" | "github-copilot" | "copilot" => ProviderType::GitHubCopilot,
+            "hyperbolic" | "hyperbolic-ai" => ProviderType::Hyperbolic,
+            "infinity" | "infinity-embedding" => ProviderType::Infinity,
+            "novita" | "novita-ai" => ProviderType::Novita,
             _ => ProviderType::Custom(s.to_string()),
         }
     }
@@ -164,6 +173,9 @@ impl std::fmt::Display for ProviderType {
             ProviderType::AmazonNova => write!(f, "amazon_nova"),
             ProviderType::GitHub => write!(f, "github"),
             ProviderType::GitHubCopilot => write!(f, "github_copilot"),
+            ProviderType::Hyperbolic => write!(f, "hyperbolic"),
+            ProviderType::Infinity => write!(f, "infinity"),
+            ProviderType::Novita => write!(f, "novita"),
             ProviderType::Custom(name) => write!(f, "{}", name),
         }
     }
