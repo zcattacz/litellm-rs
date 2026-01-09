@@ -292,8 +292,8 @@ mod tests {
             cache_type: None,
         };
 
-        let response = GatewayResponse::new(ResponseType::ChatCompletion, data)
-            .with_metrics(metrics);
+        let response =
+            GatewayResponse::new(ResponseType::ChatCompletion, data).with_metrics(metrics);
 
         assert_eq!(response.metrics.total_time_ms, 150);
         assert_eq!(response.metrics.provider_time_ms, 100);
@@ -314,12 +314,15 @@ mod tests {
             similarity_score: None,
         };
 
-        let response = GatewayResponse::new(ResponseType::ChatCompletion, data)
-            .with_cache_info(cache_info);
+        let response =
+            GatewayResponse::new(ResponseType::ChatCompletion, data).with_cache_info(cache_info);
 
         assert!(response.cache_info.hit);
         assert!(response.cache_info.cached);
-        assert_eq!(response.cache_info.cache_key, Some("cache-key-123".to_string()));
+        assert_eq!(
+            response.cache_info.cache_key,
+            Some("cache-key-123".to_string())
+        );
         assert_eq!(response.cache_info.ttl_seconds, Some(3600));
     }
 

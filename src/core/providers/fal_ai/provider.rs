@@ -456,26 +456,7 @@ mod tests {
         let request = ChatRequest {
             model: "test".to_string(),
             messages: vec![],
-            temperature: None,
-            max_tokens: None,
-            max_completion_tokens: None,
-            top_p: None,
-            frequency_penalty: None,
-            presence_penalty: None,
-            stop: None,
-            n: None,
-            stream: None,
-            stream_options: None,
-            logprobs: None,
-            top_logprobs: None,
-            user: None,
-            tools: None,
-            tool_choice: None,
-            response_format: None,
-            seed: None,
-            logit_bias: None,
-            parallel_tool_calls: None,
-            metadata: None,
+            ..Default::default()
         };
         let context = RequestContext::default();
 

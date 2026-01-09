@@ -229,7 +229,8 @@ mod tests {
     #[test]
     fn test_azure_error_mapper_network_error() {
         let mapper = AzureErrorMapper;
-        let io_err = std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "connection refused");
+        let io_err =
+            std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "connection refused");
         let err = mapper.map_network_error(&io_err);
         assert!(matches!(err, ProviderError::Network { .. }));
     }

@@ -163,9 +163,7 @@ mod tests {
 
     #[test]
     fn test_provider_config_builder_name() {
-        let builder = ProviderConfigBuilder::new()
-            .name("my-provider")
-            .unwrap();
+        let builder = ProviderConfigBuilder::new().name("my-provider").unwrap();
         assert!(builder.name.is_some());
     }
 
@@ -191,29 +189,28 @@ mod tests {
 
     #[test]
     fn test_provider_config_builder_api_key() {
-        let builder = ProviderConfigBuilder::new()
-            .api_key("sk-test-key");
+        let builder = ProviderConfigBuilder::new().api_key("sk-test-key");
         assert_eq!(builder.api_key, Some("sk-test-key".to_string()));
     }
 
     #[test]
     fn test_provider_config_builder_api_key_string() {
-        let builder = ProviderConfigBuilder::new()
-            .api_key(String::from("my-api-key"));
+        let builder = ProviderConfigBuilder::new().api_key(String::from("my-api-key"));
         assert_eq!(builder.api_key, Some("my-api-key".to_string()));
     }
 
     #[test]
     fn test_provider_config_builder_base_url() {
-        let builder = ProviderConfigBuilder::new()
-            .base_url("https://api.example.com");
-        assert_eq!(builder.base_url, Some("https://api.example.com".to_string()));
+        let builder = ProviderConfigBuilder::new().base_url("https://api.example.com");
+        assert_eq!(
+            builder.base_url,
+            Some("https://api.example.com".to_string())
+        );
     }
 
     #[test]
     fn test_provider_config_builder_add_model() {
-        let builder = ProviderConfigBuilder::new()
-            .add_model("gpt-4");
+        let builder = ProviderConfigBuilder::new().add_model("gpt-4");
         assert_eq!(builder.models, vec!["gpt-4"]);
     }
 
@@ -231,38 +228,31 @@ mod tests {
 
     #[test]
     fn test_provider_config_builder_rate_limit() {
-        let builder = ProviderConfigBuilder::new()
-            .rate_limit(5000);
+        let builder = ProviderConfigBuilder::new().rate_limit(5000);
         assert_eq!(builder.max_requests_per_minute, Some(5000));
     }
 
     #[test]
     fn test_provider_config_builder_timeout() {
-        let builder = ProviderConfigBuilder::new()
-            .timeout(Duration::from_secs(60));
+        let builder = ProviderConfigBuilder::new().timeout(Duration::from_secs(60));
         assert_eq!(builder.timeout, Some(Duration::from_secs(60)));
     }
 
     #[test]
     fn test_provider_config_builder_enable() {
-        let builder = ProviderConfigBuilder::new()
-            .disable()
-            .enable();
+        let builder = ProviderConfigBuilder::new().disable().enable();
         assert!(builder.enabled);
     }
 
     #[test]
     fn test_provider_config_builder_disable() {
-        let builder = ProviderConfigBuilder::new()
-            .disable();
+        let builder = ProviderConfigBuilder::new().disable();
         assert!(!builder.enabled);
     }
 
     #[test]
     fn test_provider_config_builder_weight() {
-        let builder = ProviderConfigBuilder::new()
-            .weight(2.5)
-            .unwrap();
+        let builder = ProviderConfigBuilder::new().weight(2.5).unwrap();
         assert!(builder.weight.is_some());
         assert!((builder.weight.unwrap().get() - 2.5).abs() < 0.001);
     }
@@ -284,15 +274,18 @@ mod tests {
     #[test]
     fn test_provider_config_builder_chain() {
         let builder = ProviderConfigBuilder::new()
-            .name("openai-provider").unwrap()
-            .provider_type("openai").unwrap()
+            .name("openai-provider")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
             .api_key("sk-test")
             .base_url("https://api.openai.com/v1")
             .add_model("gpt-4")
             .add_model("gpt-3.5-turbo")
             .rate_limit(3000)
             .timeout(Duration::from_secs(30))
-            .weight(1.5).unwrap();
+            .weight(1.5)
+            .unwrap();
 
         assert!(builder.name.is_some());
         assert!(builder.provider_type.is_some());
@@ -306,8 +299,10 @@ mod tests {
     #[test]
     fn test_provider_config_builder_build_success() {
         let config = ProviderConfigBuilder::new()
-            .name("test-provider").unwrap()
-            .provider_type("openai").unwrap()
+            .name("test-provider")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
             .api_key("test-key")
             .build()
             .unwrap();
@@ -320,24 +315,25 @@ mod tests {
     #[test]
     fn test_provider_config_builder_build_missing_name() {
         let result = ProviderConfigBuilder::new()
-            .provider_type("openai").unwrap()
+            .provider_type("openai")
+            .unwrap()
             .build();
         assert!(result.is_err());
     }
 
     #[test]
     fn test_provider_config_builder_build_missing_provider_type() {
-        let result = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .build();
+        let result = ProviderConfigBuilder::new().name("test").unwrap().build();
         assert!(result.is_err());
     }
 
     #[test]
     fn test_provider_config_builder_build_defaults() {
         let config = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .provider_type("openai").unwrap()
+            .name("test")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
             .build()
             .unwrap();
 
@@ -357,9 +353,12 @@ mod tests {
     #[test]
     fn test_provider_config_builder_build_with_weight() {
         let config = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .provider_type("openai").unwrap()
-            .weight(2.0).unwrap()
+            .name("test")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
+            .weight(2.0)
+            .unwrap()
             .build()
             .unwrap();
 
@@ -369,8 +368,10 @@ mod tests {
     #[test]
     fn test_provider_config_builder_build_with_rate_limit() {
         let config = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .provider_type("openai").unwrap()
+            .name("test")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
             .rate_limit(5000)
             .build()
             .unwrap();
@@ -381,8 +382,10 @@ mod tests {
     #[test]
     fn test_provider_config_builder_build_with_timeout() {
         let config = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .provider_type("openai").unwrap()
+            .name("test")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
             .timeout(Duration::from_secs(120))
             .build()
             .unwrap();
@@ -393,8 +396,10 @@ mod tests {
     #[test]
     fn test_provider_config_builder_build_disabled() {
         let config = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .provider_type("openai").unwrap()
+            .name("test")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
             .disable()
             .build()
             .unwrap();
@@ -405,8 +410,10 @@ mod tests {
     #[test]
     fn test_provider_config_builder_build_with_models() {
         let config = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .provider_type("openai").unwrap()
+            .name("test")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
             .add_model("gpt-4")
             .add_model("gpt-3.5-turbo")
             .build()
@@ -419,8 +426,10 @@ mod tests {
     #[test]
     fn test_provider_config_builder_build_with_base_url() {
         let config = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .provider_type("openai").unwrap()
+            .name("test")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
             .base_url("https://custom.api.com")
             .build()
             .unwrap();
@@ -443,8 +452,7 @@ mod tests {
 
     #[test]
     fn test_provider_config_builder_debug() {
-        let builder = ProviderConfigBuilder::new()
-            .rate_limit(1000);
+        let builder = ProviderConfigBuilder::new().rate_limit(1000);
         let debug_str = format!("{:?}", builder);
 
         assert!(debug_str.contains("ProviderConfigBuilder"));
@@ -455,8 +463,10 @@ mod tests {
     #[test]
     fn test_provider_config_builder_empty_api_key() {
         let config = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .provider_type("openai").unwrap()
+            .name("test")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
             .api_key("")
             .build()
             .unwrap();
@@ -467,8 +477,10 @@ mod tests {
     #[test]
     fn test_provider_config_builder_rate_limit_zero() {
         let config = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .provider_type("openai").unwrap()
+            .name("test")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
             .rate_limit(0)
             .build()
             .unwrap();
@@ -479,8 +491,10 @@ mod tests {
     #[test]
     fn test_provider_config_builder_timeout_zero() {
         let config = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .provider_type("openai").unwrap()
+            .name("test")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
             .timeout(Duration::ZERO)
             .build()
             .unwrap();
@@ -491,9 +505,12 @@ mod tests {
     #[test]
     fn test_provider_config_builder_very_small_weight() {
         let config = ProviderConfigBuilder::new()
-            .name("test").unwrap()
-            .provider_type("openai").unwrap()
-            .weight(0.001).unwrap()
+            .name("test")
+            .unwrap()
+            .provider_type("openai")
+            .unwrap()
+            .weight(0.001)
+            .unwrap()
             .build()
             .unwrap();
 

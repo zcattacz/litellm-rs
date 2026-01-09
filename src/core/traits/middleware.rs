@@ -238,7 +238,10 @@ mod tests {
     #[test]
     fn test_middleware_error_execution_failed() {
         let err = MiddlewareError::ExecutionFailed("Handler failed".to_string());
-        assert!(err.to_string().contains("Middleware chain execution failed"));
+        assert!(
+            err.to_string()
+                .contains("Middleware chain execution failed")
+        );
         assert!(err.to_string().contains("Handler failed"));
     }
 

@@ -52,9 +52,9 @@ pub enum AuthMethod {
 mod tests {
     use super::*;
     use crate::core::models::Metadata;
-    use crate::core::models::user::types::{UserRole, UserStatus, UserProfile};
     use crate::core::models::user::preferences::UserPreferences;
     use crate::core::models::user::session::SessionType;
+    use crate::core::models::user::types::{UserProfile, UserRole, UserStatus};
     use std::collections::HashMap;
 
     // ==================== Helper Functions ====================
@@ -258,7 +258,11 @@ mod tests {
         let result = AuthzResult {
             allowed: true,
             required_permissions: vec!["read".to_string(), "write".to_string()],
-            user_permissions: vec!["read".to_string(), "write".to_string(), "delete".to_string()],
+            user_permissions: vec![
+                "read".to_string(),
+                "write".to_string(),
+                "delete".to_string(),
+            ],
             reason: None,
         };
 
@@ -375,7 +379,10 @@ mod tests {
         // Simulate authorization check based on user role
         let user = auth_result.user.as_ref().unwrap();
         let authz_result = AuthzResult {
-            allowed: matches!(user.role, UserRole::User | UserRole::Admin | UserRole::SuperAdmin),
+            allowed: matches!(
+                user.role,
+                UserRole::User | UserRole::Admin | UserRole::SuperAdmin
+            ),
             required_permissions: vec!["read".to_string()],
             user_permissions: vec!["read".to_string()],
             reason: None,
@@ -386,10 +393,12 @@ mod tests {
 
     #[test]
     fn test_auth_method_extraction() {
-        let methods = [AuthMethod::Jwt("jwt-token".to_string()),
+        let methods = [
+            AuthMethod::Jwt("jwt-token".to_string()),
             AuthMethod::ApiKey("api-key".to_string()),
             AuthMethod::Session("session-id".to_string()),
-            AuthMethod::None];
+            AuthMethod::None,
+        ];
 
         let method_types: Vec<&str> = methods
             .iter()

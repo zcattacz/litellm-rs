@@ -89,7 +89,10 @@ impl McpGateway {
     /// Resolve a server name (handle aliases)
     async fn resolve_name(&self, name: &str) -> String {
         let aliases = self.aliases.read().await;
-        aliases.get(name).cloned().unwrap_or_else(|| name.to_string())
+        aliases
+            .get(name)
+            .cloned()
+            .unwrap_or_else(|| name.to_string())
     }
 
     /// Add an alias for a server

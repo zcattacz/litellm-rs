@@ -169,15 +169,16 @@ mod tests {
     #[test]
     fn test_with_metadata() {
         let info = DeploymentInfo::new().with_metadata("version", serde_json::json!("1.0"));
-        assert_eq!(info.metadata.get("version"), Some(&serde_json::json!("1.0")));
+        assert_eq!(
+            info.metadata.get("version"),
+            Some(&serde_json::json!("1.0"))
+        );
     }
 
     #[test]
     fn test_with_metadata_complex_value() {
-        let info = DeploymentInfo::new().with_metadata(
-            "config",
-            serde_json::json!({"enabled": true, "rate": 100}),
-        );
+        let info = DeploymentInfo::new()
+            .with_metadata("config", serde_json::json!({"enabled": true, "rate": 100}));
         let config = info.metadata.get("config").unwrap();
         assert_eq!(config["enabled"], true);
         assert_eq!(config["rate"], 100);
@@ -345,9 +346,7 @@ mod tests {
 
     #[test]
     fn test_deployment_info_clone() {
-        let original = DeploymentInfo::new()
-            .with_tag("fast")
-            .with_group("prod");
+        let original = DeploymentInfo::new().with_tag("fast").with_group("prod");
 
         let cloned = original.clone();
         assert_eq!(original.tags, cloned.tags);
@@ -358,9 +357,7 @@ mod tests {
 
     #[test]
     fn test_duplicate_tags() {
-        let info = DeploymentInfo::new()
-            .with_tag("fast")
-            .with_tag("fast");
+        let info = DeploymentInfo::new().with_tag("fast").with_tag("fast");
 
         assert_eq!(info.tags.len(), 2); // Duplicates are allowed
     }

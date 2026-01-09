@@ -568,26 +568,56 @@ mod tests {
 
     #[test]
     fn test_vertex_ai_model_gemini_ids() {
-        assert_eq!(VertexAIModel::Gemini25Pro.model_id(), "gemini-2.5-pro-preview-05-06");
-        assert_eq!(VertexAIModel::Gemini25Flash.model_id(), "gemini-2.5-flash-preview-05-20");
+        assert_eq!(
+            VertexAIModel::Gemini25Pro.model_id(),
+            "gemini-2.5-pro-preview-05-06"
+        );
+        assert_eq!(
+            VertexAIModel::Gemini25Flash.model_id(),
+            "gemini-2.5-flash-preview-05-20"
+        );
         assert_eq!(VertexAIModel::Gemini20Flash.model_id(), "gemini-2.0-flash");
         assert_eq!(VertexAIModel::GeminiPro.model_id(), "gemini-1.5-pro-002");
-        assert_eq!(VertexAIModel::GeminiFlash.model_id(), "gemini-1.5-flash-002");
+        assert_eq!(
+            VertexAIModel::GeminiFlash.model_id(),
+            "gemini-1.5-flash-002"
+        );
     }
 
     #[test]
     fn test_vertex_ai_model_claude_ids() {
-        assert_eq!(VertexAIModel::Claude3Opus.model_id(), "claude-3-opus@20240229");
-        assert_eq!(VertexAIModel::Claude3Sonnet.model_id(), "claude-3-sonnet@20240229");
-        assert_eq!(VertexAIModel::Claude3Haiku.model_id(), "claude-3-haiku@20240307");
-        assert_eq!(VertexAIModel::Claude35Sonnet.model_id(), "claude-3-5-sonnet@20241022");
+        assert_eq!(
+            VertexAIModel::Claude3Opus.model_id(),
+            "claude-3-opus@20240229"
+        );
+        assert_eq!(
+            VertexAIModel::Claude3Sonnet.model_id(),
+            "claude-3-sonnet@20240229"
+        );
+        assert_eq!(
+            VertexAIModel::Claude3Haiku.model_id(),
+            "claude-3-haiku@20240307"
+        );
+        assert_eq!(
+            VertexAIModel::Claude35Sonnet.model_id(),
+            "claude-3-5-sonnet@20241022"
+        );
     }
 
     #[test]
     fn test_vertex_ai_model_llama_ids() {
-        assert_eq!(VertexAIModel::Llama3_70B.model_id(), "meta/llama3-70b-instruct-maas");
-        assert_eq!(VertexAIModel::Llama31_405B.model_id(), "meta/llama-3.1-405b-instruct-maas");
-        assert_eq!(VertexAIModel::Llama4Scout.model_id(), "meta/llama-4-scout-17b-16e-instruct");
+        assert_eq!(
+            VertexAIModel::Llama3_70B.model_id(),
+            "meta/llama3-70b-instruct-maas"
+        );
+        assert_eq!(
+            VertexAIModel::Llama31_405B.model_id(),
+            "meta/llama-3.1-405b-instruct-maas"
+        );
+        assert_eq!(
+            VertexAIModel::Llama4Scout.model_id(),
+            "meta/llama-4-scout-17b-16e-instruct"
+        );
     }
 
     #[test]
@@ -691,66 +721,156 @@ mod tests {
         assert_eq!(VertexAIModel::Jamba15Large.max_context_tokens(), 256_000);
 
         // Custom
-        assert_eq!(VertexAIModel::Custom("custom".to_string()).max_context_tokens(), 32_768);
+        assert_eq!(
+            VertexAIModel::Custom("custom".to_string()).max_context_tokens(),
+            32_768
+        );
     }
 
     // ==================== parse_vertex_model Tests ====================
 
     #[test]
     fn test_parse_vertex_model_gemini_25() {
-        assert!(matches!(parse_vertex_model("gemini-2.5-pro"), VertexAIModel::Gemini25Pro));
-        assert!(matches!(parse_vertex_model("gemini-2.5-flash"), VertexAIModel::Gemini25Flash));
-        assert!(matches!(parse_vertex_model("gemini-2.5-flash-lite"), VertexAIModel::Gemini25FlashLite));
+        assert!(matches!(
+            parse_vertex_model("gemini-2.5-pro"),
+            VertexAIModel::Gemini25Pro
+        ));
+        assert!(matches!(
+            parse_vertex_model("gemini-2.5-flash"),
+            VertexAIModel::Gemini25Flash
+        ));
+        assert!(matches!(
+            parse_vertex_model("gemini-2.5-flash-lite"),
+            VertexAIModel::Gemini25FlashLite
+        ));
     }
 
     #[test]
     fn test_parse_vertex_model_gemini_20() {
-        assert!(matches!(parse_vertex_model("gemini-2.0-flash"), VertexAIModel::Gemini20Flash));
-        assert!(matches!(parse_vertex_model("gemini-2.0-flash-exp"), VertexAIModel::Gemini20FlashExp));
-        assert!(matches!(parse_vertex_model("gemini-2.0-flash-thinking"), VertexAIModel::Gemini20FlashThinking));
-        assert!(matches!(parse_vertex_model("gemini-2.0-flash-lite"), VertexAIModel::Gemini20FlashLite));
+        assert!(matches!(
+            parse_vertex_model("gemini-2.0-flash"),
+            VertexAIModel::Gemini20Flash
+        ));
+        assert!(matches!(
+            parse_vertex_model("gemini-2.0-flash-exp"),
+            VertexAIModel::Gemini20FlashExp
+        ));
+        assert!(matches!(
+            parse_vertex_model("gemini-2.0-flash-thinking"),
+            VertexAIModel::Gemini20FlashThinking
+        ));
+        assert!(matches!(
+            parse_vertex_model("gemini-2.0-flash-lite"),
+            VertexAIModel::Gemini20FlashLite
+        ));
     }
 
     #[test]
     fn test_parse_vertex_model_gemini_15() {
-        assert!(matches!(parse_vertex_model("gemini-1.5-pro"), VertexAIModel::GeminiPro));
-        assert!(matches!(parse_vertex_model("gemini-pro"), VertexAIModel::GeminiPro));
-        assert!(matches!(parse_vertex_model("gemini-1.5-flash"), VertexAIModel::GeminiFlash));
-        assert!(matches!(parse_vertex_model("gemini-flash"), VertexAIModel::GeminiFlash));
-        assert!(matches!(parse_vertex_model("gemini-1.5-flash-8b"), VertexAIModel::GeminiFlash8B));
+        assert!(matches!(
+            parse_vertex_model("gemini-1.5-pro"),
+            VertexAIModel::GeminiPro
+        ));
+        assert!(matches!(
+            parse_vertex_model("gemini-pro"),
+            VertexAIModel::GeminiPro
+        ));
+        assert!(matches!(
+            parse_vertex_model("gemini-1.5-flash"),
+            VertexAIModel::GeminiFlash
+        ));
+        assert!(matches!(
+            parse_vertex_model("gemini-flash"),
+            VertexAIModel::GeminiFlash
+        ));
+        assert!(matches!(
+            parse_vertex_model("gemini-1.5-flash-8b"),
+            VertexAIModel::GeminiFlash8B
+        ));
     }
 
     #[test]
     fn test_parse_vertex_model_claude() {
-        assert!(matches!(parse_vertex_model("claude-3-opus"), VertexAIModel::Claude3Opus));
-        assert!(matches!(parse_vertex_model("claude-3-sonnet"), VertexAIModel::Claude3Sonnet));
-        assert!(matches!(parse_vertex_model("claude-3-haiku"), VertexAIModel::Claude3Haiku));
-        assert!(matches!(parse_vertex_model("claude-3-5-sonnet"), VertexAIModel::Claude35Sonnet));
-        assert!(matches!(parse_vertex_model("claude-3.5-sonnet"), VertexAIModel::Claude35Sonnet));
+        assert!(matches!(
+            parse_vertex_model("claude-3-opus"),
+            VertexAIModel::Claude3Opus
+        ));
+        assert!(matches!(
+            parse_vertex_model("claude-3-sonnet"),
+            VertexAIModel::Claude3Sonnet
+        ));
+        assert!(matches!(
+            parse_vertex_model("claude-3-haiku"),
+            VertexAIModel::Claude3Haiku
+        ));
+        assert!(matches!(
+            parse_vertex_model("claude-3-5-sonnet"),
+            VertexAIModel::Claude35Sonnet
+        ));
+        assert!(matches!(
+            parse_vertex_model("claude-3.5-sonnet"),
+            VertexAIModel::Claude35Sonnet
+        ));
     }
 
     #[test]
     fn test_parse_vertex_model_llama() {
-        assert!(matches!(parse_vertex_model("llama3-70b"), VertexAIModel::Llama3_70B));
-        assert!(matches!(parse_vertex_model("llama-3-70b"), VertexAIModel::Llama3_70B));
-        assert!(matches!(parse_vertex_model("llama-3.1-405b"), VertexAIModel::Llama31_405B));
-        assert!(matches!(parse_vertex_model("llama-3.2-90b"), VertexAIModel::Llama32_90B));
-        assert!(matches!(parse_vertex_model("llama-4-scout"), VertexAIModel::Llama4Scout));
-        assert!(matches!(parse_vertex_model("llama-4-maverick"), VertexAIModel::Llama4Maverick));
+        assert!(matches!(
+            parse_vertex_model("llama3-70b"),
+            VertexAIModel::Llama3_70B
+        ));
+        assert!(matches!(
+            parse_vertex_model("llama-3-70b"),
+            VertexAIModel::Llama3_70B
+        ));
+        assert!(matches!(
+            parse_vertex_model("llama-3.1-405b"),
+            VertexAIModel::Llama31_405B
+        ));
+        assert!(matches!(
+            parse_vertex_model("llama-3.2-90b"),
+            VertexAIModel::Llama32_90B
+        ));
+        assert!(matches!(
+            parse_vertex_model("llama-4-scout"),
+            VertexAIModel::Llama4Scout
+        ));
+        assert!(matches!(
+            parse_vertex_model("llama-4-maverick"),
+            VertexAIModel::Llama4Maverick
+        ));
     }
 
     #[test]
     fn test_parse_vertex_model_jamba() {
-        assert!(matches!(parse_vertex_model("jamba-1.5-large"), VertexAIModel::Jamba15Large));
-        assert!(matches!(parse_vertex_model("jamba-1.5-mini"), VertexAIModel::Jamba15Mini));
-        assert!(matches!(parse_vertex_model("jamba-2"), VertexAIModel::Jamba2));
+        assert!(matches!(
+            parse_vertex_model("jamba-1.5-large"),
+            VertexAIModel::Jamba15Large
+        ));
+        assert!(matches!(
+            parse_vertex_model("jamba-1.5-mini"),
+            VertexAIModel::Jamba15Mini
+        ));
+        assert!(matches!(
+            parse_vertex_model("jamba-2"),
+            VertexAIModel::Jamba2
+        ));
     }
 
     #[test]
     fn test_parse_vertex_model_mistral() {
-        assert!(matches!(parse_vertex_model("mistral-large"), VertexAIModel::MistralLarge));
-        assert!(matches!(parse_vertex_model("mistral-nemo"), VertexAIModel::MistralNemo));
-        assert!(matches!(parse_vertex_model("codestral"), VertexAIModel::Codestral));
+        assert!(matches!(
+            parse_vertex_model("mistral-large"),
+            VertexAIModel::MistralLarge
+        ));
+        assert!(matches!(
+            parse_vertex_model("mistral-nemo"),
+            VertexAIModel::MistralNemo
+        ));
+        assert!(matches!(
+            parse_vertex_model("codestral"),
+            VertexAIModel::Codestral
+        ));
     }
 
     #[test]
@@ -764,9 +884,18 @@ mod tests {
 
     #[test]
     fn test_parse_vertex_model_case_insensitive() {
-        assert!(matches!(parse_vertex_model("GEMINI-2.5-PRO"), VertexAIModel::Gemini25Pro));
-        assert!(matches!(parse_vertex_model("Claude-3-Opus"), VertexAIModel::Claude3Opus));
-        assert!(matches!(parse_vertex_model("LLAMA-3.1-405B"), VertexAIModel::Llama31_405B));
+        assert!(matches!(
+            parse_vertex_model("GEMINI-2.5-PRO"),
+            VertexAIModel::Gemini25Pro
+        ));
+        assert!(matches!(
+            parse_vertex_model("Claude-3-Opus"),
+            VertexAIModel::Claude3Opus
+        ));
+        assert!(matches!(
+            parse_vertex_model("LLAMA-3.1-405B"),
+            VertexAIModel::Llama31_405B
+        ));
     }
 
     #[test]

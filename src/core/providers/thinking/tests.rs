@@ -790,8 +790,7 @@ fn test_openrouter_transform_config_anthropic() {
         extra_params: Default::default(),
     };
 
-    let result =
-        openrouter_thinking::transform_config(&config, "anthropic/claude-3-opus").unwrap();
+    let result = openrouter_thinking::transform_config(&config, "anthropic/claude-3-opus").unwrap();
     assert!(result.get("thinking").is_some());
 }
 
@@ -805,8 +804,7 @@ fn test_openrouter_transform_config_deepseek() {
         extra_params: Default::default(),
     };
 
-    let result =
-        openrouter_thinking::transform_config(&config, "deepseek/deepseek-r1").unwrap();
+    let result = openrouter_thinking::transform_config(&config, "deepseek/deepseek-r1").unwrap();
     assert!(result.get("reasoning_effort").is_some());
 }
 
@@ -820,8 +818,7 @@ fn test_openrouter_transform_config_gemini() {
         extra_params: Default::default(),
     };
 
-    let result =
-        openrouter_thinking::transform_config(&config, "google/gemini-thinking").unwrap();
+    let result = openrouter_thinking::transform_config(&config, "google/gemini-thinking").unwrap();
     assert!(result.get("enableThinking").is_some());
 }
 

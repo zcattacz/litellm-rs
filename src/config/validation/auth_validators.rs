@@ -54,8 +54,8 @@ impl Validate for RbacConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use super::super::trait_def::Validate;  // Import the trait explicitly
+    use super::super::trait_def::Validate;
+    use super::*; // Import the trait explicitly
 
     fn create_valid_auth_config() -> AuthConfig {
         AuthConfig {
@@ -87,9 +87,16 @@ mod tests {
         config.jwt_secret = "".to_string();
 
         let result = validate_config(&config);
-        assert!(result.is_err(), "Expected validation to fail for empty JWT secret");
+        assert!(
+            result.is_err(),
+            "Expected validation to fail for empty JWT secret"
+        );
         let err = result.unwrap_err();
-        assert!(err.contains("JWT secret cannot be empty"), "Got error: {}", err);
+        assert!(
+            err.contains("JWT secret cannot be empty"),
+            "Got error: {}",
+            err
+        );
     }
 
     #[test]
@@ -153,7 +160,11 @@ mod tests {
 
         let result = validate_config(&config);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("API key header cannot be empty"));
+        assert!(
+            result
+                .unwrap_err()
+                .contains("API key header cannot be empty")
+        );
     }
 
     #[test]

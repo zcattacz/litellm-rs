@@ -398,8 +398,8 @@ mod tests {
         assert!(rule.matches("github", None));
         assert!(!rule.matches("gitlab", None));
 
-        let rule_with_tool = PermissionRule::new("github", PermissionLevel::Execute)
-            .for_tool("get_repo");
+        let rule_with_tool =
+            PermissionRule::new("github", PermissionLevel::Execute).for_tool("get_repo");
         assert!(rule_with_tool.matches("github", Some("get_repo")));
         assert!(!rule_with_tool.matches("github", Some("delete_repo")));
         assert!(!rule_with_tool.matches("github", None));
@@ -407,8 +407,7 @@ mod tests {
 
     #[test]
     fn test_policy_deny_list() {
-        let policy = PermissionPolicy::allow_all("test")
-            .deny_server("dangerous_server");
+        let policy = PermissionPolicy::allow_all("test").deny_server("dangerous_server");
 
         assert_eq!(
             policy.check_server_access("github"),
@@ -430,10 +429,7 @@ mod tests {
             policy.check_server_access("github"),
             PermissionLevel::Execute
         );
-        assert_eq!(
-            policy.check_server_access("gitlab"),
-            PermissionLevel::Deny
-        );
+        assert_eq!(policy.check_server_access("gitlab"), PermissionLevel::Deny);
     }
 
     #[test]
@@ -453,10 +449,7 @@ mod tests {
     fn test_policy_tool_access() {
         // Tool-specific rules should come before general rules
         let policy = PermissionPolicy::new("test")
-            .with_rule(
-                PermissionRule::new("github", PermissionLevel::Deny)
-                    .for_tool("delete_repo")
-            )
+            .with_rule(PermissionRule::new("github", PermissionLevel::Deny).for_tool("delete_repo"))
             .with_rule(PermissionRule::new("github", PermissionLevel::Execute));
 
         assert_eq!(
@@ -472,17 +465,9 @@ mod tests {
     #[test]
     fn test_permission_manager_key_policy() {
         let mut manager = PermissionManager::new();
-        manager.set_key_policy(
-            "sk-test123",
-            PermissionPolicy::allow_all("test_key")
-        );
+        manager.set_key_policy("sk-test123", PermissionPolicy::allow_all("test_key"));
 
-        let level = manager.check_server_access(
-            "github",
-            Some("sk-test123"),
-            None,
-            None,
-        );
+        let level = manager.check_server_access("github", Some("sk-test123"), None, None);
         assert!(level.is_ok());
         assert_eq!(level.unwrap(), PermissionLevel::Execute);
     }
@@ -502,33 +487,22 @@ mod tests {
         // Set org policy (lowest priority)
         manager.set_org_policy(
             "org1",
-            PermissionPolicy::new("org").with_rule(
-                PermissionRule::new("*", PermissionLevel::Read)
-            ),
+            PermissionPolicy::new("org").with_rule(PermissionRule::new("*", PermissionLevel::Read)),
         );
 
         // Set key policy (highest priority)
         manager.set_key_policy(
             "sk-admin",
-            PermissionPolicy::new("admin").with_rule(
-                PermissionRule::new("*", PermissionLevel::Admin)
-            ),
+            PermissionPolicy::new("admin")
+                .with_rule(PermissionRule::new("*", PermissionLevel::Admin)),
         );
 
         // Key policy takes precedence
-        let policy = manager.get_effective_policy(
-            Some("sk-admin"),
-            None,
-            Some("org1"),
-        );
+        let policy = manager.get_effective_policy(Some("sk-admin"), None, Some("org1"));
         assert_eq!(policy.name, "admin");
 
         // Falls back to org policy
-        let policy = manager.get_effective_policy(
-            None,
-            None,
-            Some("org1"),
-        );
+        let policy = manager.get_effective_policy(None, None, Some("org1"));
         assert_eq!(policy.name, "org");
     }
 
@@ -537,19 +511,13 @@ mod tests {
         let mut manager = PermissionManager::new();
         manager.set_key_policy(
             "sk-reader",
-            PermissionPolicy::new("reader").with_rule(
-                PermissionRule::new("*", PermissionLevel::Read)
-            ),
+            PermissionPolicy::new("reader")
+                .with_rule(PermissionRule::new("*", PermissionLevel::Read)),
         );
 
         // Read-only should not allow tool execution
-        let result = manager.check_tool_access(
-            "github",
-            "create_issue",
-            Some("sk-reader"),
-            None,
-            None,
-        );
+        let result =
+            manager.check_tool_access("github", "create_issue", Some("sk-reader"), None, None);
         assert!(result.is_err());
     }
 

@@ -282,10 +282,22 @@ mod tests {
             .add_context_window_fallback("model", vec!["context-backup".to_string()])
             .add_rate_limit_fallback("model", vec!["rate-backup".to_string()]);
 
-        assert_eq!(config.general_fallbacks.get("model").unwrap()[0], "general-backup");
-        assert_eq!(config.content_policy_fallbacks.get("model").unwrap()[0], "policy-backup");
-        assert_eq!(config.context_window_fallbacks.get("model").unwrap()[0], "context-backup");
-        assert_eq!(config.rate_limit_fallbacks.get("model").unwrap()[0], "rate-backup");
+        assert_eq!(
+            config.general_fallbacks.get("model").unwrap()[0],
+            "general-backup"
+        );
+        assert_eq!(
+            config.content_policy_fallbacks.get("model").unwrap()[0],
+            "policy-backup"
+        );
+        assert_eq!(
+            config.context_window_fallbacks.get("model").unwrap()[0],
+            "context-backup"
+        );
+        assert_eq!(
+            config.rate_limit_fallbacks.get("model").unwrap()[0],
+            "rate-backup"
+        );
     }
 
     #[test]

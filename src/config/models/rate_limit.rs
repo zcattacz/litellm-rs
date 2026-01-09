@@ -102,16 +102,13 @@ mod tests {
 
     #[test]
     fn test_rate_limit_strategy_deserialization() {
-        let token_bucket: RateLimitStrategy =
-            serde_json::from_str("\"token_bucket\"").unwrap();
+        let token_bucket: RateLimitStrategy = serde_json::from_str("\"token_bucket\"").unwrap();
         assert_eq!(token_bucket, RateLimitStrategy::TokenBucket);
 
-        let fixed_window: RateLimitStrategy =
-            serde_json::from_str("\"fixed_window\"").unwrap();
+        let fixed_window: RateLimitStrategy = serde_json::from_str("\"fixed_window\"").unwrap();
         assert_eq!(fixed_window, RateLimitStrategy::FixedWindow);
 
-        let sliding_window: RateLimitStrategy =
-            serde_json::from_str("\"sliding_window\"").unwrap();
+        let sliding_window: RateLimitStrategy = serde_json::from_str("\"sliding_window\"").unwrap();
         assert_eq!(sliding_window, RateLimitStrategy::SlidingWindow);
     }
 

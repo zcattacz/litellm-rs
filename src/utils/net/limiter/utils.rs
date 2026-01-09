@@ -164,8 +164,8 @@ impl RateLimitKey {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::types::RateLimitConfig;
+    use super::*;
 
     // ==================== RateLimitKey Builder Tests ====================
 
@@ -426,8 +426,7 @@ mod tests {
     #[test]
     fn test_rate_limit_key_special_characters_in_ip() {
         // Unusual but valid scenarios
-        let key = RateLimitKey::new("test".to_string())
-            .with_ip("::1".to_string()); // IPv6 localhost
+        let key = RateLimitKey::new("test".to_string()).with_ip("::1".to_string()); // IPv6 localhost
         assert_eq!(key.ip_address, Some("::1".to_string()));
     }
 

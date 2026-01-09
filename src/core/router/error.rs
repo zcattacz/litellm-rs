@@ -128,13 +128,15 @@ mod tests {
 
     #[test]
     fn test_cooldown_reason_all_variants() {
-        let reasons = [CooldownReason::RateLimit,
+        let reasons = [
+            CooldownReason::RateLimit,
             CooldownReason::AuthError,
             CooldownReason::NotFound,
             CooldownReason::Timeout,
             CooldownReason::ConsecutiveFailures,
             CooldownReason::HighFailureRate,
-            CooldownReason::Manual];
+            CooldownReason::Manual,
+        ];
 
         assert_eq!(reasons.len(), 7);
         // Verify all are unique
@@ -158,7 +160,10 @@ mod tests {
     #[test]
     fn test_router_error_no_available_deployment() {
         let error = RouterError::NoAvailableDeployment("gpt-4".to_string());
-        assert_eq!(error.to_string(), "No available deployment for model: gpt-4");
+        assert_eq!(
+            error.to_string(),
+            "No available deployment for model: gpt-4"
+        );
     }
 
     #[test]
@@ -170,13 +175,19 @@ mod tests {
     #[test]
     fn test_router_error_all_deployments_in_cooldown() {
         let error = RouterError::AllDeploymentsInCooldown("claude-3".to_string());
-        assert_eq!(error.to_string(), "All deployments in cooldown for model: claude-3");
+        assert_eq!(
+            error.to_string(),
+            "All deployments in cooldown for model: claude-3"
+        );
     }
 
     #[test]
     fn test_router_error_rate_limit_exceeded() {
         let error = RouterError::RateLimitExceeded("gpt-4-turbo".to_string());
-        assert_eq!(error.to_string(), "Rate limit exceeded for model: gpt-4-turbo");
+        assert_eq!(
+            error.to_string(),
+            "Rate limit exceeded for model: gpt-4-turbo"
+        );
     }
 
     #[test]
@@ -209,7 +220,10 @@ mod tests {
     #[test]
     fn test_router_error_special_characters() {
         let error = RouterError::ModelNotFound("model/with:special-chars".to_string());
-        assert_eq!(error.to_string(), "Model not found: model/with:special-chars");
+        assert_eq!(
+            error.to_string(),
+            "Model not found: model/with:special-chars"
+        );
     }
 
     #[test]

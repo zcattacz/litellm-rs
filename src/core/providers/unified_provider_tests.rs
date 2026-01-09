@@ -277,8 +277,11 @@ mod provider_error_tests {
 
     #[test]
     fn test_cancelled() {
-        let err =
-            ProviderError::cancelled("openai", "chat_completion", Some("User cancelled".to_string()));
+        let err = ProviderError::cancelled(
+            "openai",
+            "chat_completion",
+            Some("User cancelled".to_string()),
+        );
         assert_eq!(err.provider(), "openai");
         assert_eq!(err.http_status(), 499);
         assert!(!err.is_retryable());

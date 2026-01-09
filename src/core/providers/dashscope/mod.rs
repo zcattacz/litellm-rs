@@ -504,7 +504,10 @@ impl LLMProvider for DashscopeProvider {
                 {
                     Ok(response) if response.status().is_success() => HealthStatus::Healthy,
                     Ok(response) => {
-                        debug!("Dashscope health check failed: status={}", response.status());
+                        debug!(
+                            "Dashscope health check failed: status={}",
+                            response.status()
+                        );
                         HealthStatus::Unhealthy
                     }
                     Err(e) => {
@@ -708,7 +711,10 @@ mod tests {
         let config = DashscopeConfig::default();
 
         assert_eq!(config.api_key, "");
-        assert_eq!(config.api_base, "https://dashscope.aliyuncs.com/compatible-mode/v1");
+        assert_eq!(
+            config.api_base,
+            "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        );
         assert_eq!(config.timeout_seconds, 60);
         assert_eq!(config.max_retries, 3);
     }
@@ -718,7 +724,10 @@ mod tests {
         let config = create_test_config();
 
         assert_eq!(config.api_key(), Some("test_api_key"));
-        assert_eq!(config.api_base(), Some("https://dashscope.aliyuncs.com/compatible-mode/v1"));
+        assert_eq!(
+            config.api_base(),
+            Some("https://dashscope.aliyuncs.com/compatible-mode/v1")
+        );
         assert_eq!(config.timeout(), std::time::Duration::from_secs(60));
         assert_eq!(config.max_retries(), 3);
     }
@@ -789,7 +798,10 @@ mod tests {
         let qwen_max = models.iter().find(|m| m.id == "qwen-max").unwrap();
         assert_eq!(qwen_max.max_context_length, 32768);
 
-        let qwen_max_long = models.iter().find(|m| m.id == "qwen-max-longcontext").unwrap();
+        let qwen_max_long = models
+            .iter()
+            .find(|m| m.id == "qwen-max-longcontext")
+            .unwrap();
         assert_eq!(qwen_max_long.max_context_length, 1000000);
     }
 
@@ -799,7 +811,10 @@ mod tests {
     async fn test_build_chat_url_default() {
         let provider = DashscopeProvider::new(create_test_config()).await.unwrap();
         let url = provider.build_chat_url();
-        assert_eq!(url, "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions");
+        assert_eq!(
+            url,
+            "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+        );
     }
 
     #[tokio::test]
@@ -811,19 +826,26 @@ mod tests {
         };
         let provider = DashscopeProvider::new(config).await.unwrap();
         let url = provider.build_chat_url();
-        assert_eq!(url, "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions");
+        assert_eq!(
+            url,
+            "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+        );
     }
 
     #[tokio::test]
     async fn test_build_chat_url_already_complete() {
         let config = DashscopeConfig {
             api_key: "test_key".to_string(),
-            api_base: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions".to_string(),
+            api_base: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+                .to_string(),
             ..Default::default()
         };
         let provider = DashscopeProvider::new(config).await.unwrap();
         let url = provider.build_chat_url();
-        assert_eq!(url, "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions");
+        assert_eq!(
+            url,
+            "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+        );
     }
 
     // ==================== Supported Params Tests ====================
@@ -859,7 +881,10 @@ mod tests {
         params.insert("max_tokens".to_string(), serde_json::json!(100));
         params.insert("top_p".to_string(), serde_json::json!(0.9));
 
-        let mapped = provider.map_openai_params(params.clone(), "qwen-turbo").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params.clone(), "qwen-turbo")
+            .await
+            .unwrap();
 
         // Dashscope is OpenAI-compatible, should pass through
         assert_eq!(mapped, params);
@@ -1010,7 +1035,8 @@ mod tests {
     #[test]
     fn test_error_mapper_network_error() {
         let mapper = DashscopeErrorMapper;
-        let error = std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
+        let error =
+            std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
         let mapped = mapper.map_network_error(&error);
 
         match mapped {
@@ -1101,7 +1127,10 @@ mod tests {
         let json = serde_json::to_value(&config).unwrap();
 
         assert_eq!(json["api_key"], "test_api_key");
-        assert_eq!(json["api_base"], "https://dashscope.aliyuncs.com/compatible-mode/v1");
+        assert_eq!(
+            json["api_base"],
+            "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        );
         assert_eq!(json["timeout_seconds"], 60);
         assert_eq!(json["max_retries"], 3);
     }

@@ -64,10 +64,26 @@ mod tests {
     #[test]
     fn test_retry_config_default_retryable_errors() {
         let config = RetryConfig::default();
-        assert!(config.retryable_errors.contains(&"network_error".to_string()));
-        assert!(config.retryable_errors.contains(&"timeout_error".to_string()));
-        assert!(config.retryable_errors.contains(&"rate_limit_error".to_string()));
-        assert!(config.retryable_errors.contains(&"server_error".to_string()));
+        assert!(
+            config
+                .retryable_errors
+                .contains(&"network_error".to_string())
+        );
+        assert!(
+            config
+                .retryable_errors
+                .contains(&"timeout_error".to_string())
+        );
+        assert!(
+            config
+                .retryable_errors
+                .contains(&"rate_limit_error".to_string())
+        );
+        assert!(
+            config
+                .retryable_errors
+                .contains(&"server_error".to_string())
+        );
     }
 
     // ==================== RetryConfig Structure Tests ====================

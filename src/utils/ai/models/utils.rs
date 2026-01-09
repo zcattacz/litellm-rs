@@ -405,7 +405,9 @@ mod tests {
     #[test]
     fn test_supports_parallel_function_calling() {
         assert!(ModelUtils::supports_parallel_function_calling("gpt-4"));
-        assert!(!ModelUtils::supports_parallel_function_calling("gpt-3.5-turbo"));
+        assert!(!ModelUtils::supports_parallel_function_calling(
+            "gpt-3.5-turbo"
+        ));
     }
 
     #[test]

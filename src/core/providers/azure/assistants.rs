@@ -699,10 +699,7 @@ mod tests {
     #[test]
     fn test_list_assistants_response_with_data() {
         let response = ListAssistantsResponse {
-            data: vec![
-                json!({"id": "asst_1"}),
-                json!({"id": "asst_2"}),
-            ],
+            data: vec![json!({"id": "asst_1"}), json!({"id": "asst_2"})],
         };
 
         let json = serde_json::to_value(&response).unwrap();
@@ -778,11 +775,8 @@ mod tests {
 
     #[test]
     fn test_assistant_api_config_new() {
-        let config = AssistantApiConfig::new(
-            Some("test-key"),
-            Some("https://api.example.com"),
-            None,
-        );
+        let config =
+            AssistantApiConfig::new(Some("test-key"), Some("https://api.example.com"), None);
 
         assert_eq!(config.api_key, Some("test-key".to_string()));
         assert_eq!(config.api_base, Some("https://api.example.com".to_string()));
@@ -794,14 +788,13 @@ mod tests {
         let mut headers = HashMap::new();
         headers.insert("X-Custom".to_string(), "value".to_string());
 
-        let config = AssistantApiConfig::new(
-            Some("key"),
-            None,
-            Some(headers),
-        );
+        let config = AssistantApiConfig::new(Some("key"), None, Some(headers));
 
         assert!(config.headers.is_some());
-        assert_eq!(config.headers.unwrap().get("X-Custom"), Some(&"value".to_string()));
+        assert_eq!(
+            config.headers.unwrap().get("X-Custom"),
+            Some(&"value".to_string())
+        );
     }
 
     #[test]
@@ -1220,11 +1213,7 @@ mod tests {
 
     #[test]
     fn test_assistant_api_config_clone() {
-        let config = AssistantApiConfig::new(
-            Some("key"),
-            Some("base"),
-            None,
-        );
+        let config = AssistantApiConfig::new(Some("key"), Some("base"), None);
 
         let cloned = config.clone();
         assert_eq!(config.api_key, cloned.api_key);

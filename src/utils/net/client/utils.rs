@@ -692,8 +692,9 @@ mod tests {
 
     #[test]
     fn test_parse_content_type_quoted_value() {
-        let (media_type, params) =
-            ClientUtils::parse_content_type("multipart/form-data; boundary=\"----WebKitFormBoundary\"");
+        let (media_type, params) = ClientUtils::parse_content_type(
+            "multipart/form-data; boundary=\"----WebKitFormBoundary\"",
+        );
         assert_eq!(media_type, "multipart/form-data");
         assert_eq!(
             params.get("boundary"),

@@ -230,8 +230,8 @@ mod tests {
 
     #[test]
     fn test_log_entry_with_module() {
-        let entry = LogEntry::new(LogLevel::Info, "Test".to_string())
-            .with_module("gateway".to_string());
+        let entry =
+            LogEntry::new(LogLevel::Info, "Test".to_string()).with_module("gateway".to_string());
 
         assert_eq!(entry.module, Some("gateway".to_string()));
     }
@@ -250,7 +250,10 @@ mod tests {
             .with_metadata("user_id".to_string(), serde_json::json!("user-456"));
 
         assert!(entry.metadata.contains_key("user_id"));
-        assert_eq!(entry.metadata.get("user_id").unwrap(), &serde_json::json!("user-456"));
+        assert_eq!(
+            entry.metadata.get("user_id").unwrap(),
+            &serde_json::json!("user-456")
+        );
     }
 
     #[test]
@@ -278,8 +281,8 @@ mod tests {
 
     #[test]
     fn test_log_entry_clone() {
-        let entry = LogEntry::new(LogLevel::Info, "Test".to_string())
-            .with_module("test".to_string());
+        let entry =
+            LogEntry::new(LogLevel::Info, "Test".to_string()).with_module("test".to_string());
 
         let cloned = entry.clone();
         assert_eq!(cloned.level, entry.level);

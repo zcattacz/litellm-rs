@@ -171,10 +171,7 @@ mod tests {
 
         assert!(!verification.is_valid);
         assert!(verification.invalid_reason.is_some());
-        assert_eq!(
-            verification.invalid_reason.unwrap(),
-            "API key is inactive"
-        );
+        assert_eq!(verification.invalid_reason.unwrap(), "API key is inactive");
     }
 
     #[test]
@@ -228,10 +225,7 @@ mod tests {
         };
 
         assert!(!verification.is_valid);
-        assert_eq!(
-            verification.invalid_reason.unwrap(),
-            "API key not found"
-        );
+        assert_eq!(verification.invalid_reason.unwrap(), "API key not found");
     }
 
     #[test]

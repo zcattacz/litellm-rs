@@ -748,13 +748,19 @@ mod tests {
         for format in formats {
             let lowercase = format_to_content_type(format);
             let uppercase = format_to_content_type(&format.to_uppercase());
-            let mixed = format_to_content_type(&format.chars().enumerate().map(|(i, c)| {
-                if i % 2 == 0 {
-                    c.to_uppercase().next().unwrap()
-                } else {
-                    c
-                }
-            }).collect::<String>());
+            let mixed = format_to_content_type(
+                &format
+                    .chars()
+                    .enumerate()
+                    .map(|(i, c)| {
+                        if i % 2 == 0 {
+                            c.to_uppercase().next().unwrap()
+                        } else {
+                            c
+                        }
+                    })
+                    .collect::<String>(),
+            );
 
             assert_eq!(lowercase, uppercase, "Case mismatch for {}", format);
             assert_eq!(lowercase, mixed, "Mixed case mismatch for {}", format);
@@ -817,9 +823,8 @@ mod tests {
         };
 
         // Get expected content type
-        let content_type = format_to_content_type(
-            request.response_format.as_deref().unwrap_or("mp3"),
-        );
+        let content_type =
+            format_to_content_type(request.response_format.as_deref().unwrap_or("mp3"));
         assert_eq!(content_type, "audio/opus");
 
         // Simulate a response

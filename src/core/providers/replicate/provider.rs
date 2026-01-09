@@ -351,10 +351,7 @@ impl LLMProvider for ReplicateProvider {
                     .text()
                     .await
                     .unwrap_or_else(|_| "Unknown error".to_string());
-                return Err(ProviderError::replicate_api_error(
-                    status_code,
-                    error_text,
-                ));
+                return Err(ProviderError::replicate_api_error(status_code, error_text));
             }
 
             let stream = response.bytes_stream();
@@ -538,7 +535,9 @@ mod tests {
     fn test_from_env_missing_token() {
         // Clear any existing env var
         // SAFETY: Tests are single-threaded and this is just for testing
-        unsafe { std::env::remove_var("REPLICATE_API_TOKEN"); }
+        unsafe {
+            std::env::remove_var("REPLICATE_API_TOKEN");
+        }
 
         let result = ReplicateProvider::from_env();
         assert!(result.is_err());

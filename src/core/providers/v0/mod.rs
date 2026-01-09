@@ -715,7 +715,10 @@ mod tests {
     #[test]
     fn test_v0_model_max_context_tokens() {
         assert_eq!(V0Model::V0Default.max_context_tokens(), 32768);
-        assert_eq!(V0Model::Custom("test".to_string()).max_context_tokens(), 32768);
+        assert_eq!(
+            V0Model::Custom("test".to_string()).max_context_tokens(),
+            32768
+        );
     }
 
     #[test]
@@ -800,8 +803,14 @@ mod tests {
         };
         let provider = V0Provider::new_or_default(config);
 
-        assert_eq!(provider.get_endpoint("chat/completions"), "https://api.v0.dev/v1/chat/completions");
-        assert_eq!(provider.get_endpoint("/models"), "https://api.v0.dev/v1/models");
+        assert_eq!(
+            provider.get_endpoint("chat/completions"),
+            "https://api.v0.dev/v1/chat/completions"
+        );
+        assert_eq!(
+            provider.get_endpoint("/models"),
+            "https://api.v0.dev/v1/models"
+        );
     }
 
     #[test]
@@ -813,7 +822,10 @@ mod tests {
         };
         let provider = V0Provider::new_or_default(config);
 
-        assert_eq!(provider.get_endpoint("chat/completions"), "https://api.v0.dev/v1/chat/completions");
+        assert_eq!(
+            provider.get_endpoint("chat/completions"),
+            "https://api.v0.dev/v1/chat/completions"
+        );
     }
 
     #[test]
@@ -852,9 +864,18 @@ mod tests {
     #[test]
     fn test_v0_error_trait_error_type() {
         assert_eq!(V0Error::RateLimitExceeded.error_type(), "rate_limit_error");
-        assert_eq!(V0Error::AuthenticationFailed.error_type(), "authentication_error");
-        assert_eq!(V0Error::ModelNotFound("x".to_string()).error_type(), "model_not_found");
-        assert_eq!(V0Error::InvalidRequest("x".to_string()).error_type(), "invalid_request_error");
+        assert_eq!(
+            V0Error::AuthenticationFailed.error_type(),
+            "authentication_error"
+        );
+        assert_eq!(
+            V0Error::ModelNotFound("x".to_string()).error_type(),
+            "model_not_found"
+        );
+        assert_eq!(
+            V0Error::InvalidRequest("x".to_string()).error_type(),
+            "invalid_request_error"
+        );
         assert_eq!(V0Error::ApiError("x".to_string()).error_type(), "api_error");
     }
 
@@ -1018,7 +1039,10 @@ mod tests {
         // 1000 input tokens at $0.1/1K = $0.1
         // 1000 output tokens at $0.2/1K = $0.2
         // Total = $0.3
-        let cost = provider.calculate_cost("v0-default", 1000, 1000).await.unwrap();
+        let cost = provider
+            .calculate_cost("v0-default", 1000, 1000)
+            .await
+            .unwrap();
         assert!((cost - 0.3).abs() < 0.001);
     }
 
@@ -1046,7 +1070,10 @@ mod tests {
         params.insert("temperature".to_string(), serde_json::json!(0.7));
         params.insert("stream".to_string(), serde_json::json!(true));
 
-        let mapped = provider.map_openai_params(params, "v0-default").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params, "v0-default")
+            .await
+            .unwrap();
 
         assert_eq!(mapped.get("temperature"), Some(&serde_json::json!(0.7)));
         assert_eq!(mapped.get("stream"), Some(&serde_json::json!(true)));

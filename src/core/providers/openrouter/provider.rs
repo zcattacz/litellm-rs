@@ -574,7 +574,11 @@ mod tests {
 
         let models = provider.models();
         // Should have multiple models
-        assert!(models.len() >= 5, "Expected at least 5 models, got {}", models.len());
+        assert!(
+            models.len() >= 5,
+            "Expected at least 5 models, got {}",
+            models.len()
+        );
     }
 
     #[test]
@@ -585,7 +589,10 @@ mod tests {
         let models = provider.models();
         // Most models should have provider prefix
         let prefixed = models.iter().filter(|m| m.id.contains("/")).count();
-        assert!(prefixed > models.len() / 2, "Most models should have provider prefix");
+        assert!(
+            prefixed > models.len() / 2,
+            "Most models should have provider prefix"
+        );
     }
 
     // ==================== Request Transformation Tests ====================
@@ -890,7 +897,9 @@ mod tests {
         params.insert("temperature".to_string(), serde_json::json!(0.7));
         params.insert("max_tokens".to_string(), serde_json::json!(100));
 
-        let mapped = provider.map_openai_params(params.clone(), "openai/gpt-4").await;
+        let mapped = provider
+            .map_openai_params(params.clone(), "openai/gpt-4")
+            .await;
         assert!(mapped.is_ok());
 
         let mapped = mapped.unwrap();

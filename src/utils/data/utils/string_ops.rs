@@ -77,22 +77,34 @@ mod tests {
 
     #[test]
     fn test_sanitize_for_json_backslash() {
-        assert_eq!(StringOps::sanitize_for_json(r"path\to\file"), r"path\\to\\file");
+        assert_eq!(
+            StringOps::sanitize_for_json(r"path\to\file"),
+            r"path\\to\\file"
+        );
     }
 
     #[test]
     fn test_sanitize_for_json_quotes() {
-        assert_eq!(StringOps::sanitize_for_json(r#"say "hello""#), r#"say \"hello\""#);
+        assert_eq!(
+            StringOps::sanitize_for_json(r#"say "hello""#),
+            r#"say \"hello\""#
+        );
     }
 
     #[test]
     fn test_sanitize_for_json_newline() {
-        assert_eq!(StringOps::sanitize_for_json("line1\nline2"), "line1\\nline2");
+        assert_eq!(
+            StringOps::sanitize_for_json("line1\nline2"),
+            "line1\\nline2"
+        );
     }
 
     #[test]
     fn test_sanitize_for_json_carriage_return() {
-        assert_eq!(StringOps::sanitize_for_json("line1\rline2"), "line1\\rline2");
+        assert_eq!(
+            StringOps::sanitize_for_json("line1\rline2"),
+            "line1\\rline2"
+        );
     }
 
     #[test]
@@ -261,7 +273,10 @@ mod tests {
 
     #[test]
     fn test_clean_whitespace_leading_trailing() {
-        assert_eq!(StringOps::clean_whitespace("  hello world  "), "hello world");
+        assert_eq!(
+            StringOps::clean_whitespace("  hello world  "),
+            "hello world"
+        );
     }
 
     #[test]

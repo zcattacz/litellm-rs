@@ -244,7 +244,6 @@ impl DeepInfraRerankTransformation {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -565,9 +564,7 @@ mod tests {
                     input_tokens: 100,
                     output_tokens: 0,
                 },
-                billed_units: RerankBilledUnits {
-                    total_tokens: 100,
-                },
+                billed_units: RerankBilledUnits { total_tokens: 100 },
             },
             usage: None,
         };

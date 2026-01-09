@@ -14,7 +14,7 @@ use crate::core::traits::ProviderConfig as _;
 use crate::core::types::common::{HealthStatus, ModelInfo, ProviderCapability};
 
 /// Static capabilities for Deepgram provider
-const DEEPGRAM_CAPABILITIES: &[ProviderCapability] = &[ProviderCapability::SpeechToText];
+const DEEPGRAM_CAPABILITIES: &[ProviderCapability] = &[ProviderCapability::AudioTranscription];
 
 /// Deepgram provider implementation
 #[derive(Debug, Clone)]
@@ -57,7 +57,7 @@ impl DeepgramProvider {
     }
 
     /// Build the list of available models
-    fn build_model_list() -> Vec<ModelInfo> {
+    pub fn build_model_list() -> Vec<ModelInfo> {
         vec![
             ModelInfo {
                 id: "nova-2".to_string(),
@@ -71,7 +71,7 @@ impl DeepgramProvider {
                 input_cost_per_1k_tokens: None,
                 output_cost_per_1k_tokens: None,
                 currency: "USD".to_string(),
-                capabilities: vec![ProviderCapability::SpeechToText],
+                capabilities: vec![ProviderCapability::AudioTranscription],
                 created_at: None,
                 updated_at: None,
                 metadata: HashMap::new(),
@@ -88,7 +88,7 @@ impl DeepgramProvider {
                 input_cost_per_1k_tokens: None,
                 output_cost_per_1k_tokens: None,
                 currency: "USD".to_string(),
-                capabilities: vec![ProviderCapability::SpeechToText],
+                capabilities: vec![ProviderCapability::AudioTranscription],
                 created_at: None,
                 updated_at: None,
                 metadata: HashMap::new(),
@@ -105,7 +105,7 @@ impl DeepgramProvider {
                 input_cost_per_1k_tokens: None,
                 output_cost_per_1k_tokens: None,
                 currency: "USD".to_string(),
-                capabilities: vec![ProviderCapability::SpeechToText],
+                capabilities: vec![ProviderCapability::AudioTranscription],
                 created_at: None,
                 updated_at: None,
                 metadata: HashMap::new(),
@@ -122,7 +122,7 @@ impl DeepgramProvider {
                 input_cost_per_1k_tokens: None,
                 output_cost_per_1k_tokens: None,
                 currency: "USD".to_string(),
-                capabilities: vec![ProviderCapability::SpeechToText],
+                capabilities: vec![ProviderCapability::AudioTranscription],
                 created_at: None,
                 updated_at: None,
                 metadata: HashMap::new(),
@@ -139,7 +139,7 @@ impl DeepgramProvider {
                 input_cost_per_1k_tokens: None,
                 output_cost_per_1k_tokens: None,
                 currency: "USD".to_string(),
-                capabilities: vec![ProviderCapability::SpeechToText],
+                capabilities: vec![ProviderCapability::AudioTranscription],
                 created_at: None,
                 updated_at: None,
                 metadata: HashMap::new(),
@@ -156,7 +156,7 @@ impl DeepgramProvider {
                 input_cost_per_1k_tokens: None,
                 output_cost_per_1k_tokens: None,
                 currency: "USD".to_string(),
-                capabilities: vec![ProviderCapability::SpeechToText],
+                capabilities: vec![ProviderCapability::AudioTranscription],
                 created_at: None,
                 updated_at: None,
                 metadata: HashMap::new(),
@@ -173,7 +173,7 @@ impl DeepgramProvider {
                 input_cost_per_1k_tokens: None,
                 output_cost_per_1k_tokens: None,
                 currency: "USD".to_string(),
-                capabilities: vec![ProviderCapability::SpeechToText],
+                capabilities: vec![ProviderCapability::AudioTranscription],
                 created_at: None,
                 updated_at: None,
                 metadata: HashMap::new(),
@@ -286,7 +286,7 @@ impl DeepgramProvider {
     }
 
     /// Map HTTP error to DeepgramError
-    fn map_http_error(status: u16, body: Option<&str>) -> DeepgramError {
+    pub fn map_http_error(status: u16, body: Option<&str>) -> DeepgramError {
         let message = body.unwrap_or("Unknown error").to_string();
 
         match status {
@@ -347,7 +347,7 @@ mod tests {
             assert!(
                 model
                     .capabilities
-                    .contains(&ProviderCapability::SpeechToText)
+                    .contains(&ProviderCapability::AudioTranscription)
             );
         }
     }
@@ -383,7 +383,7 @@ mod tests {
 
     #[test]
     fn test_capabilities() {
-        assert!(DEEPGRAM_CAPABILITIES.contains(&ProviderCapability::SpeechToText));
+        assert!(DEEPGRAM_CAPABILITIES.contains(&ProviderCapability::AudioTranscription));
         assert!(!DEEPGRAM_CAPABILITIES.contains(&ProviderCapability::ChatCompletion));
         assert!(!DEEPGRAM_CAPABILITIES.contains(&ProviderCapability::TextToSpeech));
     }

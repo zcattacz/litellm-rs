@@ -741,10 +741,19 @@ mod tests {
 
     #[test]
     fn test_transform_role() {
-        assert_eq!(AzureAIChatUtils::transform_role(&MessageRole::System), "system");
+        assert_eq!(
+            AzureAIChatUtils::transform_role(&MessageRole::System),
+            "system"
+        );
         assert_eq!(AzureAIChatUtils::transform_role(&MessageRole::User), "user");
-        assert_eq!(AzureAIChatUtils::transform_role(&MessageRole::Assistant), "assistant");
-        assert_eq!(AzureAIChatUtils::transform_role(&MessageRole::Function), "function");
+        assert_eq!(
+            AzureAIChatUtils::transform_role(&MessageRole::Assistant),
+            "assistant"
+        );
+        assert_eq!(
+            AzureAIChatUtils::transform_role(&MessageRole::Function),
+            "function"
+        );
         assert_eq!(AzureAIChatUtils::transform_role(&MessageRole::Tool), "tool");
     }
 

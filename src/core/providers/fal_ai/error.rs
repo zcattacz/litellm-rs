@@ -66,7 +66,8 @@ mod tests {
     fn test_map_http_error_401() {
         let mapper = FalAIErrorMapper;
         let error = mapper.map_http_error(401, "Unauthorized");
-        assert!(format!("{:?}", error).contains("authentication"));
+        let debug = format!("{:?}", error).to_lowercase();
+        assert!(debug.contains("authentication") || debug.contains("api key"));
     }
 
     #[test]

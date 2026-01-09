@@ -325,7 +325,6 @@ impl LLMProvider for GitHubProvider {
 
 /// SSE stream implementation for GitHub Models
 use bytes::Bytes;
-use futures::StreamExt;
 
 pub struct GitHubStream {
     inner: Pin<Box<dyn Stream<Item = Result<Bytes, reqwest::Error>> + Send>>,

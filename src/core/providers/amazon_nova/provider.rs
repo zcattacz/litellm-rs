@@ -391,7 +391,8 @@ impl LLMProvider for AmazonNovaProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::types::requests::Message;
+    use crate::core::types::chat::ChatMessage;
+    use crate::core::types::message::{MessageContent, MessageRole};
 
     #[test]
     fn test_provider_creation_fails_without_api_key() {
@@ -458,41 +459,23 @@ mod tests {
 
         let request = ChatRequest {
             model: "nova-pro".to_string(),
-            messages: vec![Message {
-                role: "user".to_string(),
-                content: Some(crate::core::types::requests::MessageContent::Text(
-                    "Hello".to_string(),
-                )),
+            messages: vec![ChatMessage {
+                role: MessageRole::User,
+                content: Some(MessageContent::Text("Hello".to_string())),
                 name: None,
                 tool_calls: None,
                 tool_call_id: None,
-                refusal: None,
+                ..Default::default()
             }],
             temperature: Some(0.7),
             max_tokens: Some(100),
-            max_completion_tokens: None,
-            top_p: None,
-            frequency_penalty: None,
-            presence_penalty: None,
-            stop: None,
-            n: None,
-            stream: None,
-            stream_options: None,
-            logprobs: None,
-            top_logprobs: None,
-            user: None,
-            tools: None,
-            tool_choice: None,
-            response_format: None,
-            seed: None,
-            logit_bias: None,
-            parallel_tool_calls: None,
-            metadata: None,
+            ..Default::default()
         };
 
         let body = provider.transform_chat_request(request);
         assert_eq!(body["model"], "amazon.nova-pro-v1:0");
-        assert_eq!(body["temperature"], 0.7);
+        let temp = body["temperature"].as_f64().unwrap();
+        assert!((temp - 0.7).abs() < 0.01);
         assert_eq!(body["max_tokens"], 100);
     }
 
@@ -504,26 +487,9 @@ mod tests {
         let request = ChatRequest {
             model: "nova-pro".to_string(),
             messages: vec![],
-            temperature: None,
             max_tokens: Some(100),
             max_completion_tokens: Some(200), // Should take precedence
-            top_p: None,
-            frequency_penalty: None,
-            presence_penalty: None,
-            stop: None,
-            n: None,
-            stream: None,
-            stream_options: None,
-            logprobs: None,
-            top_logprobs: None,
-            user: None,
-            tools: None,
-            tool_choice: None,
-            response_format: None,
-            seed: None,
-            logit_bias: None,
-            parallel_tool_calls: None,
-            metadata: None,
+            ..Default::default()
         };
 
         let body = provider.transform_chat_request(request);

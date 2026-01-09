@@ -518,7 +518,10 @@ mod tests {
         let deserialized: UserPreferences = serde_json::from_str(&json).unwrap();
 
         assert_eq!(prefs.language, deserialized.language);
-        assert_eq!(prefs.notifications.email_enabled, deserialized.notifications.email_enabled);
+        assert_eq!(
+            prefs.notifications.email_enabled,
+            deserialized.notifications.email_enabled
+        );
         assert_eq!(prefs.api.default_model, deserialized.api.default_model);
     }
 }

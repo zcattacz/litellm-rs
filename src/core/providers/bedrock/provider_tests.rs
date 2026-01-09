@@ -5,7 +5,7 @@
 
 use super::client::BedrockClient;
 use super::config::BedrockConfig;
-use super::provider::{BedrockProvider, BEDROCK_CAPABILITIES};
+use super::provider::{BEDROCK_CAPABILITIES, BedrockProvider};
 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 use crate::core::types::common::ProviderCapability;
 use crate::core::types::requests::ContentPart;
@@ -174,7 +174,9 @@ fn test_messages_to_prompt_system_message() {
     let messages = vec![
         ChatMessage {
             role: MessageRole::System,
-            content: Some(MessageContent::Text("You are a helpful assistant.".to_string())),
+            content: Some(MessageContent::Text(
+                "You are a helpful assistant.".to_string(),
+            )),
             ..Default::default()
         },
         ChatMessage {

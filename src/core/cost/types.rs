@@ -579,8 +579,7 @@ mod tests {
         let mut tracker = CostTracker::new();
 
         let usage1 = UsageTokens::new(100, 50);
-        let mut breakdown1 =
-            CostBreakdown::new("gpt-4".to_string(), "openai".to_string(), usage1);
+        let mut breakdown1 = CostBreakdown::new("gpt-4".to_string(), "openai".to_string(), usage1);
         breakdown1.total_cost = 0.05;
         tracker.add_request_cost(breakdown1);
 
@@ -600,8 +599,7 @@ mod tests {
         let mut tracker = CostTracker::new();
 
         let usage1 = UsageTokens::new(100, 50);
-        let mut breakdown1 =
-            CostBreakdown::new("gpt-4".to_string(), "openai".to_string(), usage1);
+        let mut breakdown1 = CostBreakdown::new("gpt-4".to_string(), "openai".to_string(), usage1);
         breakdown1.total_cost = 0.05;
         tracker.add_request_cost(breakdown1);
 
@@ -661,16 +659,14 @@ mod tests {
         let mut tracker = CostTracker::new();
 
         let usage1 = UsageTokens::new(100, 50);
-        let mut breakdown1 =
-            CostBreakdown::new("gpt-4".to_string(), "openai".to_string(), usage1);
+        let mut breakdown1 = CostBreakdown::new("gpt-4".to_string(), "openai".to_string(), usage1);
         breakdown1.total_cost = 0.05;
         breakdown1.input_cost = 0.03;
         breakdown1.output_cost = 0.02;
         tracker.add_request_cost(breakdown1);
 
         let usage2 = UsageTokens::new(200, 100);
-        let mut breakdown2 =
-            CostBreakdown::new("gpt-4".to_string(), "openai".to_string(), usage2);
+        let mut breakdown2 = CostBreakdown::new("gpt-4".to_string(), "openai".to_string(), usage2);
         breakdown2.total_cost = 0.10;
         breakdown2.input_cost = 0.06;
         breakdown2.output_cost = 0.04;

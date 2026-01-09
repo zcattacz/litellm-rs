@@ -428,10 +428,26 @@ mod tests {
 
     #[test]
     fn test_period_type_serialization() {
-        assert!(serde_json::to_string(&PeriodType::Hour).unwrap().contains("hour"));
-        assert!(serde_json::to_string(&PeriodType::Day).unwrap().contains("day"));
-        assert!(serde_json::to_string(&PeriodType::Week).unwrap().contains("week"));
-        assert!(serde_json::to_string(&PeriodType::Month).unwrap().contains("month"));
+        assert!(
+            serde_json::to_string(&PeriodType::Hour)
+                .unwrap()
+                .contains("hour")
+        );
+        assert!(
+            serde_json::to_string(&PeriodType::Day)
+                .unwrap()
+                .contains("day")
+        );
+        assert!(
+            serde_json::to_string(&PeriodType::Week)
+                .unwrap()
+                .contains("week")
+        );
+        assert!(
+            serde_json::to_string(&PeriodType::Month)
+                .unwrap()
+                .contains("month")
+        );
     }
 
     // ==================== TimePeriod Tests ====================
@@ -594,10 +610,26 @@ mod tests {
 
     #[test]
     fn test_alert_severity_serialization() {
-        assert!(serde_json::to_string(&AlertSeverity::Info).unwrap().contains("info"));
-        assert!(serde_json::to_string(&AlertSeverity::Warning).unwrap().contains("warning"));
-        assert!(serde_json::to_string(&AlertSeverity::Error).unwrap().contains("error"));
-        assert!(serde_json::to_string(&AlertSeverity::Critical).unwrap().contains("critical"));
+        assert!(
+            serde_json::to_string(&AlertSeverity::Info)
+                .unwrap()
+                .contains("info")
+        );
+        assert!(
+            serde_json::to_string(&AlertSeverity::Warning)
+                .unwrap()
+                .contains("warning")
+        );
+        assert!(
+            serde_json::to_string(&AlertSeverity::Error)
+                .unwrap()
+                .contains("error")
+        );
+        assert!(
+            serde_json::to_string(&AlertSeverity::Critical)
+                .unwrap()
+                .contains("critical")
+        );
     }
 
     // ==================== AlertConfig Tests ====================

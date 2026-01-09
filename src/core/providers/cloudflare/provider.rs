@@ -532,7 +532,11 @@ mod tests {
     async fn test_provider_models_have_cloudflare_prefix() {
         let provider = create_test_provider().await;
         for model in provider.models() {
-            assert!(model.id.starts_with("cloudflare/"), "Model {} should start with cloudflare/", model.id);
+            assert!(
+                model.id.starts_with("cloudflare/"),
+                "Model {} should start with cloudflare/",
+                model.id
+            );
             assert_eq!(model.provider, "cloudflare");
         }
     }
@@ -626,7 +630,9 @@ mod tests {
             messages: vec![
                 ChatMessage {
                     role: MessageRole::System,
-                    content: Some(MessageContent::Text("You are a helpful assistant.".to_string())),
+                    content: Some(MessageContent::Text(
+                        "You are a helpful assistant.".to_string(),
+                    )),
                     ..Default::default()
                 },
                 ChatMessage {
@@ -682,11 +688,13 @@ mod tests {
         });
         let response_bytes = serde_json::to_vec(&response_json).unwrap();
 
-        let result = provider.transform_response(
-            &response_bytes,
-            "@cf/meta/llama-3-8b-instruct",
-            "test-request-id"
-        ).await;
+        let result = provider
+            .transform_response(
+                &response_bytes,
+                "@cf/meta/llama-3-8b-instruct",
+                "test-request-id",
+            )
+            .await;
 
         assert!(result.is_ok());
         let chat_response = result.unwrap();
@@ -705,11 +713,13 @@ mod tests {
         });
         let response_bytes = serde_json::to_vec(&response_json).unwrap();
 
-        let result = provider.transform_response(
-            &response_bytes,
-            "@cf/meta/llama-3-8b-instruct",
-            "test-request-id"
-        ).await;
+        let result = provider
+            .transform_response(
+                &response_bytes,
+                "@cf/meta/llama-3-8b-instruct",
+                "test-request-id",
+            )
+            .await;
 
         assert!(result.is_ok());
         let chat_response = result.unwrap();
@@ -722,11 +732,13 @@ mod tests {
 
         let response_bytes = b"not valid json";
 
-        let result = provider.transform_response(
-            response_bytes,
-            "@cf/meta/llama-3-8b-instruct",
-            "test-request-id"
-        ).await;
+        let result = provider
+            .transform_response(
+                response_bytes,
+                "@cf/meta/llama-3-8b-instruct",
+                "test-request-id",
+            )
+            .await;
 
         assert!(result.is_err());
     }
@@ -741,7 +753,9 @@ mod tests {
         params.insert("temperature".to_string(), serde_json::json!(0.7));
         params.insert("max_tokens".to_string(), serde_json::json!(100));
 
-        let result = provider.map_openai_params(params.clone(), "@cf/meta/llama-3-8b-instruct").await;
+        let result = provider
+            .map_openai_params(params.clone(), "@cf/meta/llama-3-8b-instruct")
+            .await;
 
         assert!(result.is_ok());
         let mapped = result.unwrap();
@@ -754,11 +768,9 @@ mod tests {
     async fn test_calculate_cost_known_model() {
         let provider = create_test_provider().await;
 
-        let cost = provider.calculate_cost(
-            "@cf/meta/llama-3-8b-instruct",
-            1000,
-            500
-        ).await;
+        let cost = provider
+            .calculate_cost("@cf/meta/llama-3-8b-instruct", 1000, 500)
+            .await;
 
         assert!(cost.is_ok());
         let cost_value = cost.unwrap();
@@ -769,11 +781,7 @@ mod tests {
     async fn test_calculate_cost_unknown_model() {
         let provider = create_test_provider().await;
 
-        let cost = provider.calculate_cost(
-            "unknown-model",
-            1000,
-            500
-        ).await;
+        let cost = provider.calculate_cost("unknown-model", 1000, 500).await;
 
         assert!(cost.is_err());
     }

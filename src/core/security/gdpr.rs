@@ -196,8 +196,14 @@ mod tests {
                 anonymization: None,
             },
         );
-        assert_eq!(gdpr.get_retention_policy("logs").unwrap().retention_days, 30);
-        assert_eq!(gdpr.get_retention_policy("metrics").unwrap().retention_days, 90);
+        assert_eq!(
+            gdpr.get_retention_policy("logs").unwrap().retention_days,
+            30
+        );
+        assert_eq!(
+            gdpr.get_retention_policy("metrics").unwrap().retention_days,
+            90
+        );
     }
 
     #[test]

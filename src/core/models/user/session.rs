@@ -217,12 +217,7 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() + Duration::hours(24);
 
-        let session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Web,
-            expires_at,
-        );
+        let session = UserSession::new(user_id, "token".to_string(), SessionType::Web, expires_at);
 
         assert!(!session.is_expired());
     }
@@ -232,12 +227,7 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() - Duration::hours(1);
 
-        let session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Web,
-            expires_at,
-        );
+        let session = UserSession::new(user_id, "token".to_string(), SessionType::Web, expires_at);
 
         assert!(session.is_expired());
     }
@@ -247,12 +237,7 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() - Duration::seconds(1);
 
-        let session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Web,
-            expires_at,
-        );
+        let session = UserSession::new(user_id, "token".to_string(), SessionType::Web, expires_at);
 
         assert!(session.is_expired());
     }
@@ -264,12 +249,8 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() + Duration::hours(24);
 
-        let mut session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Web,
-            expires_at,
-        );
+        let mut session =
+            UserSession::new(user_id, "token".to_string(), SessionType::Web, expires_at);
 
         let initial_activity = session.last_activity;
         std::thread::sleep(std::time::Duration::from_millis(10));
@@ -285,12 +266,8 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() + Duration::hours(24);
 
-        let mut session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Web,
-            expires_at,
-        );
+        let mut session =
+            UserSession::new(user_id, "token".to_string(), SessionType::Web, expires_at);
 
         session.set_data("key1", "value1");
         session.set_data("key2", 42);
@@ -304,12 +281,8 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() + Duration::hours(24);
 
-        let mut session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Web,
-            expires_at,
-        );
+        let mut session =
+            UserSession::new(user_id, "token".to_string(), SessionType::Web, expires_at);
 
         session.set_data("test_key", "test_value");
 
@@ -323,12 +296,7 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() + Duration::hours(24);
 
-        let session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Web,
-            expires_at,
-        );
+        let session = UserSession::new(user_id, "token".to_string(), SessionType::Web, expires_at);
 
         assert!(session.get_data("nonexistent").is_none());
     }
@@ -338,12 +306,8 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() + Duration::hours(24);
 
-        let mut session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Web,
-            expires_at,
-        );
+        let mut session =
+            UserSession::new(user_id, "token".to_string(), SessionType::Web, expires_at);
 
         session.set_data("key", "original");
         session.set_data("key", "updated");
@@ -357,12 +321,8 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() + Duration::hours(24);
 
-        let mut session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Web,
-            expires_at,
-        );
+        let mut session =
+            UserSession::new(user_id, "token".to_string(), SessionType::Web, expires_at);
 
         session.set_data("string", "hello");
         session.set_data("number", 123);
@@ -402,12 +362,8 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() + Duration::hours(24);
 
-        let mut session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Api,
-            expires_at,
-        );
+        let mut session =
+            UserSession::new(user_id, "token".to_string(), SessionType::Api, expires_at);
 
         session.ip_address = Some("192.168.1.1".to_string());
         session.user_agent = Some("Mozilla/5.0".to_string());
@@ -450,12 +406,7 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() + Duration::hours(24);
 
-        let session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Cli,
-            expires_at,
-        );
+        let session = UserSession::new(user_id, "token".to_string(), SessionType::Cli, expires_at);
 
         let debug_str = format!("{:?}", session);
         assert!(debug_str.contains("UserSession"));
@@ -469,12 +420,7 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() + Duration::hours(24);
 
-        let session = UserSession::new(
-            user_id,
-            "".to_string(),
-            SessionType::Web,
-            expires_at,
-        );
+        let session = UserSession::new(user_id, "".to_string(), SessionType::Web, expires_at);
 
         assert!(session.token.is_empty());
     }
@@ -485,12 +431,7 @@ mod tests {
         let expires_at = Utc::now() + Duration::hours(24);
         let long_token = "a".repeat(1000);
 
-        let session = UserSession::new(
-            user_id,
-            long_token.clone(),
-            SessionType::Web,
-            expires_at,
-        );
+        let session = UserSession::new(user_id, long_token.clone(), SessionType::Web, expires_at);
 
         assert_eq!(session.token.len(), 1000);
     }
@@ -500,12 +441,7 @@ mod tests {
         let user_id = Uuid::new_v4();
         let expires_at = Utc::now() + Duration::days(365 * 10);
 
-        let session = UserSession::new(
-            user_id,
-            "token".to_string(),
-            SessionType::Api,
-            expires_at,
-        );
+        let session = UserSession::new(user_id, "token".to_string(), SessionType::Api, expires_at);
 
         assert!(!session.is_expired());
     }

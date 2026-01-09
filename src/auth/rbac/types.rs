@@ -282,7 +282,10 @@ mod tests {
 
         assert!(!check.granted);
         assert!(check.granted_by_roles.is_empty());
-        assert_eq!(check.denial_reason.as_ref().unwrap(), "Insufficient permissions");
+        assert_eq!(
+            check.denial_reason.as_ref().unwrap(),
+            "Insufficient permissions"
+        );
     }
 
     #[test]

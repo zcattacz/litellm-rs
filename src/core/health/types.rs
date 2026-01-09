@@ -328,25 +328,28 @@ mod tests {
 
     #[test]
     fn test_health_check_results_collection() {
-        let results = [HealthCheckResult::healthy(50),
+        let results = [
+            HealthCheckResult::healthy(50),
             HealthCheckResult::healthy(60),
             HealthCheckResult::degraded("Slow".to_string(), 200),
-            HealthCheckResult::unhealthy("Error".to_string(), 500)];
+            HealthCheckResult::unhealthy("Error".to_string(), 500),
+        ];
 
         // Count healthy results
-        let healthy_count = results.iter()
+        let healthy_count = results
+            .iter()
             .filter(|r| r.status == HealthStatus::Healthy)
             .count();
         assert_eq!(healthy_count, 2);
 
         // Calculate average response time
-        let avg_response: u64 = results.iter()
-            .map(|r| r.response_time_ms)
-            .sum::<u64>() / results.len() as u64;
+        let avg_response: u64 =
+            results.iter().map(|r| r.response_time_ms).sum::<u64>() / results.len() as u64;
         assert_eq!(avg_response, 202); // (50 + 60 + 200 + 500) / 4
 
         // Find results that allow requests
-        let requestable = results.iter()
+        let requestable = results
+            .iter()
             .filter(|r| r.status.allows_requests())
             .count();
         assert_eq!(requestable, 3);
@@ -355,19 +358,29 @@ mod tests {
     #[test]
     fn test_provider_health_simulation() {
         // Simulate health checks for multiple providers
-        let provider_checks = [("openai", HealthCheckResult::healthy(45)),
+        let provider_checks = [
+            ("openai", HealthCheckResult::healthy(45)),
             ("anthropic", HealthCheckResult::healthy(55)),
-            ("azure", HealthCheckResult::degraded("High latency".to_string(), 300)),
-            ("offline-provider", HealthCheckResult::unhealthy("Connection refused".to_string(), 5000))];
+            (
+                "azure",
+                HealthCheckResult::degraded("High latency".to_string(), 300),
+            ),
+            (
+                "offline-provider",
+                HealthCheckResult::unhealthy("Connection refused".to_string(), 5000),
+            ),
+        ];
 
         // Find best provider by score
-        let best = provider_checks.iter()
+        let best = provider_checks
+            .iter()
             .max_by_key(|(_, result)| result.status.score())
             .unwrap();
         assert!(best.0 == "openai" || best.0 == "anthropic"); // Both are healthy with same score
 
         // Filter to only available providers
-        let available: Vec<_> = provider_checks.iter()
+        let available: Vec<_> = provider_checks
+            .iter()
             .filter(|(_, result)| result.status.allows_requests())
             .collect();
         assert_eq!(available.len(), 3);
@@ -377,10 +390,10 @@ mod tests {
     fn test_health_status_transition_logic() {
         // Test typical health status transitions
         let transitions = vec![
-            (HealthStatus::Healthy, HealthStatus::Degraded, true),   // Getting worse
+            (HealthStatus::Healthy, HealthStatus::Degraded, true), // Getting worse
             (HealthStatus::Degraded, HealthStatus::Unhealthy, true), // Getting worse
-            (HealthStatus::Unhealthy, HealthStatus::Healthy, true),  // Recovery
-            (HealthStatus::Down, HealthStatus::Healthy, true),       // Full recovery
+            (HealthStatus::Unhealthy, HealthStatus::Healthy, true), // Recovery
+            (HealthStatus::Down, HealthStatus::Healthy, true),     // Full recovery
         ];
 
         for (from, to, expected_change) in transitions {
@@ -398,10 +411,7 @@ mod tests {
 
     #[test]
     fn test_health_check_with_max_response_time() {
-        let result = HealthCheckResult::unhealthy(
-            "Extreme timeout".to_string(),
-            u64::MAX,
-        );
+        let result = HealthCheckResult::unhealthy("Extreme timeout".to_string(), u64::MAX);
         assert_eq!(result.response_time_ms, u64::MAX);
         assert_eq!(result.status, HealthStatus::Unhealthy);
     }

@@ -213,8 +213,8 @@ mod tests {
     #[test]
     fn test_provider_usage_percentage_max_of_both() {
         let usage = ProviderUsage {
-            tpm: 30000,  // 30% of limit
-            rpm: 800,    // 80% of limit
+            tpm: 30000, // 30% of limit
+            rpm: 800,   // 80% of limit
             active_requests: 5,
             tpm_limit: Some(100000),
             rpm_limit: Some(1000),
@@ -330,7 +330,9 @@ mod tests {
         data.latencies.insert("azure".to_string(), 100.0);
 
         // Find provider with lowest latency
-        let best = data.latencies.iter()
+        let best = data
+            .latencies
+            .iter()
             .min_by(|a, b| a.1.partial_cmp(b.1).unwrap())
             .map(|(k, _)| k);
 
@@ -344,7 +346,9 @@ mod tests {
         data.costs.insert("gpt-3.5".to_string(), 0.002);
         data.costs.insert("claude-3".to_string(), 0.015);
 
-        let cheapest = data.costs.iter()
+        let cheapest = data
+            .costs
+            .iter()
             .min_by(|a, b| a.1.partial_cmp(b.1).unwrap())
             .map(|(k, _)| k);
 
@@ -358,7 +362,9 @@ mod tests {
         data.priorities.insert("secondary".to_string(), 2);
         data.priorities.insert("fallback".to_string(), 3);
 
-        let highest_priority = data.priorities.iter()
+        let highest_priority = data
+            .priorities
+            .iter()
             .min_by_key(|&(_, v)| v)
             .map(|(k, _)| k);
 
@@ -369,26 +375,36 @@ mod tests {
     fn test_routing_data_with_usage() {
         let mut data = RoutingData::default();
 
-        data.usage.insert("provider_a".to_string(), ProviderUsage {
-            tpm: 80000,
-            rpm: 800,
-            active_requests: 50,
-            tpm_limit: Some(100000),
-            rpm_limit: Some(1000),
-        });
+        data.usage.insert(
+            "provider_a".to_string(),
+            ProviderUsage {
+                tpm: 80000,
+                rpm: 800,
+                active_requests: 50,
+                tpm_limit: Some(100000),
+                rpm_limit: Some(1000),
+            },
+        );
 
-        data.usage.insert("provider_b".to_string(), ProviderUsage {
-            tpm: 20000,
-            rpm: 200,
-            active_requests: 10,
-            tpm_limit: Some(100000),
-            rpm_limit: Some(1000),
-        });
+        data.usage.insert(
+            "provider_b".to_string(),
+            ProviderUsage {
+                tpm: 20000,
+                rpm: 200,
+                active_requests: 10,
+                tpm_limit: Some(100000),
+                rpm_limit: Some(1000),
+            },
+        );
 
         // Find provider with lowest usage
-        let least_used = data.usage.iter()
+        let least_used = data
+            .usage
+            .iter()
             .min_by(|a, b| {
-                a.1.usage_percentage().partial_cmp(&b.1.usage_percentage()).unwrap()
+                a.1.usage_percentage()
+                    .partial_cmp(&b.1.usage_percentage())
+                    .unwrap()
             })
             .map(|(k, _)| k);
 
@@ -411,7 +427,9 @@ mod tests {
         // For LeastLatency strategy
         let strategy = RoutingStrategy::LeastLatency;
         if matches!(strategy, RoutingStrategy::LeastLatency) {
-            let selected = data.latencies.iter()
+            let selected = data
+                .latencies
+                .iter()
                 .min_by(|a, b| a.1.partial_cmp(b.1).unwrap())
                 .map(|(k, _)| k.clone());
             assert_eq!(selected, Some("fast".to_string()));
@@ -420,7 +438,9 @@ mod tests {
         // For LeastCost strategy
         let strategy = RoutingStrategy::LeastCost;
         if matches!(strategy, RoutingStrategy::LeastCost) {
-            let selected = data.costs.iter()
+            let selected = data
+                .costs
+                .iter()
                 .min_by(|a, b| a.1.partial_cmp(b.1).unwrap())
                 .map(|(k, _)| k.clone());
             assert_eq!(selected, Some("slow".to_string()));
@@ -441,31 +461,45 @@ mod tests {
 
     #[test]
     fn test_usage_based_provider_selection() {
-        let providers = [("openai", ProviderUsage {
-                tpm: 90000,
-                rpm: 900,
-                active_requests: 50,
-                tpm_limit: Some(100000),
-                rpm_limit: Some(1000),
-            }),
-            ("anthropic", ProviderUsage {
-                tpm: 30000,
-                rpm: 300,
-                active_requests: 15,
-                tpm_limit: Some(100000),
-                rpm_limit: Some(1000),
-            }),
-            ("azure", ProviderUsage {
-                tpm: 50000,
-                rpm: 500,
-                active_requests: 25,
-                tpm_limit: Some(100000),
-                rpm_limit: Some(1000),
-            })];
+        let providers = [
+            (
+                "openai",
+                ProviderUsage {
+                    tpm: 90000,
+                    rpm: 900,
+                    active_requests: 50,
+                    tpm_limit: Some(100000),
+                    rpm_limit: Some(1000),
+                },
+            ),
+            (
+                "anthropic",
+                ProviderUsage {
+                    tpm: 30000,
+                    rpm: 300,
+                    active_requests: 15,
+                    tpm_limit: Some(100000),
+                    rpm_limit: Some(1000),
+                },
+            ),
+            (
+                "azure",
+                ProviderUsage {
+                    tpm: 50000,
+                    rpm: 500,
+                    active_requests: 25,
+                    tpm_limit: Some(100000),
+                    rpm_limit: Some(1000),
+                },
+            ),
+        ];
 
-        let best = providers.iter()
+        let best = providers
+            .iter()
             .min_by(|a, b| {
-                a.1.usage_percentage().partial_cmp(&b.1.usage_percentage()).unwrap()
+                a.1.usage_percentage()
+                    .partial_cmp(&b.1.usage_percentage())
+                    .unwrap()
             })
             .map(|(name, _)| *name);
 

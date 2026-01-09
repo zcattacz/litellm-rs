@@ -129,7 +129,10 @@ impl BedrockProvider {
     }
 
     /// Convert messages to a single prompt string for models that require it
-    pub(super) fn messages_to_prompt(&self, messages: &[ChatMessage]) -> Result<String, BedrockError> {
+    pub(super) fn messages_to_prompt(
+        &self,
+        messages: &[ChatMessage],
+    ) -> Result<String, BedrockError> {
         let mut prompt = String::new();
 
         for message in messages {

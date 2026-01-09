@@ -306,7 +306,11 @@ mod tests {
         let text = "SSN: 123-45-6789";
 
         let result = filter.filter_text(text).await.unwrap();
-        let ssn_issues: Vec<_> = result.issues.iter().filter(|i| i.issue_type.contains("SSN")).collect();
+        let ssn_issues: Vec<_> = result
+            .issues
+            .iter()
+            .filter(|i| i.issue_type.contains("SSN"))
+            .collect();
         assert!(!ssn_issues.is_empty());
         assert!(result.modified_content.unwrap().contains("XXX-XX-XXXX"));
     }
@@ -317,7 +321,11 @@ mod tests {
         let text = "Contact: user@example.com";
 
         let result = filter.filter_text(text).await.unwrap();
-        let email_issues: Vec<_> = result.issues.iter().filter(|i| i.issue_type.contains("Email")).collect();
+        let email_issues: Vec<_> = result
+            .issues
+            .iter()
+            .filter(|i| i.issue_type.contains("Email"))
+            .collect();
         assert!(!email_issues.is_empty());
         // Email uses partial mask (keep_start: 2)
         assert!(result.modified_content.is_some());
@@ -329,7 +337,11 @@ mod tests {
         let text = "Call me at 123-456-7890";
 
         let result = filter.filter_text(text).await.unwrap();
-        let phone_issues: Vec<_> = result.issues.iter().filter(|i| i.issue_type.contains("Phone")).collect();
+        let phone_issues: Vec<_> = result
+            .issues
+            .iter()
+            .filter(|i| i.issue_type.contains("Phone"))
+            .collect();
         assert!(!phone_issues.is_empty());
         assert!(result.modified_content.unwrap().contains("XXX-XXX-XXXX"));
     }
@@ -340,9 +352,18 @@ mod tests {
         let text = "Card: 1234-5678-9012-3456";
 
         let result = filter.filter_text(text).await.unwrap();
-        let cc_issues: Vec<_> = result.issues.iter().filter(|i| i.issue_type.contains("CreditCard")).collect();
+        let cc_issues: Vec<_> = result
+            .issues
+            .iter()
+            .filter(|i| i.issue_type.contains("CreditCard"))
+            .collect();
         assert!(!cc_issues.is_empty());
-        assert!(result.modified_content.unwrap().contains("XXXX-XXXX-XXXX-XXXX"));
+        assert!(
+            result
+                .modified_content
+                .unwrap()
+                .contains("XXXX-XXXX-XXXX-XXXX")
+        );
     }
 
     #[tokio::test]
@@ -361,7 +382,11 @@ mod tests {
         let text = "This is clean text without any PII";
 
         let result = filter.filter_text(text).await.unwrap();
-        let pii_issues: Vec<_> = result.issues.iter().filter(|i| i.issue_type.starts_with("PII_")).collect();
+        let pii_issues: Vec<_> = result
+            .issues
+            .iter()
+            .filter(|i| i.issue_type.starts_with("PII_"))
+            .collect();
         assert!(pii_issues.is_empty());
         assert!(result.modified_content.is_none());
     }
@@ -374,7 +399,11 @@ mod tests {
         let text = "This contains hate speech";
 
         let result = filter.filter_text(text).await.unwrap();
-        let hate_issues: Vec<_> = result.issues.iter().filter(|i| i.issue_type.contains("HateSpeech")).collect();
+        let hate_issues: Vec<_> = result
+            .issues
+            .iter()
+            .filter(|i| i.issue_type.contains("HateSpeech"))
+            .collect();
         assert!(!hate_issues.is_empty());
         assert!(result.blocked);
     }
@@ -394,7 +423,11 @@ mod tests {
         let text = "Content about violence";
 
         let result = filter.filter_text(text).await.unwrap();
-        let violence_issues: Vec<_> = result.issues.iter().filter(|i| i.issue_type.contains("Violence")).collect();
+        let violence_issues: Vec<_> = result
+            .issues
+            .iter()
+            .filter(|i| i.issue_type.contains("Violence"))
+            .collect();
         assert!(!violence_issues.is_empty());
         // Violence is a warning, not a block
         assert!(!result.blocked);
@@ -406,7 +439,11 @@ mod tests {
         let text = "Content with kill keyword";
 
         let result = filter.filter_text(text).await.unwrap();
-        let violence_issues: Vec<_> = result.issues.iter().filter(|i| i.issue_type.contains("Violence")).collect();
+        let violence_issues: Vec<_> = result
+            .issues
+            .iter()
+            .filter(|i| i.issue_type.contains("Violence"))
+            .collect();
         assert!(!violence_issues.is_empty());
     }
 
@@ -429,7 +466,11 @@ mod tests {
         let text = "This is badword1 text";
 
         let result = filter.filter_text(text).await.unwrap();
-        let profanity_issues: Vec<_> = result.issues.iter().filter(|i| i.issue_type == "PROFANITY").collect();
+        let profanity_issues: Vec<_> = result
+            .issues
+            .iter()
+            .filter(|i| i.issue_type == "PROFANITY")
+            .collect();
         assert!(!profanity_issues.is_empty());
     }
 

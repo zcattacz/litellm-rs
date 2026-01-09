@@ -9,7 +9,7 @@ use tokio::sync::RwLock;
 use super::config::{A2AGatewayConfig, AgentConfig, AgentProvider};
 use super::error::{A2AError, A2AResult};
 use super::message::{A2AMessage, A2AResponse, TaskResult};
-use super::provider::{get_provider_adapter, A2AProviderAdapter};
+use super::provider::{A2AProviderAdapter, get_provider_adapter};
 use super::registry::{AgentRegistry, AgentState, RegistryStats};
 
 /// A2A Gateway - main entry point for A2A protocol functionality
@@ -170,11 +170,7 @@ impl A2AGateway {
         let adapter = self.get_adapter(config.provider).await;
 
         if self.enable_logging {
-            tracing::info!(
-                agent = agent_name,
-                task_id = task_id,
-                "Getting task status"
-            );
+            tracing::info!(agent = agent_name, task_id = task_id, "Getting task status");
         }
 
         adapter.get_task(&config, task_id).await
@@ -186,11 +182,7 @@ impl A2AGateway {
         let adapter = self.get_adapter(config.provider).await;
 
         if self.enable_logging {
-            tracing::info!(
-                agent = agent_name,
-                task_id = task_id,
-                "Cancelling task"
-            );
+            tracing::info!(agent = agent_name, task_id = task_id, "Cancelling task");
         }
 
         adapter.cancel_task(&config, task_id).await

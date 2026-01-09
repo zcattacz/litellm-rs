@@ -522,7 +522,9 @@ mod tests {
     #[test]
     fn test_deployment_state_health_status() {
         let state = DeploymentState::new();
-        state.health.store(HealthStatus::Degraded as u8, Ordering::Relaxed);
+        state
+            .health
+            .store(HealthStatus::Degraded as u8, Ordering::Relaxed);
         assert_eq!(state.health_status(), HealthStatus::Degraded);
     }
 

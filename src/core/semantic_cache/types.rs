@@ -99,7 +99,9 @@ pub trait EmbeddingProvider: Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::models::openai::{ChatChoice, ChatCompletionResponse, ChatMessage, MessageContent, MessageRole, Usage};
+    use crate::core::models::openai::{
+        ChatChoice, ChatCompletionResponse, ChatMessage, MessageContent, MessageRole, Usage,
+    };
     use chrono::Utc;
 
     // ==================== Helper Functions ====================
@@ -658,7 +660,9 @@ mod tests {
         // Simulate eviction when adding new entry
         if data.entries.len() >= config.max_cache_size {
             // Find entry with lowest access count
-            let to_evict = data.entries.iter()
+            let to_evict = data
+                .entries
+                .iter()
                 .min_by_key(|(_, e)| e.access_count)
                 .map(|(k, _)| k.clone());
 
@@ -675,14 +679,18 @@ mod tests {
         let config = SemanticCacheConfig::default();
 
         let prompts = vec![
-            ("short", false),          // 5 chars < 10
-            ("medium len", true),      // 10 chars = 10
+            ("short", false),     // 5 chars < 10
+            ("medium len", true), // 10 chars = 10
             ("this is a longer prompt that should be cached", true),
         ];
 
         for (prompt, should_cache) in prompts {
             let can_cache = prompt.len() >= config.min_prompt_length;
-            assert_eq!(can_cache, should_cache, "Prompt '{}' caching mismatch", prompt);
+            assert_eq!(
+                can_cache, should_cache,
+                "Prompt '{}' caching mismatch",
+                prompt
+            );
         }
     }
 
@@ -728,7 +736,9 @@ mod tests {
             data.entries.insert(entry.id.clone(), entry);
         }
 
-        let gpt4_entries: Vec<_> = data.entries.values()
+        let gpt4_entries: Vec<_> = data
+            .entries
+            .values()
             .filter(|e| e.model == "gpt-4")
             .collect();
 
@@ -755,7 +765,9 @@ mod tests {
             data.entries.insert(entry.id.clone(), entry);
         }
 
-        let most_accessed = data.entries.values()
+        let most_accessed = data
+            .entries
+            .values()
             .max_by_key(|e| e.access_count)
             .unwrap();
 

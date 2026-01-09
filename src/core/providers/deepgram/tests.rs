@@ -246,7 +246,7 @@ async fn test_provider_capabilities() {
     let provider = DeepgramProvider::new(config).await.unwrap();
     let capabilities = provider.capabilities();
 
-    assert!(capabilities.contains(&ProviderCapability::SpeechToText));
+    assert!(capabilities.contains(&ProviderCapability::AudioTranscription));
     assert!(!capabilities.contains(&ProviderCapability::ChatCompletion));
     assert!(!capabilities.contains(&ProviderCapability::TextToSpeech));
 }
@@ -272,7 +272,7 @@ fn test_provider_build_model_list() {
         assert!(
             model
                 .capabilities
-                .contains(&ProviderCapability::SpeechToText)
+                .contains(&ProviderCapability::AudioTranscription)
         );
         assert!(model.supports_multimodal); // Audio input
     }

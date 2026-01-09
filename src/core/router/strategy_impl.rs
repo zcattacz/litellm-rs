@@ -352,9 +352,9 @@ pub fn round_robin(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::router::deployment::{DeploymentConfig, DeploymentState};
-    use crate::core::providers::openai::OpenAIProvider;
     use crate::core::providers::Provider;
+    use crate::core::providers::openai::OpenAIProvider;
+    use crate::core::router::deployment::{DeploymentConfig, DeploymentState};
     use std::sync::atomic::Ordering::Relaxed;
 
     // Helper to create a test provider
@@ -404,7 +404,10 @@ mod tests {
                 weight: 1,
                 ..Default::default()
             };
-            deployments.insert(format!("d{}", i), create_test_deployment(&format!("d{}", i), config).await);
+            deployments.insert(
+                format!("d{}", i),
+                create_test_deployment(&format!("d{}", i), config).await,
+            );
         }
 
         let candidates: Vec<String> = (1..=3).map(|i| format!("d{}", i)).collect();
@@ -429,8 +432,14 @@ mod tests {
             weight: 1,
             ..Default::default()
         };
-        deployments.insert("d1".to_string(), create_test_deployment("d1", config1).await);
-        deployments.insert("d2".to_string(), create_test_deployment("d2", config2).await);
+        deployments.insert(
+            "d1".to_string(),
+            create_test_deployment("d1", config1).await,
+        );
+        deployments.insert(
+            "d2".to_string(),
+            create_test_deployment("d2", config2).await,
+        );
 
         let candidates = vec!["d1".to_string(), "d2".to_string()];
 
@@ -447,7 +456,10 @@ mod tests {
         }
 
         // d1 should be selected significantly more often (roughly 10x)
-        assert!(d1_count > d2_count * 5, "d1 should be selected much more often due to higher weight");
+        assert!(
+            d1_count > d2_count * 5,
+            "d1 should be selected much more often due to higher weight"
+        );
     }
 
     #[tokio::test]
@@ -458,7 +470,10 @@ mod tests {
                 weight: 0,
                 ..Default::default()
             };
-            deployments.insert(format!("d{}", i), create_test_deployment(&format!("d{}", i), config).await);
+            deployments.insert(
+                format!("d{}", i),
+                create_test_deployment(&format!("d{}", i), config).await,
+            );
         }
 
         let candidates: Vec<String> = (1..=3).map(|i| format!("d{}", i)).collect();
@@ -767,19 +782,28 @@ mod tests {
             priority: 10,
             ..Default::default()
         };
-        deployments.insert("d1".to_string(), create_test_deployment("d1", config1).await);
+        deployments.insert(
+            "d1".to_string(),
+            create_test_deployment("d1", config1).await,
+        );
 
         let config2 = DeploymentConfig {
             priority: 1,
             ..Default::default()
         };
-        deployments.insert("d2".to_string(), create_test_deployment("d2", config2).await);
+        deployments.insert(
+            "d2".to_string(),
+            create_test_deployment("d2", config2).await,
+        );
 
         let config3 = DeploymentConfig {
             priority: 5,
             ..Default::default()
         };
-        deployments.insert("d3".to_string(), create_test_deployment("d3", config3).await);
+        deployments.insert(
+            "d3".to_string(),
+            create_test_deployment("d3", config3).await,
+        );
 
         let candidates = vec!["d1".to_string(), "d2".to_string(), "d3".to_string()];
         let selected = lowest_cost(&candidates, &deployments);
@@ -796,7 +820,10 @@ mod tests {
                 priority: 5,
                 ..Default::default()
             };
-            deployments.insert(format!("d{}", i), create_test_deployment(&format!("d{}", i), config).await);
+            deployments.insert(
+                format!("d{}", i),
+                create_test_deployment(&format!("d{}", i), config).await,
+            );
         }
 
         let candidates: Vec<String> = (1..=3).map(|i| format!("d{}", i)).collect();
@@ -909,7 +936,10 @@ mod tests {
             rpm_limit: None,
             ..Default::default()
         };
-        deployments.insert("d1".to_string(), create_test_deployment("d1", config.clone()).await);
+        deployments.insert(
+            "d1".to_string(),
+            create_test_deployment("d1", config.clone()).await,
+        );
         deployments.insert("d2".to_string(), create_test_deployment("d2", config).await);
 
         let candidates = vec!["d1".to_string(), "d2".to_string()];

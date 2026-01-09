@@ -99,6 +99,8 @@ impl BaseConfig {
                     "deepinfra" => "https://api.deepinfra.com/v1/openai",
                     "vertex_ai" => "https://generativelanguage.googleapis.com",
                     "openrouter" => "https://openrouter.ai/api/v1",
+                    "ai21" => "https://api.ai21.com/studio/v1",
+                    "cerebras" => "https://api.cerebras.ai/v1",
                     _ => "https://api.openai.com/v1", // Default
                 }
                 .to_string(),

@@ -234,9 +234,16 @@ mod tests {
             thinking_usage: None,
         };
 
-        assert_eq!(usage.prompt_tokens_details.as_ref().unwrap().cached_tokens, Some(30));
         assert_eq!(
-            usage.completion_tokens_details.as_ref().unwrap().reasoning_tokens,
+            usage.prompt_tokens_details.as_ref().unwrap().cached_tokens,
+            Some(30)
+        );
+        assert_eq!(
+            usage
+                .completion_tokens_details
+                .as_ref()
+                .unwrap()
+                .reasoning_tokens,
             Some(50)
         );
     }

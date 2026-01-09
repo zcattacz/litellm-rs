@@ -292,7 +292,10 @@ mod tests {
 
     #[test]
     fn test_comparison_operators_inequality() {
-        assert_ne!(ComparisonOperator::GreaterThan, ComparisonOperator::LessThan);
+        assert_ne!(
+            ComparisonOperator::GreaterThan,
+            ComparisonOperator::LessThan
+        );
         assert_ne!(ComparisonOperator::Equal, ComparisonOperator::NotEqual);
         assert_ne!(
             ComparisonOperator::GreaterThanOrEqual,
@@ -402,9 +405,18 @@ mod tests {
     fn test_alert_stats_severity_counts() {
         let mut stats = AlertStats::default();
 
-        *stats.alerts_by_severity.entry("critical".to_string()).or_insert(0) += 5;
-        *stats.alerts_by_severity.entry("warning".to_string()).or_insert(0) += 15;
-        *stats.alerts_by_severity.entry("critical".to_string()).or_insert(0) += 3;
+        *stats
+            .alerts_by_severity
+            .entry("critical".to_string())
+            .or_insert(0) += 5;
+        *stats
+            .alerts_by_severity
+            .entry("warning".to_string())
+            .or_insert(0) += 15;
+        *stats
+            .alerts_by_severity
+            .entry("critical".to_string())
+            .or_insert(0) += 3;
 
         assert_eq!(stats.alerts_by_severity.get("critical"), Some(&8));
         assert_eq!(stats.alerts_by_severity.get("warning"), Some(&15));

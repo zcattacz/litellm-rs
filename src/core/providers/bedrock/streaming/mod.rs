@@ -589,7 +589,10 @@ mod tests {
 
         let chunk = result.unwrap();
         assert!(chunk.is_some());
-        assert_eq!(chunk.unwrap().choices[0].delta.content, Some("".to_string()));
+        assert_eq!(
+            chunk.unwrap().choices[0].delta.content,
+            Some("".to_string())
+        );
     }
 
     // ==================== Nova Chunk Parsing Tests ====================

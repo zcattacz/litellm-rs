@@ -108,8 +108,8 @@ impl MistralEmbeddingHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::types::requests::EmbeddingRequest;
     use crate::core::types::requests::EmbeddingInput;
+    use crate::core::types::requests::EmbeddingRequest;
 
     fn create_test_config() -> MistralConfig {
         MistralConfig {
@@ -175,10 +175,7 @@ mod tests {
 
         let request = EmbeddingRequest {
             model: "mistral-embed".to_string(),
-            input: EmbeddingInput::Array(vec![
-                "Hello".to_string(),
-                "World".to_string(),
-            ]),
+            input: EmbeddingInput::Array(vec!["Hello".to_string(), "World".to_string()]),
             encoding_format: None,
             dimensions: None,
             user: None,

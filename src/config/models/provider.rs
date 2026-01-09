@@ -190,7 +190,8 @@ mod tests {
 
     #[test]
     fn test_retry_config_deserialization() {
-        let json = r#"{"base_delay": 1500, "max_delay": 45000, "backoff_multiplier": 2.5, "jitter": 0.3}"#;
+        let json =
+            r#"{"base_delay": 1500, "max_delay": 45000, "backoff_multiplier": 2.5, "jitter": 0.3}"#;
         let config: RetryConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.base_delay, 1500);
         assert!((config.backoff_multiplier - 2.5).abs() < f64::EPSILON);
@@ -392,7 +393,11 @@ mod tests {
     #[test]
     fn test_provider_config_with_tags() {
         let config = ProviderConfig {
-            tags: vec!["production".to_string(), "primary".to_string(), "fast".to_string()],
+            tags: vec![
+                "production".to_string(),
+                "primary".to_string(),
+                "fast".to_string(),
+            ],
             ..ProviderConfig::default()
         };
         assert_eq!(config.tags.len(), 3);

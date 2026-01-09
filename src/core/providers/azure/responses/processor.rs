@@ -399,7 +399,10 @@ mod tests {
         let config = ResponseProcessingConfig::default();
         let cloned = config.clone();
 
-        assert_eq!(config.process_content_filters, cloned.process_content_filters);
+        assert_eq!(
+            config.process_content_filters,
+            cloned.process_content_filters
+        );
         assert_eq!(config.max_response_size, cloned.max_response_size);
     }
 

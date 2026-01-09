@@ -38,11 +38,7 @@ impl std::error::Error for ContextualError {
 
 impl ContextualError {
     /// Create a new contextual error
-    pub fn new(
-        inner: ProviderError,
-        request_id: impl Into<String>,
-        model: Option<&str>,
-    ) -> Self {
+    pub fn new(inner: ProviderError, request_id: impl Into<String>, model: Option<&str>) -> Self {
         Self {
             inner,
             request_id: request_id.into(),

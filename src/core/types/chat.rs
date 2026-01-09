@@ -341,8 +341,7 @@ mod tests {
 
     #[test]
     fn test_chat_request_estimate_tokens() {
-        let request = ChatRequest::new("gpt-4")
-            .add_user_message("Hello, world!");
+        let request = ChatRequest::new("gpt-4").add_user_message("Hello, world!");
 
         let tokens = request.estimate_input_tokens();
         assert!(tokens > 0);

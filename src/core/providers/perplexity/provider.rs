@@ -11,10 +11,10 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::core::providers::base::{
-    get_pricing_db, header, header_owned, GlobalPoolManager, HeaderPair, HttpMethod,
+    GlobalPoolManager, HeaderPair, HttpMethod, get_pricing_db, header, header_owned,
 };
 use crate::core::providers::unified_provider::ProviderError;
-use crate::core::traits::{provider::llm_provider::trait_definition::LLMProvider, ProviderConfig};
+use crate::core::traits::{ProviderConfig, provider::llm_provider::trait_definition::LLMProvider};
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
     requests::ChatRequest,

@@ -11,9 +11,7 @@ pub type McpResult<T> = Result<T, McpError>;
 #[derive(Debug, Clone)]
 pub enum McpError {
     /// Server not found
-    ServerNotFound {
-        server_name: String,
-    },
+    ServerNotFound { server_name: String },
 
     /// Tool not found
     ToolNotFound {
@@ -28,10 +26,7 @@ pub enum McpError {
     },
 
     /// Transport error
-    TransportError {
-        transport: String,
-        message: String,
-    },
+    TransportError { transport: String, message: String },
 
     /// Authentication error
     AuthenticationError {
@@ -47,9 +42,7 @@ pub enum McpError {
     },
 
     /// Protocol error (invalid JSON-RPC message)
-    ProtocolError {
-        message: String,
-    },
+    ProtocolError { message: String },
 
     /// Tool execution error
     ToolExecutionError {
@@ -66,25 +59,16 @@ pub enum McpError {
     },
 
     /// Configuration error
-    ConfigurationError {
-        message: String,
-    },
+    ConfigurationError { message: String },
 
     /// Serialization error
-    SerializationError {
-        message: String,
-    },
+    SerializationError { message: String },
 
     /// Server already registered
-    ServerAlreadyExists {
-        server_name: String,
-    },
+    ServerAlreadyExists { server_name: String },
 
     /// Invalid URL
-    InvalidUrl {
-        url: String,
-        message: String,
-    },
+    InvalidUrl { url: String, message: String },
 
     /// Rate limit exceeded
     RateLimitExceeded {
@@ -199,11 +183,7 @@ impl fmt::Display for McpError {
                         server_name, ms
                     )
                 } else {
-                    write!(
-                        f,
-                        "Rate limit exceeded for MCP server '{}'",
-                        server_name
-                    )
+                    write!(f, "Rate limit exceeded for MCP server '{}'", server_name)
                 }
             }
         }

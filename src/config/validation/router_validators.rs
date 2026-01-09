@@ -64,8 +64,8 @@ impl Validate for LoadBalancerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use super::super::trait_def::Validate;  // Import the trait explicitly
+    use super::super::trait_def::Validate;
+    use super::*; // Import the trait explicitly
 
     // Helper to call the Validate trait method explicitly
     fn validate_config<T: Validate>(config: &T) -> Result<(), String> {
@@ -178,7 +178,11 @@ mod tests {
 
         let result = validate_config(&config);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("max delay must be greater than base delay"));
+        assert!(
+            result
+                .unwrap_err()
+                .contains("max delay must be greater than base delay")
+        );
     }
 
     #[test]
@@ -189,7 +193,11 @@ mod tests {
 
         let result = validate_config(&config);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("max delay must be greater than base delay"));
+        assert!(
+            result
+                .unwrap_err()
+                .contains("max delay must be greater than base delay")
+        );
     }
 
     #[test]
@@ -208,7 +216,11 @@ mod tests {
 
         let result = validate_config(&config);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("backoff multiplier must be greater than 1.0"));
+        assert!(
+            result
+                .unwrap_err()
+                .contains("backoff multiplier must be greater than 1.0")
+        );
     }
 
     #[test]
@@ -218,7 +230,11 @@ mod tests {
 
         let result = validate_config(&config);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("backoff multiplier must be greater than 1.0"));
+        assert!(
+            result
+                .unwrap_err()
+                .contains("backoff multiplier must be greater than 1.0")
+        );
     }
 
     #[test]

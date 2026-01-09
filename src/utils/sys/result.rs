@@ -454,11 +454,7 @@ mod tests {
     #[test]
     fn test_option_to_result_chain() {
         fn get_value(has_value: bool) -> Option<i32> {
-            if has_value {
-                Some(100)
-            } else {
-                None
-            }
+            if has_value { Some(100) } else { None }
         }
 
         let result = get_value(true).ok_or_context("value not found");

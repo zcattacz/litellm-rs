@@ -179,10 +179,7 @@ mod tests {
             "revised_prompt": "A cat sitting on a mat"
         }"#;
         let data: ImageData = serde_json::from_str(json).unwrap();
-        assert_eq!(
-            data.url,
-            Some("https://example.com/image.jpg".to_string())
-        );
+        assert_eq!(data.url, Some("https://example.com/image.jpg".to_string()));
         assert_eq!(
             data.revised_prompt,
             Some("A cat sitting on a mat".to_string())

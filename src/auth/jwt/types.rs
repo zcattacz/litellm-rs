@@ -251,11 +251,7 @@ mod tests {
             aud: "prod-api".to_string(),
             jti: "jwt_abc123".to_string(),
             role: "team_lead".to_string(),
-            permissions: vec![
-                "read".to_string(),
-                "write".to_string(),
-                "admin".to_string(),
-            ],
+            permissions: vec!["read".to_string(), "write".to_string(), "admin".to_string()],
             team_id: Some(team_id),
             session_id: Some("sess_xyz789".to_string()),
             token_type: TokenType::Access,

@@ -4,7 +4,7 @@
 //! including citations and search context support.
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::models::get_perplexity_registry;
 use crate::core::providers::unified_provider::ProviderError;

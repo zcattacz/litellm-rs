@@ -9,7 +9,9 @@ use std::collections::HashMap;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use crate::core::providers::base::{GlobalPoolManager, HeaderPair, HttpMethod, header, header_owned};
+use crate::core::providers::base::{
+    GlobalPoolManager, HeaderPair, HttpMethod, header, header_owned,
+};
 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
@@ -180,7 +182,10 @@ impl OpenAIProvider {
     }
 
     /// Transform ChatRequest to OpenAI API format
-    pub(crate) fn transform_chat_request(&self, request: ChatRequest) -> Result<Value, OpenAIError> {
+    pub(crate) fn transform_chat_request(
+        &self,
+        request: ChatRequest,
+    ) -> Result<Value, OpenAIError> {
         let mut openai_request = serde_json::json!({
             "model": self.config.get_model_mapping(&request.model),
             "messages": request.messages
@@ -506,4 +511,3 @@ impl LLMProvider for OpenAIProvider {
 
 // Re-export error mapper from dedicated module
 pub use super::error_mapper::OpenAIErrorMapper;
-

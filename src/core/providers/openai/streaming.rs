@@ -401,11 +401,9 @@ mod tests {
     async fn test_openai_stream_compat_creation() {
         use futures::stream;
 
-        let data = vec![
-            Ok(Bytes::from(
-                "data: {\"id\":\"compat\",\"object\":\"chat.completion.chunk\",\"created\":123,\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Test\"},\"finish_reason\":null}]}\n\n",
-            )),
-        ];
+        let data = vec![Ok(Bytes::from(
+            "data: {\"id\":\"compat\",\"object\":\"chat.completion.chunk\",\"created\":123,\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Test\"},\"finish_reason\":null}]}\n\n",
+        ))];
 
         let mock_stream = stream::iter(data);
         let mut compat_stream = OpenAIStreamCompat::new(mock_stream);
@@ -474,6 +472,9 @@ mod tests {
 
         let chunks = result.unwrap();
         assert_eq!(chunks.len(), 1);
-        assert_eq!(chunks[0].choices[0].delta.content, Some("Hello\nWorld\t!".to_string()));
+        assert_eq!(
+            chunks[0].choices[0].delta.content,
+            Some("Hello\nWorld\t!".to_string())
+        );
     }
 }

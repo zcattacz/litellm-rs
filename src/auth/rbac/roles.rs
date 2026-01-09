@@ -150,7 +150,14 @@ mod tests {
     async fn test_get_all_default_roles() {
         let rbac = create_test_rbac_system().await;
 
-        let roles = ["super_admin", "admin", "manager", "user", "viewer", "api_user"];
+        let roles = [
+            "super_admin",
+            "admin",
+            "manager",
+            "user",
+            "viewer",
+            "api_user",
+        ];
         for role_name in &roles {
             let role = rbac.get_role(role_name);
             assert!(role.is_some(), "Role {} should exist", role_name);

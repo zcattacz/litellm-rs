@@ -156,7 +156,8 @@ mod tests {
     fn test_transform_stream_new() {
         use futures::stream;
         let inner_stream = stream::iter(vec![1, 2, 3]);
-        let transform_stream: TransformStream<_, ()> = TransformStream::new(inner_stream, PhantomData);
+        let transform_stream: TransformStream<_, ()> =
+            TransformStream::new(inner_stream, PhantomData);
         assert!(format!("{:?}", transform_stream._phantom).contains("PhantomData"));
     }
 

@@ -285,13 +285,21 @@ mod tests {
     #[test]
     fn test_fallback_config_new() {
         let config = FallbackConfig::new();
-        assert!(config.get_fallbacks_for_type("gpt-4", FallbackType::General).is_empty());
+        assert!(
+            config
+                .get_fallbacks_for_type("gpt-4", FallbackType::General)
+                .is_empty()
+        );
     }
 
     #[test]
     fn test_fallback_config_default() {
         let config = FallbackConfig::default();
-        assert!(config.get_fallbacks_for_type("gpt-4", FallbackType::General).is_empty());
+        assert!(
+            config
+                .get_fallbacks_for_type("gpt-4", FallbackType::General)
+                .is_empty()
+        );
     }
 
     #[test]
@@ -303,8 +311,10 @@ mod tests {
 
     #[test]
     fn test_add_general_fallback() {
-        let config = FallbackConfig::new()
-            .add_general("gpt-4", vec!["gpt-3.5-turbo".to_string(), "claude-3".to_string()]);
+        let config = FallbackConfig::new().add_general(
+            "gpt-4",
+            vec!["gpt-3.5-turbo".to_string(), "claude-3".to_string()],
+        );
 
         let fallbacks = config.get_fallbacks_for_type("gpt-4", FallbackType::General);
         assert_eq!(fallbacks.len(), 2);
@@ -314,8 +324,8 @@ mod tests {
 
     #[test]
     fn test_add_context_window_fallback() {
-        let config = FallbackConfig::new()
-            .add_context_window("gpt-4", vec!["gpt-4-32k".to_string()]);
+        let config =
+            FallbackConfig::new().add_context_window("gpt-4", vec!["gpt-4-32k".to_string()]);
 
         let fallbacks = config.get_fallbacks_for_type("gpt-4", FallbackType::ContextWindow);
         assert_eq!(fallbacks.len(), 1);
@@ -324,8 +334,8 @@ mod tests {
 
     #[test]
     fn test_add_content_policy_fallback() {
-        let config = FallbackConfig::new()
-            .add_content_policy("gpt-4", vec!["claude-3".to_string()]);
+        let config =
+            FallbackConfig::new().add_content_policy("gpt-4", vec!["claude-3".to_string()]);
 
         let fallbacks = config.get_fallbacks_for_type("gpt-4", FallbackType::ContentPolicy);
         assert_eq!(fallbacks.len(), 1);
@@ -334,8 +344,10 @@ mod tests {
 
     #[test]
     fn test_add_rate_limit_fallback() {
-        let config = FallbackConfig::new()
-            .add_rate_limit("gpt-4", vec!["gpt-3.5-turbo".to_string(), "gpt-4-turbo".to_string()]);
+        let config = FallbackConfig::new().add_rate_limit(
+            "gpt-4",
+            vec!["gpt-3.5-turbo".to_string(), "gpt-4-turbo".to_string()],
+        );
 
         let fallbacks = config.get_fallbacks_for_type("gpt-4", FallbackType::RateLimit);
         assert_eq!(fallbacks.len(), 2);
@@ -349,10 +361,30 @@ mod tests {
             .add_content_policy("gpt-4", vec!["claude-3".to_string()])
             .add_rate_limit("gpt-4", vec!["gemini".to_string()]);
 
-        assert_eq!(config.get_fallbacks_for_type("gpt-4", FallbackType::General).len(), 1);
-        assert_eq!(config.get_fallbacks_for_type("gpt-4", FallbackType::ContextWindow).len(), 1);
-        assert_eq!(config.get_fallbacks_for_type("gpt-4", FallbackType::ContentPolicy).len(), 1);
-        assert_eq!(config.get_fallbacks_for_type("gpt-4", FallbackType::RateLimit).len(), 1);
+        assert_eq!(
+            config
+                .get_fallbacks_for_type("gpt-4", FallbackType::General)
+                .len(),
+            1
+        );
+        assert_eq!(
+            config
+                .get_fallbacks_for_type("gpt-4", FallbackType::ContextWindow)
+                .len(),
+            1
+        );
+        assert_eq!(
+            config
+                .get_fallbacks_for_type("gpt-4", FallbackType::ContentPolicy)
+                .len(),
+            1
+        );
+        assert_eq!(
+            config
+                .get_fallbacks_for_type("gpt-4", FallbackType::RateLimit)
+                .len(),
+            1
+        );
     }
 
     #[test]
@@ -370,8 +402,7 @@ mod tests {
 
     #[test]
     fn test_get_fallbacks_nonexistent_model() {
-        let config = FallbackConfig::new()
-            .add_general("gpt-4", vec!["gpt-3.5-turbo".to_string()]);
+        let config = FallbackConfig::new().add_general("gpt-4", vec!["gpt-3.5-turbo".to_string()]);
 
         let fallbacks = config.get_fallbacks_for_type("nonexistent", FallbackType::General);
         assert!(fallbacks.is_empty());
@@ -379,8 +410,7 @@ mod tests {
 
     #[test]
     fn test_get_fallbacks_wrong_type() {
-        let config = FallbackConfig::new()
-            .add_general("gpt-4", vec!["gpt-3.5-turbo".to_string()]);
+        let config = FallbackConfig::new().add_general("gpt-4", vec!["gpt-3.5-turbo".to_string()]);
 
         // No context window fallback configured
         let fallbacks = config.get_fallbacks_for_type("gpt-4", FallbackType::ContextWindow);
@@ -389,8 +419,7 @@ mod tests {
 
     #[test]
     fn test_empty_fallback_list() {
-        let config = FallbackConfig::new()
-            .add_general("gpt-4", vec![]);
+        let config = FallbackConfig::new().add_general("gpt-4", vec![]);
 
         let fallbacks = config.get_fallbacks_for_type("gpt-4", FallbackType::General);
         assert!(fallbacks.is_empty());
@@ -413,10 +442,8 @@ mod tests {
         use std::sync::Arc;
         use std::thread;
 
-        let config = Arc::new(
-            FallbackConfig::new()
-                .add_general("gpt-4", vec!["gpt-3.5".to_string()])
-        );
+        let config =
+            Arc::new(FallbackConfig::new().add_general("gpt-4", vec!["gpt-3.5".to_string()]));
 
         let mut handles = vec![];
 
@@ -439,8 +466,8 @@ mod tests {
 
     #[test]
     fn test_special_characters_in_model_name() {
-        let config = FallbackConfig::new()
-            .add_general("model/v2.0:latest", vec!["backup".to_string()]);
+        let config =
+            FallbackConfig::new().add_general("model/v2.0:latest", vec!["backup".to_string()]);
 
         let fallbacks = config.get_fallbacks_for_type("model/v2.0:latest", FallbackType::General);
         assert_eq!(fallbacks.len(), 1);
@@ -448,8 +475,7 @@ mod tests {
 
     #[test]
     fn test_unicode_in_model_name() {
-        let config = FallbackConfig::new()
-            .add_general("模型", vec!["备份".to_string()]);
+        let config = FallbackConfig::new().add_general("模型", vec!["备份".to_string()]);
 
         let fallbacks = config.get_fallbacks_for_type("模型", FallbackType::General);
         assert_eq!(fallbacks, vec!["备份".to_string()]);
@@ -457,8 +483,7 @@ mod tests {
 
     #[test]
     fn test_empty_model_name() {
-        let config = FallbackConfig::new()
-            .add_general("", vec!["fallback".to_string()]);
+        let config = FallbackConfig::new().add_general("", vec!["fallback".to_string()]);
 
         let fallbacks = config.get_fallbacks_for_type("", FallbackType::General);
         assert_eq!(fallbacks, vec!["fallback".to_string()]);
@@ -467,8 +492,7 @@ mod tests {
     #[test]
     fn test_many_fallbacks() {
         let fallbacks: Vec<String> = (0..100).map(|i| format!("model_{}", i)).collect();
-        let config = FallbackConfig::new()
-            .add_general("primary", fallbacks.clone());
+        let config = FallbackConfig::new().add_general("primary", fallbacks.clone());
 
         let result = config.get_fallbacks_for_type("primary", FallbackType::General);
         assert_eq!(result.len(), 100);
@@ -484,9 +508,21 @@ mod tests {
             .add_content_policy("model", vec!["cp".to_string()])
             .add_rate_limit("model", vec!["rl".to_string()]);
 
-        assert_eq!(config.get_fallbacks_for_type("model", FallbackType::General), vec!["g"]);
-        assert_eq!(config.get_fallbacks_for_type("model", FallbackType::ContextWindow), vec!["cw"]);
-        assert_eq!(config.get_fallbacks_for_type("model", FallbackType::ContentPolicy), vec!["cp"]);
-        assert_eq!(config.get_fallbacks_for_type("model", FallbackType::RateLimit), vec!["rl"]);
+        assert_eq!(
+            config.get_fallbacks_for_type("model", FallbackType::General),
+            vec!["g"]
+        );
+        assert_eq!(
+            config.get_fallbacks_for_type("model", FallbackType::ContextWindow),
+            vec!["cw"]
+        );
+        assert_eq!(
+            config.get_fallbacks_for_type("model", FallbackType::ContentPolicy),
+            vec!["cp"]
+        );
+        assert_eq!(
+            config.get_fallbacks_for_type("model", FallbackType::RateLimit),
+            vec!["rl"]
+        );
     }
 }

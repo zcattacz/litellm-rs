@@ -257,10 +257,7 @@ mod tests {
             GroqError::AuthenticationError("".to_string()).http_status(),
             401
         );
-        assert_eq!(
-            GroqError::RateLimitError("".to_string()).http_status(),
-            429
-        );
+        assert_eq!(GroqError::RateLimitError("".to_string()).http_status(), 429);
         assert_eq!(
             GroqError::InvalidRequestError("".to_string()).http_status(),
             400

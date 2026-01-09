@@ -1055,7 +1055,8 @@ mod tests {
     #[test]
     fn test_error_mapper_network_error() {
         let mapper = VertexAIErrorMapper;
-        let io_error = std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
+        let io_error =
+            std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
         let error = mapper.map_network_error(&io_error);
         assert!(matches!(error, VertexAIError::Network(_)));
     }
@@ -1072,11 +1073,13 @@ mod tests {
     #[test]
     fn test_provider_capabilities() {
         use crate::core::types::common::ProviderCapability;
-        let expected = [ProviderCapability::ChatCompletion,
+        let expected = [
+            ProviderCapability::ChatCompletion,
             ProviderCapability::ChatCompletionStream,
             ProviderCapability::Embeddings,
             ProviderCapability::ImageGeneration,
-            ProviderCapability::ToolCalling];
+            ProviderCapability::ToolCalling,
+        ];
         assert_eq!(expected.len(), 5);
     }
 
@@ -1174,7 +1177,10 @@ mod tests {
         let base_url = "https://us-central1-aiplatform.googleapis.com/v1/projects/my-project/locations/us-central1";
         let model_id = "gemini-1.5-pro";
         let endpoint = "generateContent";
-        let url = format!("{}/publishers/google/models/{}:{}", base_url, model_id, endpoint);
+        let url = format!(
+            "{}/publishers/google/models/{}:{}",
+            base_url, model_id, endpoint
+        );
         assert!(url.contains("publishers/google/models/gemini-1.5-pro"));
     }
 
@@ -1184,7 +1190,10 @@ mod tests {
         let model_id = "claude-3-opus";
         let endpoint = "predict";
         let publisher = "anthropic";
-        let url = format!("{}/publishers/{}/models/{}:{}", base_url, publisher, model_id, endpoint);
+        let url = format!(
+            "{}/publishers/{}/models/{}:{}",
+            base_url, publisher, model_id, endpoint
+        );
         assert!(url.contains("publishers/anthropic/models/claude-3-opus"));
     }
 
@@ -1334,7 +1343,10 @@ mod tests {
         assert_eq!(config.project_id, "test-project");
         assert_eq!(config.location, "us-central1");
         assert!(config.api_base.is_some());
-        assert_eq!(config.api_base.expect("api_base should be Some"), "https://custom.api.com");
+        assert_eq!(
+            config.api_base.expect("api_base should be Some"),
+            "https://custom.api.com"
+        );
     }
 
     // ==================== VertexAIError Tests ====================
@@ -1375,7 +1387,11 @@ mod tests {
             status_code: 500,
             message: "Internal server error".to_string(),
         };
-        if let VertexAIError::ApiError { status_code, message } = error {
+        if let VertexAIError::ApiError {
+            status_code,
+            message,
+        } = error
+        {
             assert_eq!(status_code, 500);
             assert_eq!(message, "Internal server error");
         }

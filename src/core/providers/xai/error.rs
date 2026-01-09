@@ -224,10 +224,7 @@ mod tests {
             XAIError::NetworkError("test".to_string()).retry_delay(),
             Some(2)
         );
-        assert_eq!(
-            XAIError::ApiError("test".to_string()).retry_delay(),
-            None
-        );
+        assert_eq!(XAIError::ApiError("test".to_string()).retry_delay(), None);
     }
 
     #[test]

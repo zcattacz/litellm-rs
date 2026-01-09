@@ -135,7 +135,6 @@ impl OSeriesResponseTransformation {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -207,7 +206,10 @@ mod tests {
         let result = processor.process_response(response);
         assert!(result.is_ok());
         let processed = result.unwrap();
-        assert_eq!(processed.metadata.deployment_id, Some("o1-mini-deployment".to_string()));
+        assert_eq!(
+            processed.metadata.deployment_id,
+            Some("o1-mini-deployment".to_string())
+        );
     }
 
     #[test]

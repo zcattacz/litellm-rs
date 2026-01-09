@@ -625,7 +625,9 @@ mod tests {
     async fn test_circuit_breaker_preserves_error_message() {
         let cb = CircuitBreaker::new(default_config());
 
-        let result: Result<()> = cb.call(async { Err::<(), _>("specific error message") }).await;
+        let result: Result<()> = cb
+            .call(async { Err::<(), _>("specific error message") })
+            .await;
 
         if let Err(GatewayError::External(msg)) = result {
             assert!(msg.contains("specific error message"));

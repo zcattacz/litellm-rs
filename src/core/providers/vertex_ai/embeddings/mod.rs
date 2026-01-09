@@ -527,7 +527,10 @@ mod tests {
 
     #[test]
     fn test_max_input_length_text_embedding_004() {
-        assert_eq!(VertexEmbeddingModel::TextEmbedding004.max_input_length(), 3072);
+        assert_eq!(
+            VertexEmbeddingModel::TextEmbedding004.max_input_length(),
+            3072
+        );
     }
 
     #[test]
@@ -902,7 +905,10 @@ mod tests {
 
         let body = result.unwrap();
         assert!(body["instances"][0]["image"].is_object());
-        assert_eq!(body["instances"][0]["image"]["bytes_base64_encoded"], "iVBORw0KGgo=");
+        assert_eq!(
+            body["instances"][0]["image"]["bytes_base64_encoded"],
+            "iVBORw0KGgo="
+        );
     }
 
     #[test]
@@ -922,7 +928,10 @@ mod tests {
 
         let body = result.unwrap();
         assert!(body["instances"][0]["image"].is_object());
-        assert_eq!(body["instances"][0]["image"]["gcs_uri"], "gs://my-bucket/image.jpg");
+        assert_eq!(
+            body["instances"][0]["image"]["gcs_uri"],
+            "gs://my-bucket/image.jpg"
+        );
     }
 
     #[test]
@@ -942,7 +951,10 @@ mod tests {
 
         let body = result.unwrap();
         assert!(body["instances"][0]["video"].is_object());
-        assert_eq!(body["instances"][0]["video"]["gcs_uri"], "gs://my-bucket/video.mp4");
+        assert_eq!(
+            body["instances"][0]["video"]["gcs_uri"],
+            "gs://my-bucket/video.mp4"
+        );
     }
 
     #[test]

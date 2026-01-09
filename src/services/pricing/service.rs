@@ -379,9 +379,11 @@ mod tests {
     #[test]
     fn test_pricing_service_new_default() {
         let service = PricingService::new(None);
-        assert!(service
-            .pricing_url
-            .contains("model_prices_and_context_window.json"));
+        assert!(
+            service
+                .pricing_url
+                .contains("model_prices_and_context_window.json")
+        );
         assert_eq!(service.cache_ttl, Duration::from_secs(3600));
     }
 
@@ -699,10 +701,7 @@ mod tests {
         let service = PricingService::new(None);
         service.add_custom_model("gpt-4".to_string(), create_test_model_info("openai"));
         service.add_custom_model("gpt-3.5".to_string(), create_test_model_info("openai"));
-        service.add_custom_model(
-            "claude-3".to_string(),
-            create_test_model_info("anthropic"),
-        );
+        service.add_custom_model("claude-3".to_string(), create_test_model_info("anthropic"));
 
         let openai_models = service.get_models_by_provider("openai");
         assert_eq!(openai_models.len(), 2);
@@ -725,14 +724,8 @@ mod tests {
     fn test_get_providers_with_models() {
         let service = PricingService::new(None);
         service.add_custom_model("gpt-4".to_string(), create_test_model_info("openai"));
-        service.add_custom_model(
-            "claude-3".to_string(),
-            create_test_model_info("anthropic"),
-        );
-        service.add_custom_model(
-            "gemini-pro".to_string(),
-            create_test_model_info("google"),
-        );
+        service.add_custom_model("claude-3".to_string(), create_test_model_info("anthropic"));
+        service.add_custom_model("gemini-pro".to_string(), create_test_model_info("google"));
 
         let providers = service.get_providers();
         assert_eq!(providers.len(), 3);
@@ -799,10 +792,7 @@ mod tests {
         let service = PricingService::new(None);
         service.add_custom_model("gpt-4".to_string(), create_test_model_info("openai"));
         service.add_custom_model("gpt-3.5".to_string(), create_test_model_info("openai"));
-        service.add_custom_model(
-            "claude-3".to_string(),
-            create_test_model_info("anthropic"),
-        );
+        service.add_custom_model("claude-3".to_string(), create_test_model_info("anthropic"));
 
         let stats = service.get_statistics();
 
@@ -846,7 +836,14 @@ mod tests {
         let completion = "Hi there!"; // 9 chars
 
         let result = service
-            .calculate_google_cost("gemini-pro", &model_info, 10, 5, Some(prompt), Some(completion))
+            .calculate_google_cost(
+                "gemini-pro",
+                &model_info,
+                10,
+                5,
+                Some(prompt),
+                Some(completion),
+            )
             .unwrap();
 
         assert_eq!(result.cost_type, CostType::CharacterBased);

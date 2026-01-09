@@ -240,10 +240,18 @@ mod tests {
     #[test]
     fn test_provider_error_with_source() {
         let source = std::io::Error::other("source error");
-        let err =
-            LiteLLMError::provider_error_with_source("anthropic", "Connection failed", Box::new(source));
+        let err = LiteLLMError::provider_error_with_source(
+            "anthropic",
+            "Connection failed",
+            Box::new(source),
+        );
 
-        if let LiteLLMError::Provider { provider, message, source } = err {
+        if let LiteLLMError::Provider {
+            provider,
+            message,
+            source,
+        } = err
+        {
             assert_eq!(provider, "anthropic");
             assert_eq!(message, "Connection failed");
             assert!(source.is_some());
@@ -280,7 +288,11 @@ mod tests {
     #[test]
     fn test_rate_limit_error_with_retry() {
         let err = LiteLLMError::rate_limit("Too many requests", Some(60));
-        if let LiteLLMError::RateLimit { message, retry_after } = err {
+        if let LiteLLMError::RateLimit {
+            message,
+            retry_after,
+        } = err
+        {
             assert_eq!(message, "Too many requests");
             assert_eq!(retry_after, Some(60));
         } else {

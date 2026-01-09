@@ -65,16 +65,14 @@ mod tests {
 
     #[test]
     fn test_rate_limit_algorithm_deserialization() {
-        let token_bucket: RateLimitAlgorithm =
-            serde_json::from_str("\"token_bucket\"").unwrap();
+        let token_bucket: RateLimitAlgorithm = serde_json::from_str("\"token_bucket\"").unwrap();
         assert_eq!(token_bucket, RateLimitAlgorithm::TokenBucket);
 
         let sliding_window: RateLimitAlgorithm =
             serde_json::from_str("\"sliding_window\"").unwrap();
         assert_eq!(sliding_window, RateLimitAlgorithm::SlidingWindow);
 
-        let fixed_window: RateLimitAlgorithm =
-            serde_json::from_str("\"fixed_window\"").unwrap();
+        let fixed_window: RateLimitAlgorithm = serde_json::from_str("\"fixed_window\"").unwrap();
         assert_eq!(fixed_window, RateLimitAlgorithm::FixedWindow);
     }
 

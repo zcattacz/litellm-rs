@@ -519,8 +519,7 @@ mod tests {
 
     #[test]
     fn test_performance_metrics_with_cache_stats() {
-        let metrics =
-            PerformanceMetrics::new(Duration::from_millis(50)).with_cache_stats(100, 20);
+        let metrics = PerformanceMetrics::new(Duration::from_millis(50)).with_cache_stats(100, 20);
         assert_eq!(metrics.cache_hits, Some(100));
         assert_eq!(metrics.cache_misses, Some(20));
     }
@@ -666,7 +665,12 @@ mod tests {
     fn test_structured_logger_api_request() {
         let context = LogContext::new();
         let logger = StructuredLogger::new(context);
-        logger.api_request("POST", "/v1/chat/completions", 200, Duration::from_millis(150));
+        logger.api_request(
+            "POST",
+            "/v1/chat/completions",
+            200,
+            Duration::from_millis(150),
+        );
     }
 
     #[test]
@@ -714,7 +718,13 @@ mod tests {
     fn test_structured_logger_provider_interaction_no_optionals() {
         let context = LogContext::new();
         let logger = StructuredLogger::new(context);
-        logger.provider_interaction("anthropic", "claude-3", None, None, Duration::from_millis(500));
+        logger.provider_interaction(
+            "anthropic",
+            "claude-3",
+            None,
+            None,
+            Duration::from_millis(500),
+        );
     }
 
     // ==================== Timer Tests ====================
@@ -789,7 +799,12 @@ mod tests {
             Some(0.03),
             Duration::from_millis(1500),
         );
-        logger.api_request("POST", "/v1/chat/completions", 200, Duration::from_millis(1600));
+        logger.api_request(
+            "POST",
+            "/v1/chat/completions",
+            200,
+            Duration::from_millis(1600),
+        );
     }
 
     #[test]

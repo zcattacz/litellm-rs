@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 use super::config::McpServerConfig;
 use super::error::{McpError, McpResult};
 use super::protocol::{
-    methods, ClientInfo, InitializeParams, JsonRpcRequest, JsonRpcResponse, McpCapabilities,
+    ClientInfo, InitializeParams, JsonRpcRequest, JsonRpcResponse, McpCapabilities, methods,
 };
 use super::tools::{Tool, ToolCall, ToolList, ToolResult};
 use super::transport::Transport;
@@ -59,7 +59,9 @@ pub struct McpServer {
 impl McpServer {
     /// Create a new MCP server connection
     pub fn new(config: McpServerConfig) -> McpResult<Self> {
-        config.validate().map_err(|e| McpError::ConfigurationError { message: e })?;
+        config
+            .validate()
+            .map_err(|e| McpError::ConfigurationError { message: e })?;
 
         // Get shared client with appropriate timeout
         let timeout_secs = config.timeout_ms / 1000;
@@ -222,9 +224,7 @@ impl McpServer {
             "arguments": call.arguments
         });
 
-        let response = self
-            .send_request(methods::CALL_TOOL, Some(params))
-            .await?;
+        let response = self.send_request(methods::CALL_TOOL, Some(params)).await?;
 
         if let Some(result) = response.result {
             let tool_result: ToolResult = serde_json::from_value(result)?;
@@ -273,8 +273,8 @@ impl McpServer {
             .request_id
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        let request = JsonRpcRequest::new(method, params)
-            .with_id(serde_json::Value::Number(id.into()));
+        let request =
+            JsonRpcRequest::new(method, params).with_id(serde_json::Value::Number(id.into()));
 
         let response = self
             .http_client
@@ -330,11 +330,10 @@ impl McpServer {
             });
         }
 
-        let rpc_response: JsonRpcResponse = response.json().await.map_err(|e| {
-            McpError::ProtocolError {
+        let rpc_response: JsonRpcResponse =
+            response.json().await.map_err(|e| McpError::ProtocolError {
                 message: format!("Failed to parse response: {}", e),
-            }
-        })?;
+            })?;
 
         Ok(rpc_response)
     }

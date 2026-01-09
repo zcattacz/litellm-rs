@@ -199,31 +199,46 @@ mod tests {
     #[test]
     fn test_config_error_display() {
         let error = GatewayError::Config("Invalid API key format".to_string());
-        assert_eq!(error.to_string(), "Configuration error: Invalid API key format");
+        assert_eq!(
+            error.to_string(),
+            "Configuration error: Invalid API key format"
+        );
     }
 
     #[test]
     fn test_auth_error_display() {
         let error = GatewayError::Auth("Invalid credentials".to_string());
-        assert_eq!(error.to_string(), "Authentication error: Invalid credentials");
+        assert_eq!(
+            error.to_string(),
+            "Authentication error: Invalid credentials"
+        );
     }
 
     #[test]
     fn test_authorization_error_display() {
         let error = GatewayError::Authorization("Insufficient permissions".to_string());
-        assert_eq!(error.to_string(), "Authorization error: Insufficient permissions");
+        assert_eq!(
+            error.to_string(),
+            "Authorization error: Insufficient permissions"
+        );
     }
 
     #[test]
     fn test_rate_limit_error_display() {
         let error = GatewayError::RateLimit("100 requests per minute exceeded".to_string());
-        assert_eq!(error.to_string(), "Rate limit exceeded: 100 requests per minute exceeded");
+        assert_eq!(
+            error.to_string(),
+            "Rate limit exceeded: 100 requests per minute exceeded"
+        );
     }
 
     #[test]
     fn test_validation_error_display() {
         let error = GatewayError::Validation("Model name is required".to_string());
-        assert_eq!(error.to_string(), "Validation error: Model name is required");
+        assert_eq!(
+            error.to_string(),
+            "Validation error: Model name is required"
+        );
     }
 
     #[test]
@@ -235,13 +250,19 @@ mod tests {
     #[test]
     fn test_circuit_breaker_error_display() {
         let error = GatewayError::CircuitBreaker("Circuit is open for provider X".to_string());
-        assert_eq!(error.to_string(), "Circuit breaker error: Circuit is open for provider X");
+        assert_eq!(
+            error.to_string(),
+            "Circuit breaker error: Circuit is open for provider X"
+        );
     }
 
     #[test]
     fn test_timeout_error_display() {
         let error = GatewayError::Timeout("Request timed out after 30s".to_string());
-        assert_eq!(error.to_string(), "Timeout error: Request timed out after 30s");
+        assert_eq!(
+            error.to_string(),
+            "Timeout error: Request timed out after 30s"
+        );
     }
 
     #[test]
@@ -265,7 +286,10 @@ mod tests {
     #[test]
     fn test_internal_error_display() {
         let error = GatewayError::Internal("Unexpected error occurred".to_string());
-        assert_eq!(error.to_string(), "Internal server error: Unexpected error occurred");
+        assert_eq!(
+            error.to_string(),
+            "Internal server error: Unexpected error occurred"
+        );
     }
 
     #[test]
@@ -283,25 +307,37 @@ mod tests {
     #[test]
     fn test_file_storage_error_display() {
         let error = GatewayError::FileStorage("Failed to write file".to_string());
-        assert_eq!(error.to_string(), "File storage error: Failed to write file");
+        assert_eq!(
+            error.to_string(),
+            "File storage error: Failed to write file"
+        );
     }
 
     #[test]
     fn test_vector_db_error_display() {
         let error = GatewayError::VectorDb("Vector search failed".to_string());
-        assert_eq!(error.to_string(), "Vector database error: Vector search failed");
+        assert_eq!(
+            error.to_string(),
+            "Vector database error: Vector search failed"
+        );
     }
 
     #[test]
     fn test_monitoring_error_display() {
         let error = GatewayError::Monitoring("Metrics collection failed".to_string());
-        assert_eq!(error.to_string(), "Monitoring error: Metrics collection failed");
+        assert_eq!(
+            error.to_string(),
+            "Monitoring error: Metrics collection failed"
+        );
     }
 
     #[test]
     fn test_integration_error_display() {
         let error = GatewayError::Integration("Webhook delivery failed".to_string());
-        assert_eq!(error.to_string(), "Integration error: Webhook delivery failed");
+        assert_eq!(
+            error.to_string(),
+            "Integration error: Webhook delivery failed"
+        );
     }
 
     #[test]
@@ -325,7 +361,10 @@ mod tests {
     #[test]
     fn test_not_implemented_error_display() {
         let error = GatewayError::NotImplemented("Feature X is not implemented".to_string());
-        assert_eq!(error.to_string(), "Not implemented: Feature X is not implemented");
+        assert_eq!(
+            error.to_string(),
+            "Not implemented: Feature X is not implemented"
+        );
     }
 
     #[test]
@@ -343,7 +382,10 @@ mod tests {
     #[test]
     fn test_external_error_display() {
         let error = GatewayError::External("Third-party API error".to_string());
-        assert_eq!(error.to_string(), "External service error: Third-party API error");
+        assert_eq!(
+            error.to_string(),
+            "External service error: Third-party API error"
+        );
     }
 
     #[test]
@@ -355,7 +397,10 @@ mod tests {
     #[test]
     fn test_no_providers_available_error_display() {
         let error = GatewayError::NoProvidersAvailable("All providers are down".to_string());
-        assert_eq!(error.to_string(), "No providers available: All providers are down");
+        assert_eq!(
+            error.to_string(),
+            "No providers available: All providers are down"
+        );
     }
 
     #[test]
@@ -372,8 +417,12 @@ mod tests {
 
     #[test]
     fn test_no_healthy_providers_error_display() {
-        let error = GatewayError::NoHealthyProviders("All providers failed health check".to_string());
-        assert_eq!(error.to_string(), "No healthy providers: All providers failed health check");
+        let error =
+            GatewayError::NoHealthyProviders("All providers failed health check".to_string());
+        assert_eq!(
+            error.to_string(),
+            "No healthy providers: All providers failed health check"
+        );
     }
 
     #[test]
@@ -435,7 +484,8 @@ mod tests {
 
     #[test]
     fn test_serde_json_error_conversion() {
-        let json_result: std::result::Result<serde_json::Value, _> = serde_json::from_str("invalid json{");
+        let json_result: std::result::Result<serde_json::Value, _> =
+            serde_json::from_str("invalid json{");
         let json_error = json_result.unwrap_err();
         let gateway_error: GatewayError = json_error.into();
         assert!(gateway_error.to_string().contains("Serialization error"));
@@ -466,11 +516,13 @@ mod tests {
 
     #[test]
     fn test_provider_errors() {
-        let errors = [GatewayError::ProviderUnavailable("down".to_string()),
+        let errors = [
+            GatewayError::ProviderUnavailable("down".to_string()),
             GatewayError::ProviderNotFound("openai".to_string()),
             GatewayError::NoProvidersAvailable("none".to_string()),
             GatewayError::NoProvidersForModel("gpt-4".to_string()),
-            GatewayError::NoHealthyProviders("all failed".to_string())];
+            GatewayError::NoHealthyProviders("all failed".to_string()),
+        ];
 
         assert_eq!(errors.len(), 5);
     }

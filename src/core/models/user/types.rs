@@ -361,7 +361,10 @@ mod tests {
             "manager".parse::<UserRole>().unwrap(),
             UserRole::Manager
         ));
-        assert!(matches!("user".parse::<UserRole>().unwrap(), UserRole::User));
+        assert!(matches!(
+            "user".parse::<UserRole>().unwrap(),
+            UserRole::User
+        ));
         assert!(matches!(
             "viewer".parse::<UserRole>().unwrap(),
             UserRole::Viewer
@@ -494,7 +497,10 @@ mod tests {
     #[test]
     fn test_user_profile_full() {
         let mut social_links = std::collections::HashMap::new();
-        social_links.insert("twitter".to_string(), "https://twitter.com/test".to_string());
+        social_links.insert(
+            "twitter".to_string(),
+            "https://twitter.com/test".to_string(),
+        );
         social_links.insert("github".to_string(), "https://github.com/test".to_string());
 
         let profile = UserProfile {

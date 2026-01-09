@@ -305,7 +305,11 @@ mod tests {
             },
         };
 
-        if let ToolChoice::Specific { tool_type, function } = &choice {
+        if let ToolChoice::Specific {
+            tool_type,
+            function,
+        } = &choice
+        {
             assert_eq!(tool_type, "function");
             assert_eq!(function.name, "get_weather");
         } else {
@@ -338,8 +342,14 @@ mod tests {
 
         let cloned = choice.clone();
         if let (
-            ToolChoice::Specific { tool_type: t1, function: f1 },
-            ToolChoice::Specific { tool_type: t2, function: f2 },
+            ToolChoice::Specific {
+                tool_type: t1,
+                function: f1,
+            },
+            ToolChoice::Specific {
+                tool_type: t2,
+                function: f2,
+            },
         ) = (&choice, &cloned)
         {
             assert_eq!(t1, t2);

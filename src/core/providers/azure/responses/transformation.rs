@@ -393,7 +393,10 @@ mod tests {
         assert!(config.normalize_field_names);
         assert!(config.include_content_filters);
         assert!(config.field_mappings.is_empty());
-        assert!(matches!(config.response_format, ResponseFormat::OpenAICompatible));
+        assert!(matches!(
+            config.response_format,
+            ResponseFormat::OpenAICompatible
+        ));
     }
 
     #[test]
@@ -637,7 +640,9 @@ mod tests {
             }]
         });
 
-        let result = transformation.transform_completion_response(response).unwrap();
+        let result = transformation
+            .transform_completion_response(response)
+            .unwrap();
         assert!(result.get("choices").is_some());
     }
 
@@ -651,10 +656,15 @@ mod tests {
             }]
         });
 
-        let result = transformation.transform_completion_response(response).unwrap();
+        let result = transformation
+            .transform_completion_response(response)
+            .unwrap();
         let choice = &result.get("choices").unwrap().as_array().unwrap()[0];
         // Should normalize max_tokens to length
-        assert_eq!(choice.get("finish_reason").unwrap().as_str().unwrap(), "length");
+        assert_eq!(
+            choice.get("finish_reason").unwrap().as_str().unwrap(),
+            "length"
+        );
     }
 
     // ==================== Transform Embedding Response Tests ====================
@@ -668,7 +678,9 @@ mod tests {
             "usage": {"prompt_tokens": 5, "total_tokens": 5}
         });
 
-        let result = transformation.transform_embedding_response(response).unwrap();
+        let result = transformation
+            .transform_embedding_response(response)
+            .unwrap();
         assert!(result.get("data").is_some());
         assert!(result.get("usage").is_some());
     }
@@ -686,7 +698,9 @@ mod tests {
             "content_filter_results": {}
         });
 
-        let result = transformation.transform_embedding_response(response).unwrap();
+        let result = transformation
+            .transform_embedding_response(response)
+            .unwrap();
         assert!(result.get("content_filter_results").is_none());
     }
 
@@ -696,7 +710,9 @@ mod tests {
     fn test_normalize_finish_reason_max_tokens() {
         let transformation = AzureResponseTransformation::new();
         let mut finish_reason = serde_json::json!("max_tokens");
-        transformation.normalize_finish_reason(&mut finish_reason).unwrap();
+        transformation
+            .normalize_finish_reason(&mut finish_reason)
+            .unwrap();
         assert_eq!(finish_reason.as_str().unwrap(), "length");
     }
 
@@ -704,7 +720,9 @@ mod tests {
     fn test_normalize_finish_reason_stop_sequence() {
         let transformation = AzureResponseTransformation::new();
         let mut finish_reason = serde_json::json!("stop_sequence");
-        transformation.normalize_finish_reason(&mut finish_reason).unwrap();
+        transformation
+            .normalize_finish_reason(&mut finish_reason)
+            .unwrap();
         assert_eq!(finish_reason.as_str().unwrap(), "stop");
     }
 
@@ -712,7 +730,9 @@ mod tests {
     fn test_normalize_finish_reason_content_filter() {
         let transformation = AzureResponseTransformation::new();
         let mut finish_reason = serde_json::json!("content_filter");
-        transformation.normalize_finish_reason(&mut finish_reason).unwrap();
+        transformation
+            .normalize_finish_reason(&mut finish_reason)
+            .unwrap();
         assert_eq!(finish_reason.as_str().unwrap(), "content_filter");
     }
 
@@ -720,7 +740,9 @@ mod tests {
     fn test_normalize_finish_reason_unknown() {
         let transformation = AzureResponseTransformation::new();
         let mut finish_reason = serde_json::json!("custom_reason");
-        transformation.normalize_finish_reason(&mut finish_reason).unwrap();
+        transformation
+            .normalize_finish_reason(&mut finish_reason)
+            .unwrap();
         assert_eq!(finish_reason.as_str().unwrap(), "custom_reason");
     }
 
@@ -728,7 +750,9 @@ mod tests {
     fn test_normalize_finish_reason_null() {
         let transformation = AzureResponseTransformation::new();
         let mut finish_reason = serde_json::json!(null);
-        transformation.normalize_finish_reason(&mut finish_reason).unwrap();
+        transformation
+            .normalize_finish_reason(&mut finish_reason)
+            .unwrap();
         assert!(finish_reason.is_null());
     }
 
@@ -758,7 +782,10 @@ mod tests {
         });
 
         transformation.transform_usage_object(&mut usage).unwrap();
-        assert_eq!(usage.get("completion_tokens").unwrap().as_u64().unwrap(), 50);
+        assert_eq!(
+            usage.get("completion_tokens").unwrap().as_u64().unwrap(),
+            50
+        );
         assert!(usage.get("output_tokens").is_none());
     }
 
@@ -774,7 +801,10 @@ mod tests {
         transformation.transform_usage_object(&mut usage).unwrap();
         // Should not change already normalized fields
         assert_eq!(usage.get("prompt_tokens").unwrap().as_u64().unwrap(), 100);
-        assert_eq!(usage.get("completion_tokens").unwrap().as_u64().unwrap(), 50);
+        assert_eq!(
+            usage.get("completion_tokens").unwrap().as_u64().unwrap(),
+            50
+        );
     }
 
     // ==================== Field Mapping Tests ====================
@@ -963,7 +993,10 @@ mod tests {
         assert!(choice.get("content_filter_results").is_none());
 
         // Finish reason should be normalized
-        assert_eq!(choice.get("finish_reason").unwrap().as_str().unwrap(), "length");
+        assert_eq!(
+            choice.get("finish_reason").unwrap().as_str().unwrap(),
+            "length"
+        );
     }
 
     #[test]

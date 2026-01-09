@@ -259,7 +259,10 @@ mod tests {
     #[test]
     fn test_model_info_with_extra() {
         let mut extra = HashMap::new();
-        extra.insert("custom_field".to_string(), serde_json::json!("custom_value"));
+        extra.insert(
+            "custom_field".to_string(),
+            serde_json::json!("custom_value"),
+        );
         extra.insert("custom_number".to_string(), serde_json::json!(42));
 
         let info = ModelInfo {

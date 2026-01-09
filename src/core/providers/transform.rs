@@ -3,10 +3,10 @@
 //! This module implements sophisticated transformation pipelines that convert
 //! between OpenAI-compatible format and provider-specific formats.
 
-use std::collections::HashMap;
 use async_trait::async_trait;
-use serde::{Serialize, Deserialize};
-use serde_json::{Value, Map};
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
+use std::collections::HashMap;
 
 use super::{ProviderType, unified_provider::ProviderError};
 
@@ -76,10 +76,10 @@ pub enum ToolChoice {
     Auto,
     None,
     Required,
-    Specific { 
+    Specific {
         #[serde(rename = "type")]
         tool_type: String,
-        function: ToolFunction 
+        function: ToolFunction,
     },
 }
 
@@ -351,7 +351,7 @@ impl DefaultTransformEngine {
     fn init_default_pipelines(&mut self) {
         // Initialize transformation pipelines for each provider
         // This would include provider-specific transformations
-        
+
         // Anthropic pipeline
         let anthropic_pipeline = TransformPipeline {
             transforms: vec![
@@ -359,8 +359,9 @@ impl DefaultTransformEngine {
                 Box::new(AnthropicParameterTransform::new()),
             ],
         };
-        self.pipelines.insert(ProviderType::Anthropic, anthropic_pipeline);
-        
+        self.pipelines
+            .insert(ProviderType::Anthropic, anthropic_pipeline);
+
         // VertexAI/Gemini pipeline
         let vertexai_pipeline = TransformPipeline {
             transforms: vec![
@@ -368,7 +369,8 @@ impl DefaultTransformEngine {
                 Box::new(GoogleParameterTransform::new()),
             ],
         };
-        self.pipelines.insert(ProviderType::VertexAI, vertexai_pipeline);
+        self.pipelines
+            .insert(ProviderType::VertexAI, vertexai_pipeline);
     }
 
     fn map_model_name(&self, model: &str, provider_type: &ProviderType) -> String {
@@ -413,10 +415,10 @@ impl TransformEngine for DefaultTransformEngine {
         let warnings = Vec::new();
 
         // Convert request to JSON for pipeline processing
-        let mut request_json = serde_json::to_value(request)
-            .map_err(|e| ProviderError::Serialization {
+        let mut request_json =
+            serde_json::to_value(request).map_err(|e| ProviderError::Serialization {
                 provider: "transform",
-                message: format!("Serialization error: {}", e)
+                message: format!("Serialization error: {}", e),
             })?;
 
         // Apply transformation pipeline if available
@@ -431,7 +433,10 @@ impl TransformEngine for DefaultTransformEngine {
         let provider_request = match provider_type {
             ProviderType::Anthropic => self.build_anthropic_request(request_json, &context).await?,
             ProviderType::VertexAI => self.build_vertexai_request(request_json, &context).await?,
-            _ => self.build_openai_compatible_request(request_json, &context).await?,
+            _ => {
+                self.build_openai_compatible_request(request_json, &context)
+                    .await?
+            }
         };
 
         Ok(TransformResult {
@@ -468,15 +473,17 @@ impl TransformEngine for DefaultTransformEngine {
         if let Some(pipeline) = self.pipelines.get(provider_type) {
             for transform in pipeline.transforms.iter().rev() {
                 transformations.push(format!("reverse_{}", transform.name()));
-                response_json = transform.transform_response(response_json, &context).await?;
+                response_json = transform
+                    .transform_response(response_json, &context)
+                    .await?;
             }
         }
 
         // Convert back to ChatResponse
-        let chat_response: ChatResponse = serde_json::from_value(response_json)
-            .map_err(|e| ProviderError::Serialization {
+        let chat_response: ChatResponse =
+            serde_json::from_value(response_json).map_err(|e| ProviderError::Serialization {
                 provider: "transform",
-                message: format!("Deserialization error: {}", e)
+                message: format!("Deserialization error: {}", e),
             })?;
 
         Ok(TransformResult {
@@ -507,13 +514,15 @@ impl TransformEngine for DefaultTransformEngine {
             metadata: HashMap::new(),
         };
 
-        let request_json = serde_json::to_value(request)
-            .map_err(|e| ProviderError::Serialization {
+        let request_json =
+            serde_json::to_value(request).map_err(|e| ProviderError::Serialization {
                 provider: "transform",
-                message: format!("Serialization error: {}", e)
+                message: format!("Serialization error: {}", e),
             })?;
 
-        let provider_request = self.build_openai_compatible_request(request_json, &context).await?;
+        let provider_request = self
+            .build_openai_compatible_request(request_json, &context)
+            .await?;
 
         Ok(TransformResult {
             data: provider_request,
@@ -536,9 +545,9 @@ impl TransformEngine for DefaultTransformEngine {
     ) -> ProviderResult<TransformResult<EmbeddingResponse>> {
         let embedding_response: EmbeddingResponse = serde_json::from_value(response.body.clone())
             .map_err(|e| ProviderError::Serialization {
-                provider: "transform",
-                message: format!("Deserialization error: {}", e)
-            })?;
+            provider: "transform",
+            message: format!("Deserialization error: {}", e),
+        })?;
 
         Ok(TransformResult {
             data: embedding_response,
@@ -554,8 +563,15 @@ impl TransformEngine for DefaultTransformEngine {
     }
 
     fn get_supported_transformations(&self, provider_type: &ProviderType) -> Vec<String> {
-        self.pipelines.get(provider_type)
-            .map(|pipeline| pipeline.transforms.iter().map(|t| t.name().to_string()).collect())
+        self.pipelines
+            .get(provider_type)
+            .map(|pipeline| {
+                pipeline
+                    .transforms
+                    .iter()
+                    .map(|t| t.name().to_string())
+                    .collect()
+            })
             .unwrap_or_default()
     }
 
@@ -565,12 +581,14 @@ impl TransformEngine for DefaultTransformEngine {
         provider_type: &ProviderType,
     ) -> ProviderResult<Vec<String>> {
         let mut issues = Vec::new();
-        
+
         // Check for unsupported features
         match provider_type {
             ProviderType::Anthropic => {
                 if request.functions.is_some() {
-                    issues.push("Functions are not supported by Anthropic, use tools instead".to_string());
+                    issues.push(
+                        "Functions are not supported by Anthropic, use tools instead".to_string(),
+                    );
                 }
                 if request.logit_bias.is_some() {
                     issues.push("Logit bias is not supported by Anthropic".to_string());
@@ -583,13 +601,17 @@ impl TransformEngine for DefaultTransformEngine {
             }
             _ => {}
         }
-        
+
         Ok(issues)
     }
 }
 
 impl DefaultTransformEngine {
-    async fn build_anthropic_request(&self, _request: Value, _context: &TransformContext) -> ProviderResult<ProviderRequest> {
+    async fn build_anthropic_request(
+        &self,
+        _request: Value,
+        _context: &TransformContext,
+    ) -> ProviderResult<ProviderRequest> {
         // Build Anthropic-specific request format
         Ok(ProviderRequest {
             endpoint: "/v1/messages".to_string(),
@@ -603,27 +625,31 @@ impl DefaultTransformEngine {
         })
     }
 
-    async fn build_vertexai_request(&self, _request: Value, context: &TransformContext) -> ProviderResult<ProviderRequest> {
+    async fn build_vertexai_request(
+        &self,
+        _request: Value,
+        context: &TransformContext,
+    ) -> ProviderResult<ProviderRequest> {
         // Build VertexAI/Gemini-specific request format
         Ok(ProviderRequest {
             endpoint: format!("/v1/models/{}:generateContent", context.target_model),
             method: "POST".to_string(),
-            headers: HashMap::from([
-                ("Content-Type".to_string(), "application/json".to_string()),
-            ]),
+            headers: HashMap::from([("Content-Type".to_string(), "application/json".to_string())]),
             body: serde_json::json!({}), // Would contain transformed request
             query_params: HashMap::new(),
         })
     }
 
-    async fn build_openai_compatible_request(&self, request: Value, _context: &TransformContext) -> ProviderResult<ProviderRequest> {
+    async fn build_openai_compatible_request(
+        &self,
+        request: Value,
+        _context: &TransformContext,
+    ) -> ProviderResult<ProviderRequest> {
         // Build OpenAI-compatible request format
         Ok(ProviderRequest {
             endpoint: "/v1/chat/completions".to_string(),
             method: "POST".to_string(),
-            headers: HashMap::from([
-                ("Content-Type".to_string(), "application/json".to_string()),
-            ]),
+            headers: HashMap::from([("Content-Type".to_string(), "application/json".to_string())]),
             body: request,
             query_params: HashMap::new(),
         })
@@ -641,30 +667,46 @@ pub struct GoogleMessageTransform;
 pub struct GoogleParameterTransform;
 
 impl AnthropicMessageTransform {
-    pub fn new() -> Self { Self }
+    pub fn new() -> Self {
+        Self
+    }
 }
 
 impl AnthropicParameterTransform {
-    pub fn new() -> Self { Self }
+    pub fn new() -> Self {
+        Self
+    }
 }
 
 impl GoogleMessageTransform {
-    pub fn new() -> Self { Self }
+    pub fn new() -> Self {
+        Self
+    }
 }
 
 impl GoogleParameterTransform {
-    pub fn new() -> Self { Self }
+    pub fn new() -> Self {
+        Self
+    }
 }
 
 #[async_trait]
 impl Transform for AnthropicMessageTransform {
-    async fn transform_request(&self, request: Value, _context: &TransformContext) -> ProviderResult<Value> {
+    async fn transform_request(
+        &self,
+        request: Value,
+        _context: &TransformContext,
+    ) -> ProviderResult<Value> {
         // Transform OpenAI messages to Anthropic format
         // Implementation would handle message role mapping, content structure, etc.
         Ok(request)
     }
 
-    async fn transform_response(&self, response: Value, _context: &TransformContext) -> ProviderResult<Value> {
+    async fn transform_response(
+        &self,
+        response: Value,
+        _context: &TransformContext,
+    ) -> ProviderResult<Value> {
         // Transform Anthropic response back to OpenAI format
         Ok(response)
     }
@@ -676,12 +718,20 @@ impl Transform for AnthropicMessageTransform {
 
 #[async_trait]
 impl Transform for AnthropicParameterTransform {
-    async fn transform_request(&self, request: Value, _context: &TransformContext) -> ProviderResult<Value> {
+    async fn transform_request(
+        &self,
+        request: Value,
+        _context: &TransformContext,
+    ) -> ProviderResult<Value> {
         // Transform OpenAI parameters to Anthropic equivalents
         Ok(request)
     }
 
-    async fn transform_response(&self, response: Value, _context: &TransformContext) -> ProviderResult<Value> {
+    async fn transform_response(
+        &self,
+        response: Value,
+        _context: &TransformContext,
+    ) -> ProviderResult<Value> {
         Ok(response)
     }
 
@@ -692,13 +742,21 @@ impl Transform for AnthropicParameterTransform {
 
 #[async_trait]
 impl Transform for GoogleMessageTransform {
-    async fn transform_request(&self, request: Value, _context: &TransformContext) -> ProviderResult<Value> {
+    async fn transform_request(
+        &self,
+        request: Value,
+        _context: &TransformContext,
+    ) -> ProviderResult<Value> {
         // Transform OpenAI messages to Google format
         Ok(request)
     }
 
-    async fn transform_response(&self, response: Value, _context: &TransformContext) -> ProviderResult<Value> {
-        // Transform Google response back to OpenAI format  
+    async fn transform_response(
+        &self,
+        response: Value,
+        _context: &TransformContext,
+    ) -> ProviderResult<Value> {
+        // Transform Google response back to OpenAI format
         Ok(response)
     }
 
@@ -709,12 +767,20 @@ impl Transform for GoogleMessageTransform {
 
 #[async_trait]
 impl Transform for GoogleParameterTransform {
-    async fn transform_request(&self, request: Value, _context: &TransformContext) -> ProviderResult<Value> {
+    async fn transform_request(
+        &self,
+        request: Value,
+        _context: &TransformContext,
+    ) -> ProviderResult<Value> {
         // Transform OpenAI parameters to Google equivalents
         Ok(request)
     }
 
-    async fn transform_response(&self, response: Value, _context: &TransformContext) -> ProviderResult<Value> {
+    async fn transform_response(
+        &self,
+        response: Value,
+        _context: &TransformContext,
+    ) -> ProviderResult<Value> {
         Ok(response)
     }
 
@@ -1064,9 +1130,7 @@ mod tests {
         let request = ProviderRequest {
             endpoint: "/v1/chat/completions".to_string(),
             method: "POST".to_string(),
-            headers: HashMap::from([
-                ("Content-Type".to_string(), "application/json".to_string()),
-            ]),
+            headers: HashMap::from([("Content-Type".to_string(), "application/json".to_string())]),
             body: json!({"model": "gpt-4"}),
             query_params: HashMap::new(),
         };
@@ -1082,9 +1146,7 @@ mod tests {
     fn test_provider_response_serialization() {
         let response = ProviderResponse {
             status_code: 200,
-            headers: HashMap::from([
-                ("content-type".to_string(), "application/json".to_string()),
-            ]),
+            headers: HashMap::from([("content-type".to_string(), "application/json".to_string())]),
             body: json!({"id": "test"}),
             latency_ms: 150.5,
         };
@@ -1121,9 +1183,10 @@ mod tests {
             provider_model: "claude-3-sonnet-20240229".to_string(),
             openai_equivalent: "gpt-4".to_string(),
             capabilities: vec!["chat".to_string(), "vision".to_string()],
-            parameter_mappings: HashMap::from([
-                ("max_tokens".to_string(), "max_tokens".to_string()),
-            ]),
+            parameter_mappings: HashMap::from([(
+                "max_tokens".to_string(),
+                "max_tokens".to_string(),
+            )]),
         };
 
         let json = serde_json::to_value(&mapping).unwrap();
@@ -1140,14 +1203,15 @@ mod tests {
             original_model: "gpt-4".to_string(),
             target_model: "gemini-pro".to_string(),
             config: HashMap::new(),
-            metadata: HashMap::from([
-                ("request_id".to_string(), "req-123".to_string()),
-            ]),
+            metadata: HashMap::from([("request_id".to_string(), "req-123".to_string())]),
         };
 
         assert_eq!(context.original_model, "gpt-4");
         assert_eq!(context.target_model, "gemini-pro");
-        assert_eq!(context.metadata.get("request_id"), Some(&"req-123".to_string()));
+        assert_eq!(
+            context.metadata.get("request_id"),
+            Some(&"req-123".to_string())
+        );
     }
 
     // ==================== DefaultTransformEngine Tests ====================
@@ -1226,7 +1290,10 @@ mod tests {
             thinking: None,
         };
 
-        let issues = engine.validate_request_compatibility(&request, &ProviderType::Anthropic).await.unwrap();
+        let issues = engine
+            .validate_request_compatibility(&request, &ProviderType::Anthropic)
+            .await
+            .unwrap();
         assert!(issues.iter().any(|i| i.contains("Functions")));
         assert!(issues.iter().any(|i| i.contains("Logit bias")));
     }
@@ -1258,7 +1325,10 @@ mod tests {
             thinking: None,
         };
 
-        let issues = engine.validate_request_compatibility(&request, &ProviderType::VertexAI).await.unwrap();
+        let issues = engine
+            .validate_request_compatibility(&request, &ProviderType::VertexAI)
+            .await
+            .unwrap();
         assert!(issues.iter().any(|i| i.contains("Function calling")));
     }
 
@@ -1289,7 +1359,10 @@ mod tests {
             thinking: None,
         };
 
-        let issues = engine.validate_request_compatibility(&request, &ProviderType::OpenAI).await.unwrap();
+        let issues = engine
+            .validate_request_compatibility(&request, &ProviderType::OpenAI)
+            .await
+            .unwrap();
         assert!(issues.is_empty());
     }
 
@@ -1331,7 +1404,10 @@ mod tests {
         };
 
         let input = json!({"messages": [{"role": "user", "content": "Hello"}]});
-        let result = transform.transform_request(input.clone(), &context).await.unwrap();
+        let result = transform
+            .transform_request(input.clone(), &context)
+            .await
+            .unwrap();
 
         // Current implementation is passthrough
         assert_eq!(result, input);

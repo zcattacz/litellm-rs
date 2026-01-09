@@ -139,7 +139,9 @@ mod tests {
     #[test]
     fn test_authorization_error() {
         let error = GatewayError::authorization("Insufficient permissions");
-        assert!(matches!(error, GatewayError::Authorization(msg) if msg == "Insufficient permissions"));
+        assert!(
+            matches!(error, GatewayError::Authorization(msg) if msg == "Insufficient permissions")
+        );
     }
 
     // ==================== Request Error Tests ====================
@@ -217,7 +219,9 @@ mod tests {
     #[test]
     fn test_timeout_error() {
         let error = GatewayError::timeout("Request timed out after 30s");
-        assert!(matches!(error, GatewayError::Timeout(msg) if msg == "Request timed out after 30s"));
+        assert!(
+            matches!(error, GatewayError::Timeout(msg) if msg == "Request timed out after 30s")
+        );
     }
 
     // ==================== Provider Error Tests ====================
@@ -225,19 +229,25 @@ mod tests {
     #[test]
     fn test_service_unavailable_error() {
         let error = GatewayError::service_unavailable("Service under maintenance");
-        assert!(matches!(error, GatewayError::ProviderUnavailable(msg) if msg == "Service under maintenance"));
+        assert!(
+            matches!(error, GatewayError::ProviderUnavailable(msg) if msg == "Service under maintenance")
+        );
     }
 
     #[test]
     fn test_unavailable_error() {
         let error = GatewayError::unavailable("Provider unavailable");
-        assert!(matches!(error, GatewayError::ProviderUnavailable(msg) if msg == "Provider unavailable"));
+        assert!(
+            matches!(error, GatewayError::ProviderUnavailable(msg) if msg == "Provider unavailable")
+        );
     }
 
     #[test]
     fn test_no_providers_available() {
         let error = GatewayError::no_providers_available("No providers configured");
-        assert!(matches!(error, GatewayError::NoProvidersAvailable(msg) if msg == "No providers configured"));
+        assert!(
+            matches!(error, GatewayError::NoProvidersAvailable(msg) if msg == "No providers configured")
+        );
     }
 
     #[test]
@@ -255,7 +265,9 @@ mod tests {
     #[test]
     fn test_no_healthy_providers() {
         let error = GatewayError::no_healthy_providers("All providers are down");
-        assert!(matches!(error, GatewayError::NoHealthyProviders(msg) if msg == "All providers are down"));
+        assert!(
+            matches!(error, GatewayError::NoHealthyProviders(msg) if msg == "All providers are down")
+        );
     }
 
     // ==================== Network Error Tests ====================
@@ -287,7 +299,9 @@ mod tests {
     #[test]
     fn test_not_implemented_error() {
         let error = GatewayError::not_implemented("Feature not yet available");
-        assert!(matches!(error, GatewayError::NotImplemented(msg) if msg == "Feature not yet available"));
+        assert!(
+            matches!(error, GatewayError::NotImplemented(msg) if msg == "Feature not yet available")
+        );
     }
 
     // ==================== Authorization Error Tests ====================

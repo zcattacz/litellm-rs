@@ -675,7 +675,9 @@ mod tests {
     #[test]
     fn test_header_with_custom_headers() {
         let mut config = AnthropicConfig::new_test("test-key");
-        config.custom_headers.insert("X-Custom-Header".to_string(), "custom-value".to_string());
+        config
+            .custom_headers
+            .insert("X-Custom-Header".to_string(), "custom-value".to_string());
         let client = AnthropicClient::new(config).unwrap();
         let headers = client.build_headers();
 
@@ -714,7 +716,11 @@ mod tests {
 
         // Should return an authentication error
         let error_string = format!("{}", error);
-        assert!(error_string.to_lowercase().contains("forbidden") || error_string.to_lowercase().contains("permission") || error_string.to_lowercase().contains("auth"));
+        assert!(
+            error_string.to_lowercase().contains("forbidden")
+                || error_string.to_lowercase().contains("permission")
+                || error_string.to_lowercase().contains("auth")
+        );
     }
 
     #[test]
@@ -735,7 +741,10 @@ mod tests {
 
         // Should return a rate limit error
         let error_string = format!("{}", error);
-        assert!(error_string.to_lowercase().contains("rate") || error_string.to_lowercase().contains("limit"));
+        assert!(
+            error_string.to_lowercase().contains("rate")
+                || error_string.to_lowercase().contains("limit")
+        );
     }
 
     #[test]
@@ -797,17 +806,15 @@ mod tests {
         let config = AnthropicConfig::new_test("test-key");
         let client = AnthropicClient::new(config).unwrap();
 
-        let messages = vec![
-            ChatMessage {
-                role: MessageRole::User,
-                content: Some(MessageContent::Text("Hello".to_string())),
-                name: None,
-                tool_calls: None,
-                tool_call_id: None,
-                function_call: None,
-                thinking: None,
-            },
-        ];
+        let messages = vec![ChatMessage {
+            role: MessageRole::User,
+            content: Some(MessageContent::Text("Hello".to_string())),
+            name: None,
+            tool_calls: None,
+            tool_call_id: None,
+            function_call: None,
+            thinking: None,
+        }];
 
         let (system, user_msgs) = client.separate_system_messages(&messages).unwrap();
         assert!(system.is_none());
@@ -822,7 +829,9 @@ mod tests {
         let messages = vec![
             ChatMessage {
                 role: MessageRole::System,
-                content: Some(MessageContent::Text("You are a helpful assistant.".to_string())),
+                content: Some(MessageContent::Text(
+                    "You are a helpful assistant.".to_string(),
+                )),
                 name: None,
                 tool_calls: None,
                 tool_call_id: None,
@@ -917,16 +926,14 @@ mod tests {
         let config = AnthropicConfig::new_test("test-key");
         let client = AnthropicClient::new(config).unwrap();
 
-        let tools = vec![
-            crate::core::types::Tool {
-                tool_type: crate::core::types::ToolType::Function,
-                function: crate::core::types::FunctionDefinition {
-                    name: "get_weather".to_string(),
-                    description: Some("Get weather for a location".to_string()),
-                    parameters: Some(json!({"type": "object"})),
-                },
+        let tools = vec![crate::core::types::Tool {
+            tool_type: crate::core::types::ToolType::Function,
+            function: crate::core::types::FunctionDefinition {
+                name: "get_weather".to_string(),
+                description: Some("Get weather for a location".to_string()),
+                parameters: Some(json!({"type": "object"})),
             },
-        ];
+        }];
 
         let result = client.transform_tools(&tools).unwrap();
         assert_eq!(result.len(), 1);
@@ -1037,7 +1044,10 @@ mod tests {
             "stop_reason": "end_turn"
         });
         let result = client.transform_chat_response(response).unwrap();
-        assert!(matches!(result.choices[0].finish_reason, Some(crate::core::types::FinishReason::Stop)));
+        assert!(matches!(
+            result.choices[0].finish_reason,
+            Some(crate::core::types::FinishReason::Stop)
+        ));
 
         // max_tokens -> Length
         let response = json!({
@@ -1047,7 +1057,10 @@ mod tests {
             "stop_reason": "max_tokens"
         });
         let result = client.transform_chat_response(response).unwrap();
-        assert!(matches!(result.choices[0].finish_reason, Some(crate::core::types::FinishReason::Length)));
+        assert!(matches!(
+            result.choices[0].finish_reason,
+            Some(crate::core::types::FinishReason::Length)
+        ));
 
         // tool_use -> ToolCalls
         let response = json!({
@@ -1057,6 +1070,9 @@ mod tests {
             "stop_reason": "tool_use"
         });
         let result = client.transform_chat_response(response).unwrap();
-        assert!(matches!(result.choices[0].finish_reason, Some(crate::core::types::FinishReason::ToolCalls)));
+        assert!(matches!(
+            result.choices[0].finish_reason,
+            Some(crate::core::types::FinishReason::ToolCalls)
+        ));
     }
 }

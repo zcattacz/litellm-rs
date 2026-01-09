@@ -85,10 +85,18 @@ mod tests {
         ComponentHealth {
             name: name.to_string(),
             healthy,
-            status: if healthy { "OK".to_string() } else { "FAILED".to_string() },
+            status: if healthy {
+                "OK".to_string()
+            } else {
+                "FAILED".to_string()
+            },
             last_check: Utc::now(),
             response_time_ms: if healthy { 50 } else { 5000 },
-            error: if healthy { None } else { Some("Connection refused".to_string()) },
+            error: if healthy {
+                None
+            } else {
+                Some("Connection refused".to_string())
+            },
             metadata: HashMap::new(),
         }
     }
@@ -104,9 +112,18 @@ mod tests {
 
     fn create_test_health_status() -> HealthStatus {
         let mut components = HashMap::new();
-        components.insert("database".to_string(), create_test_component_health("database", true));
-        components.insert("cache".to_string(), create_test_component_health("cache", true));
-        components.insert("api".to_string(), create_test_component_health("api", false));
+        components.insert(
+            "database".to_string(),
+            create_test_component_health("database", true),
+        );
+        components.insert(
+            "cache".to_string(),
+            create_test_component_health("cache", true),
+        );
+        components.insert(
+            "api".to_string(),
+            create_test_component_health("api", false),
+        );
 
         HealthStatus {
             overall_healthy: false,
@@ -137,7 +154,10 @@ mod tests {
     fn test_health_status_all_healthy() {
         let mut components = HashMap::new();
         components.insert("db".to_string(), create_test_component_health("db", true));
-        components.insert("cache".to_string(), create_test_component_health("cache", true));
+        components.insert(
+            "cache".to_string(),
+            create_test_component_health("cache", true),
+        );
 
         let status = HealthStatus {
             overall_healthy: true,
@@ -245,7 +265,10 @@ mod tests {
         };
 
         assert_eq!(component.metadata.len(), 2);
-        assert_eq!(component.metadata.get("version"), Some(&serde_json::json!("1.0.0")));
+        assert_eq!(
+            component.metadata.get("version"),
+            Some(&serde_json::json!("1.0.0"))
+        );
     }
 
     #[test]
@@ -534,7 +557,8 @@ mod tests {
 
     #[test]
     fn test_component_health_by_response_time() {
-        let components = [create_test_component_health("fast", true),
+        let components = [
+            create_test_component_health("fast", true),
             ComponentHealth {
                 name: "slow".to_string(),
                 healthy: true,
@@ -552,7 +576,8 @@ mod tests {
                 response_time_ms: 2000,
                 error: None,
                 metadata: HashMap::new(),
-            }];
+            },
+        ];
 
         let avg_response_time: u64 =
             components.iter().map(|c| c.response_time_ms).sum::<u64>() / components.len() as u64;
@@ -562,7 +587,8 @@ mod tests {
 
     #[test]
     fn test_critical_vs_non_critical_components() {
-        let configs = [HealthCheckConfig {
+        let configs = [
+            HealthCheckConfig {
                 name: "database".to_string(),
                 interval: Duration::from_secs(10),
                 timeout: Duration::from_secs(2),
@@ -582,7 +608,8 @@ mod tests {
                 timeout: Duration::from_secs(10),
                 retries: 1,
                 critical: false,
-            }];
+            },
+        ];
 
         let critical_count = configs.iter().filter(|c| c.critical).count();
         let non_critical_count = configs.len() - critical_count;
@@ -608,11 +635,7 @@ mod tests {
     #[test]
     fn test_uptime_calculation() {
         let uptimes_seconds = [0, 60, 3600, 86400, 604800];
-        let expected_descriptions = ["0 seconds",
-            "1 minute",
-            "1 hour",
-            "1 day",
-            "1 week"];
+        let expected_descriptions = ["0 seconds", "1 minute", "1 hour", "1 day", "1 week"];
 
         for (uptime, desc) in uptimes_seconds.iter().zip(expected_descriptions.iter()) {
             let status = HealthStatus {

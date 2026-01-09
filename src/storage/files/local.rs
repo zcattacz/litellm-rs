@@ -327,7 +327,10 @@ mod tests {
 
     #[test]
     fn test_detect_content_type_jpeg() {
-        assert_eq!(LocalStorage::detect_content_type("photo.jpeg"), "image/jpeg");
+        assert_eq!(
+            LocalStorage::detect_content_type("photo.jpeg"),
+            "image/jpeg"
+        );
     }
 
     #[test]

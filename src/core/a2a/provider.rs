@@ -78,11 +78,7 @@ impl GenericA2AProvider {
     }
 
     /// Build request with authentication
-    fn build_request(
-        &self,
-        config: &AgentConfig,
-        message: &A2AMessage,
-    ) -> reqwest::RequestBuilder {
+    fn build_request(&self, config: &AgentConfig, message: &A2AMessage) -> reqwest::RequestBuilder {
         let client = self.get_client(config.timeout_ms);
         let mut request = client.post(&config.url).json(message);
 
@@ -160,11 +156,10 @@ impl A2AProviderAdapter for GenericA2AProvider {
             });
         }
 
-        let a2a_response: A2AResponse = response.json().await.map_err(|e| {
-            A2AError::ProtocolError {
+        let a2a_response: A2AResponse =
+            response.json().await.map_err(|e| A2AError::ProtocolError {
                 message: format!("Failed to parse response: {}", e),
-            }
-        })?;
+            })?;
 
         Ok(a2a_response)
     }
@@ -420,10 +415,7 @@ mod tests {
 
     #[test]
     fn test_all_adapters_support_streaming() {
-        let providers = [
-            AgentProvider::LangGraph,
-            AgentProvider::A2A,
-        ];
+        let providers = [AgentProvider::LangGraph, AgentProvider::A2A];
 
         for provider in providers {
             let adapter = get_provider_adapter(provider);
@@ -463,7 +455,9 @@ mod tests {
     fn test_build_request_with_headers() {
         let provider = GenericA2AProvider::new();
         let mut config = AgentConfig::new("test-agent", "https://example.com/api");
-        config.headers.insert("X-Custom-Header".to_string(), "custom-value".to_string());
+        config
+            .headers
+            .insert("X-Custom-Header".to_string(), "custom-value".to_string());
         let message = A2AMessage::send("Hello!");
 
         let request = provider.build_request(&config, &message);
@@ -474,9 +468,15 @@ mod tests {
     fn test_build_request_with_multiple_headers() {
         let provider = GenericA2AProvider::new();
         let mut config = AgentConfig::new("test-agent", "https://example.com/api");
-        config.headers.insert("X-Header-1".to_string(), "value1".to_string());
-        config.headers.insert("X-Header-2".to_string(), "value2".to_string());
-        config.headers.insert("X-Header-3".to_string(), "value3".to_string());
+        config
+            .headers
+            .insert("X-Header-1".to_string(), "value1".to_string());
+        config
+            .headers
+            .insert("X-Header-2".to_string(), "value2".to_string());
+        config
+            .headers
+            .insert("X-Header-3".to_string(), "value3".to_string());
         let message = A2AMessage::send("Hello!");
 
         let request = provider.build_request(&config, &message);
@@ -534,39 +534,57 @@ mod tests {
                 &'life0 self,
                 _config: &'life1 AgentConfig,
                 _message: A2AMessage,
-            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = A2AResult<A2AResponse>> + Send + 'async_trait>>
+            ) -> std::pin::Pin<
+                Box<dyn std::future::Future<Output = A2AResult<A2AResponse>> + Send + 'async_trait>,
+            >
             where
                 'life0: 'async_trait,
                 'life1: 'async_trait,
                 Self: 'async_trait,
             {
-                Box::pin(async { Err(A2AError::ProtocolError { message: "not implemented".to_string() }) })
+                Box::pin(async {
+                    Err(A2AError::ProtocolError {
+                        message: "not implemented".to_string(),
+                    })
+                })
             }
             fn get_task<'life0, 'life1, 'life2, 'async_trait>(
                 &'life0 self,
                 _config: &'life1 AgentConfig,
                 _task_id: &'life2 str,
-            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = A2AResult<TaskResult>> + Send + 'async_trait>>
+            ) -> std::pin::Pin<
+                Box<dyn std::future::Future<Output = A2AResult<TaskResult>> + Send + 'async_trait>,
+            >
             where
                 'life0: 'async_trait,
                 'life1: 'async_trait,
                 'life2: 'async_trait,
                 Self: 'async_trait,
             {
-                Box::pin(async { Err(A2AError::ProtocolError { message: "not implemented".to_string() }) })
+                Box::pin(async {
+                    Err(A2AError::ProtocolError {
+                        message: "not implemented".to_string(),
+                    })
+                })
             }
             fn cancel_task<'life0, 'life1, 'life2, 'async_trait>(
                 &'life0 self,
                 _config: &'life1 AgentConfig,
                 _task_id: &'life2 str,
-            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = A2AResult<()>> + Send + 'async_trait>>
+            ) -> std::pin::Pin<
+                Box<dyn std::future::Future<Output = A2AResult<()>> + Send + 'async_trait>,
+            >
             where
                 'life0: 'async_trait,
                 'life1: 'async_trait,
                 'life2: 'async_trait,
                 Self: 'async_trait,
             {
-                Box::pin(async { Err(A2AError::ProtocolError { message: "not implemented".to_string() }) })
+                Box::pin(async {
+                    Err(A2AError::ProtocolError {
+                        message: "not implemented".to_string(),
+                    })
+                })
             }
         }
 

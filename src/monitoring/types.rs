@@ -791,7 +791,10 @@ mod tests {
         };
 
         let cloned = metrics.clone();
-        assert_eq!(metrics.requests.total_requests, cloned.requests.total_requests);
+        assert_eq!(
+            metrics.requests.total_requests,
+            cloned.requests.total_requests
+        );
         assert_eq!(metrics.system.cpu_usage, cloned.system.cpu_usage);
     }
 

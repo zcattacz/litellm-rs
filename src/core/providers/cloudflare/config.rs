@@ -139,7 +139,10 @@ mod tests {
             max_retries: 3,
             debug: false,
         };
-        assert_eq!(config.get_api_base(), "https://api.cloudflare.com/client/v4");
+        assert_eq!(
+            config.get_api_base(),
+            "https://api.cloudflare.com/client/v4"
+        );
     }
 
     #[test]

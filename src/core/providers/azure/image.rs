@@ -644,8 +644,8 @@ mod tests {
 
     #[test]
     fn test_azure_image_handler_new() {
-        let config = AzureConfig::new()
-            .with_azure_endpoint("https://test.openai.azure.com".to_string());
+        let config =
+            AzureConfig::new().with_azure_endpoint("https://test.openai.azure.com".to_string());
         let handler = AzureImageHandler::new(config);
         assert!(handler.is_ok());
     }

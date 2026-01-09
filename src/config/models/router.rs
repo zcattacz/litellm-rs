@@ -367,7 +367,8 @@ mod tests {
 
     #[test]
     fn test_load_balancer_config_deserialization() {
-        let json = r#"{"health_check_enabled": false, "sticky_sessions": true, "session_timeout": 900}"#;
+        let json =
+            r#"{"health_check_enabled": false, "sticky_sessions": true, "session_timeout": 900}"#;
         let config: LoadBalancerConfig = serde_json::from_str(json).unwrap();
         assert!(!config.health_check_enabled);
         assert!(config.sticky_sessions);

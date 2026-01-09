@@ -155,8 +155,14 @@ mod tests {
 
     #[test]
     fn test_provider_capability_equality() {
-        assert_eq!(ProviderCapability::ChatCompletion, ProviderCapability::ChatCompletion);
-        assert_ne!(ProviderCapability::ChatCompletion, ProviderCapability::Embeddings);
+        assert_eq!(
+            ProviderCapability::ChatCompletion,
+            ProviderCapability::ChatCompletion
+        );
+        assert_ne!(
+            ProviderCapability::ChatCompletion,
+            ProviderCapability::Embeddings
+        );
     }
 
     #[test]
@@ -285,7 +291,10 @@ mod tests {
             metadata,
         };
 
-        assert_eq!(info.metadata.get("version"), Some(&serde_json::json!("2024-01")));
+        assert_eq!(
+            info.metadata.get("version"),
+            Some(&serde_json::json!("2024-01"))
+        );
     }
 
     #[test]

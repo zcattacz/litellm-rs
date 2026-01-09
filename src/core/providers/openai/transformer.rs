@@ -933,8 +933,18 @@ mod tests {
         let usage = result.usage.unwrap();
         assert_eq!(usage.prompt_tokens, 100);
         assert_eq!(usage.completion_tokens, 50);
-        assert_eq!(usage.prompt_tokens_details.as_ref().unwrap().cached_tokens, Some(20));
-        assert_eq!(usage.completion_tokens_details.as_ref().unwrap().reasoning_tokens, Some(15));
+        assert_eq!(
+            usage.prompt_tokens_details.as_ref().unwrap().cached_tokens,
+            Some(20)
+        );
+        assert_eq!(
+            usage
+                .completion_tokens_details
+                .as_ref()
+                .unwrap()
+                .reasoning_tokens,
+            Some(15)
+        );
     }
 
     #[test]
@@ -1272,7 +1282,8 @@ mod tests {
             ..Default::default()
         };
 
-        let result = <OpenAITransformer as Transform<ChatRequest, OpenAIChatRequest>>::transform(request);
+        let result =
+            <OpenAITransformer as Transform<ChatRequest, OpenAIChatRequest>>::transform(request);
         assert!(result.is_ok());
     }
 
@@ -1288,7 +1299,8 @@ mod tests {
             system_fingerprint: None,
         };
 
-        let result = <OpenAITransformer as Transform<OpenAIChatResponse, ChatResponse>>::transform(response);
+        let result =
+            <OpenAITransformer as Transform<OpenAIChatResponse, ChatResponse>>::transform(response);
         assert!(result.is_ok());
     }
 

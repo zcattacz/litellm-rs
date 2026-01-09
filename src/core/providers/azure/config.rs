@@ -193,7 +193,10 @@ mod tests {
         );
 
         let config_no_deployment = AzureConfig::new();
-        assert_eq!(config_no_deployment.get_effective_deployment_name("gpt-4"), "gpt-4");
+        assert_eq!(
+            config_no_deployment.get_effective_deployment_name("gpt-4"),
+            "gpt-4"
+        );
     }
 
     #[test]

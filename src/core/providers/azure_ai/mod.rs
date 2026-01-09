@@ -336,10 +336,7 @@ mod tests {
 
     #[test]
     fn test_provider_with_api_key() {
-        let provider = AzureAIProvider::with_api_key(
-            "test_key",
-            "https://test.ai.azure.com"
-        );
+        let provider = AzureAIProvider::with_api_key("test_key", "https://test.ai.azure.com");
         assert!(provider.is_ok());
     }
 
@@ -465,7 +462,10 @@ mod tests {
         params.insert("temperature".to_string(), serde_json::json!(0.7));
         params.insert("max_tokens".to_string(), serde_json::json!(100));
 
-        let mapped = provider.map_openai_params(params.clone(), "gpt-4o").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params.clone(), "gpt-4o")
+            .await
+            .unwrap();
 
         // Azure AI should pass through params unchanged
         assert_eq!(mapped, params);
@@ -547,7 +547,9 @@ mod tests {
         let config = create_test_config();
         let provider = AzureAIProvider::new(config).unwrap();
 
-        let cost = provider.calculate_cost("unknown-model-xyz", 1000, 500).await;
+        let cost = provider
+            .calculate_cost("unknown-model-xyz", 1000, 500)
+            .await;
         assert!(cost.is_err());
     }
 

@@ -486,16 +486,14 @@ mod tests {
 
     #[test]
     fn test_http_client_builder_with_timeout() {
-        let builder = HttpClientBuilder::new()
-            .timeout(Duration::from_secs(120));
+        let builder = HttpClientBuilder::new().timeout(Duration::from_secs(120));
         let result = builder.build();
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_http_client_builder_with_max_retries() {
-        let builder = HttpClientBuilder::new()
-            .max_retries(5);
+        let builder = HttpClientBuilder::new().max_retries(5);
         let result = builder.build();
         assert!(result.is_ok());
 
@@ -505,8 +503,7 @@ mod tests {
 
     #[test]
     fn test_http_client_builder_with_default_header() {
-        let builder = HttpClientBuilder::new()
-            .default_header("X-Custom-Header", "test-value");
+        let builder = HttpClientBuilder::new().default_header("X-Custom-Header", "test-value");
         let result = builder.build();
         assert!(result.is_ok());
     }
@@ -583,57 +580,90 @@ mod tests {
 
     #[test]
     fn test_message_transformer_role_to_string_system() {
-        assert_eq!(MessageTransformer::role_to_string(&MessageRole::System), "system");
+        assert_eq!(
+            MessageTransformer::role_to_string(&MessageRole::System),
+            "system"
+        );
     }
 
     #[test]
     fn test_message_transformer_role_to_string_user() {
-        assert_eq!(MessageTransformer::role_to_string(&MessageRole::User), "user");
+        assert_eq!(
+            MessageTransformer::role_to_string(&MessageRole::User),
+            "user"
+        );
     }
 
     #[test]
     fn test_message_transformer_role_to_string_assistant() {
-        assert_eq!(MessageTransformer::role_to_string(&MessageRole::Assistant), "assistant");
+        assert_eq!(
+            MessageTransformer::role_to_string(&MessageRole::Assistant),
+            "assistant"
+        );
     }
 
     #[test]
     fn test_message_transformer_role_to_string_tool() {
-        assert_eq!(MessageTransformer::role_to_string(&MessageRole::Tool), "tool");
+        assert_eq!(
+            MessageTransformer::role_to_string(&MessageRole::Tool),
+            "tool"
+        );
     }
 
     #[test]
     fn test_message_transformer_role_to_string_function() {
-        assert_eq!(MessageTransformer::role_to_string(&MessageRole::Function), "function");
+        assert_eq!(
+            MessageTransformer::role_to_string(&MessageRole::Function),
+            "function"
+        );
     }
 
     #[test]
     fn test_message_transformer_string_to_role_system() {
-        assert_eq!(MessageTransformer::string_to_role("system"), MessageRole::System);
+        assert_eq!(
+            MessageTransformer::string_to_role("system"),
+            MessageRole::System
+        );
     }
 
     #[test]
     fn test_message_transformer_string_to_role_user() {
-        assert_eq!(MessageTransformer::string_to_role("user"), MessageRole::User);
+        assert_eq!(
+            MessageTransformer::string_to_role("user"),
+            MessageRole::User
+        );
     }
 
     #[test]
     fn test_message_transformer_string_to_role_assistant() {
-        assert_eq!(MessageTransformer::string_to_role("assistant"), MessageRole::Assistant);
+        assert_eq!(
+            MessageTransformer::string_to_role("assistant"),
+            MessageRole::Assistant
+        );
     }
 
     #[test]
     fn test_message_transformer_string_to_role_tool() {
-        assert_eq!(MessageTransformer::string_to_role("tool"), MessageRole::Tool);
+        assert_eq!(
+            MessageTransformer::string_to_role("tool"),
+            MessageRole::Tool
+        );
     }
 
     #[test]
     fn test_message_transformer_string_to_role_function() {
-        assert_eq!(MessageTransformer::string_to_role("function"), MessageRole::Function);
+        assert_eq!(
+            MessageTransformer::string_to_role("function"),
+            MessageRole::Function
+        );
     }
 
     #[test]
     fn test_message_transformer_string_to_role_unknown() {
-        assert_eq!(MessageTransformer::string_to_role("unknown"), MessageRole::User);
+        assert_eq!(
+            MessageTransformer::string_to_role("unknown"),
+            MessageRole::User
+        );
         assert_eq!(MessageTransformer::string_to_role(""), MessageRole::User);
     }
 
@@ -647,8 +677,12 @@ mod tests {
     #[test]
     fn test_message_transformer_content_to_value_parts() {
         let content = Some(MessageContent::Parts(vec![
-            ContentPart::Text { text: "Part 1".to_string() },
-            ContentPart::Text { text: "Part 2".to_string() },
+            ContentPart::Text {
+                text: "Part 1".to_string(),
+            },
+            ContentPart::Text {
+                text: "Part 2".to_string(),
+            },
         ]));
         let value = MessageTransformer::content_to_value(&content);
         assert!(value.is_array());
@@ -663,24 +697,42 @@ mod tests {
 
     #[test]
     fn test_message_transformer_parse_finish_reason_stop() {
-        assert_eq!(MessageTransformer::parse_finish_reason("stop"), Some(FinishReason::Stop));
+        assert_eq!(
+            MessageTransformer::parse_finish_reason("stop"),
+            Some(FinishReason::Stop)
+        );
     }
 
     #[test]
     fn test_message_transformer_parse_finish_reason_length() {
-        assert_eq!(MessageTransformer::parse_finish_reason("length"), Some(FinishReason::Length));
-        assert_eq!(MessageTransformer::parse_finish_reason("max_tokens"), Some(FinishReason::Length));
+        assert_eq!(
+            MessageTransformer::parse_finish_reason("length"),
+            Some(FinishReason::Length)
+        );
+        assert_eq!(
+            MessageTransformer::parse_finish_reason("max_tokens"),
+            Some(FinishReason::Length)
+        );
     }
 
     #[test]
     fn test_message_transformer_parse_finish_reason_tool_calls() {
-        assert_eq!(MessageTransformer::parse_finish_reason("tool_calls"), Some(FinishReason::ToolCalls));
-        assert_eq!(MessageTransformer::parse_finish_reason("function_call"), Some(FinishReason::ToolCalls));
+        assert_eq!(
+            MessageTransformer::parse_finish_reason("tool_calls"),
+            Some(FinishReason::ToolCalls)
+        );
+        assert_eq!(
+            MessageTransformer::parse_finish_reason("function_call"),
+            Some(FinishReason::ToolCalls)
+        );
     }
 
     #[test]
     fn test_message_transformer_parse_finish_reason_content_filter() {
-        assert_eq!(MessageTransformer::parse_finish_reason("content_filter"), Some(FinishReason::ContentFilter));
+        assert_eq!(
+            MessageTransformer::parse_finish_reason("content_filter"),
+            Some(FinishReason::ContentFilter)
+        );
     }
 
     #[test]
@@ -708,9 +760,7 @@ mod tests {
             base_url: "https://api.example.com".to_string(),
             timeout: 120,
             max_retries: 5,
-            custom_headers: HashMap::from([
-                ("X-Custom".to_string(), "value".to_string()),
-            ]),
+            custom_headers: HashMap::from([("X-Custom".to_string(), "value".to_string())]),
         };
 
         assert_eq!(config.api_key, "test-api-key");

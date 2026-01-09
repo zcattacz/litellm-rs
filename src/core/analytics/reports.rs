@@ -508,25 +508,23 @@ mod tests {
         let section = ReportSectionData {
             title: "Charts Section".to_string(),
             data: serde_json::json!({}),
-            charts: vec![
-                ChartData {
-                    chart_type: "bar".to_string(),
-                    title: "Bar Chart".to_string(),
-                    data: vec![
-                        DataPoint {
-                            x: serde_json::json!("Jan"),
-                            y: serde_json::json!(100),
-                            metadata: None,
-                        },
-                        DataPoint {
-                            x: serde_json::json!("Feb"),
-                            y: serde_json::json!(150),
-                            metadata: Some(serde_json::json!({"note": "high"})),
-                        },
-                    ],
-                    config: serde_json::json!({"color": "blue"}),
-                },
-            ],
+            charts: vec![ChartData {
+                chart_type: "bar".to_string(),
+                title: "Bar Chart".to_string(),
+                data: vec![
+                    DataPoint {
+                        x: serde_json::json!("Jan"),
+                        y: serde_json::json!(100),
+                        metadata: None,
+                    },
+                    DataPoint {
+                        x: serde_json::json!("Feb"),
+                        y: serde_json::json!(150),
+                        metadata: Some(serde_json::json!({"note": "high"})),
+                    },
+                ],
+                config: serde_json::json!({"color": "blue"}),
+            }],
         };
 
         assert_eq!(section.charts.len(), 1);

@@ -284,6 +284,8 @@ mod tests {
         let anthropic = anthropic_provider("a", "k").unwrap();
 
         // OpenAI has higher rate limit
-        assert!(openai.max_requests_per_minute.unwrap() > anthropic.max_requests_per_minute.unwrap());
+        assert!(
+            openai.max_requests_per_minute.unwrap() > anthropic.max_requests_per_minute.unwrap()
+        );
     }
 }

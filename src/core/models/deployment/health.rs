@@ -237,7 +237,9 @@ mod tests {
         health.last_check.store(timestamp, Ordering::Relaxed);
         assert_eq!(health.last_check.load(Ordering::Relaxed), timestamp);
 
-        health.last_failure.store(timestamp + 100, Ordering::Relaxed);
+        health
+            .last_failure
+            .store(timestamp + 100, Ordering::Relaxed);
         assert_eq!(health.last_failure.load(Ordering::Relaxed), timestamp + 100);
     }
 

@@ -611,9 +611,15 @@ mod tests {
         let error_codes = vec![
             ("CONFIG_ERROR", GatewayError::Config("test".to_string())),
             ("AUTH_ERROR", GatewayError::Auth("test".to_string())),
-            ("VALIDATION_ERROR", GatewayError::Validation("test".to_string())),
+            (
+                "VALIDATION_ERROR",
+                GatewayError::Validation("test".to_string()),
+            ),
             ("NOT_FOUND", GatewayError::NotFound("test".to_string())),
-            ("RATE_LIMIT_EXCEEDED", GatewayError::RateLimit("test".to_string())),
+            (
+                "RATE_LIMIT_EXCEEDED",
+                GatewayError::RateLimit("test".to_string()),
+            ),
         ];
 
         for (_expected_code, error) in error_codes {

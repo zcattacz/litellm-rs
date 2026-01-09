@@ -185,10 +185,12 @@ mod tests {
     fn test_validate_username_invalid_chars() {
         let result = DataValidator::validate_username("user@name");
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("letters, numbers, underscores"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("letters, numbers, underscores")
+        );
     }
 
     #[test]

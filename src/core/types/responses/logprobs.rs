@@ -386,10 +386,7 @@ mod tests {
         };
 
         assert_eq!(logprobs.content.len(), 2);
-        assert_eq!(
-            logprobs.content[0].top_logprobs.as_ref().unwrap().len(),
-            2
-        );
+        assert_eq!(logprobs.content[0].top_logprobs.as_ref().unwrap().len(), 2);
 
         // Verify serialization roundtrip
         let json = serde_json::to_string(&logprobs).unwrap();

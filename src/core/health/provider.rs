@@ -409,8 +409,14 @@ mod tests {
     #[test]
     fn test_system_health_overall_status_all_healthy() {
         let mut providers = HashMap::new();
-        providers.insert("openai".to_string(), ProviderHealth::new("openai".to_string()));
-        providers.insert("anthropic".to_string(), ProviderHealth::new("anthropic".to_string()));
+        providers.insert(
+            "openai".to_string(),
+            ProviderHealth::new("openai".to_string()),
+        );
+        providers.insert(
+            "anthropic".to_string(),
+            ProviderHealth::new("anthropic".to_string()),
+        );
 
         let system_health = SystemHealth::new(providers);
         assert_eq!(system_health.overall_status(), HealthStatus::Healthy);
@@ -560,7 +566,10 @@ mod tests {
     #[test]
     fn test_system_health_single_provider() {
         let mut providers = HashMap::new();
-        providers.insert("single".to_string(), ProviderHealth::new("single".to_string()));
+        providers.insert(
+            "single".to_string(),
+            ProviderHealth::new("single".to_string()),
+        );
 
         let system_health = SystemHealth::new(providers);
         assert_eq!(system_health.overall_status(), HealthStatus::Healthy);

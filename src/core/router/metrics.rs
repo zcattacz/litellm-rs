@@ -492,7 +492,9 @@ mod tests {
     async fn test_record_request_success() {
         let metrics = RouterMetrics::new().await.unwrap();
 
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(100), true).await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(100), true)
+            .await;
 
         let snapshot = metrics.get_snapshot().await.unwrap();
         assert_eq!(snapshot.overall_metrics.total_requests, 1);
@@ -504,7 +506,9 @@ mod tests {
     async fn test_record_request_failure() {
         let metrics = RouterMetrics::new().await.unwrap();
 
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(50), false).await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(50), false)
+            .await;
 
         let snapshot = metrics.get_snapshot().await.unwrap();
         assert_eq!(snapshot.overall_metrics.total_requests, 1);
@@ -516,10 +520,18 @@ mod tests {
     async fn test_record_multiple_requests() {
         let metrics = RouterMetrics::new().await.unwrap();
 
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(100), true).await;
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(150), true).await;
-        metrics.record_request("anthropic", "claude-3", Duration::from_millis(200), true).await;
-        metrics.record_request("openai", "gpt-3.5", Duration::from_millis(50), false).await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(100), true)
+            .await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(150), true)
+            .await;
+        metrics
+            .record_request("anthropic", "claude-3", Duration::from_millis(200), true)
+            .await;
+        metrics
+            .record_request("openai", "gpt-3.5", Duration::from_millis(50), false)
+            .await;
 
         let snapshot = metrics.get_snapshot().await.unwrap();
         assert_eq!(snapshot.overall_metrics.total_requests, 4);
@@ -531,8 +543,12 @@ mod tests {
     async fn test_record_request_updates_provider_metrics() {
         let metrics = RouterMetrics::new().await.unwrap();
 
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(100), true).await;
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(200), true).await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(100), true)
+            .await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(200), true)
+            .await;
 
         let provider_metrics = metrics.get_provider_metrics("openai").await.unwrap();
         assert!(provider_metrics.is_some());
@@ -548,8 +564,12 @@ mod tests {
     async fn test_record_request_updates_model_metrics() {
         let metrics = RouterMetrics::new().await.unwrap();
 
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(100), true).await;
-        metrics.record_request("anthropic", "gpt-4", Duration::from_millis(150), true).await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(100), true)
+            .await;
+        metrics
+            .record_request("anthropic", "gpt-4", Duration::from_millis(150), true)
+            .await;
 
         let model_metrics = metrics.get_model_metrics("gpt-4").await.unwrap();
         assert!(model_metrics.is_some());
@@ -565,13 +585,29 @@ mod tests {
     async fn test_record_request_min_max_response_time() {
         let metrics = RouterMetrics::new().await.unwrap();
 
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(100), true).await;
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(50), true).await;
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(200), true).await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(100), true)
+            .await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(50), true)
+            .await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(200), true)
+            .await;
 
-        let provider_metrics = metrics.get_provider_metrics("openai").await.unwrap().unwrap();
-        assert_eq!(provider_metrics.min_response_time, Some(Duration::from_millis(50)));
-        assert_eq!(provider_metrics.max_response_time, Some(Duration::from_millis(200)));
+        let provider_metrics = metrics
+            .get_provider_metrics("openai")
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            provider_metrics.min_response_time,
+            Some(Duration::from_millis(50))
+        );
+        assert_eq!(
+            provider_metrics.max_response_time,
+            Some(Duration::from_millis(200))
+        );
     }
 
     #[tokio::test]
@@ -582,7 +618,11 @@ mod tests {
         metrics.record_error("openai", "timeout").await;
         metrics.record_error("openai", "rate_limit").await;
 
-        let provider_metrics = metrics.get_provider_metrics("openai").await.unwrap().unwrap();
+        let provider_metrics = metrics
+            .get_provider_metrics("openai")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(provider_metrics.error_counts.get("timeout"), Some(&2));
         assert_eq!(provider_metrics.error_counts.get("rate_limit"), Some(&1));
     }
@@ -609,13 +649,19 @@ mod tests {
 
         // Record requests for different providers
         for _ in 0..10 {
-            metrics.record_request("openai", "gpt-4", Duration::from_millis(100), true).await;
+            metrics
+                .record_request("openai", "gpt-4", Duration::from_millis(100), true)
+                .await;
         }
         for _ in 0..5 {
-            metrics.record_request("anthropic", "claude-3", Duration::from_millis(100), true).await;
+            metrics
+                .record_request("anthropic", "claude-3", Duration::from_millis(100), true)
+                .await;
         }
         for _ in 0..3 {
-            metrics.record_request("google", "gemini", Duration::from_millis(100), true).await;
+            metrics
+                .record_request("google", "gemini", Duration::from_millis(100), true)
+                .await;
         }
 
         let top = metrics.get_top_providers(2).await.unwrap();
@@ -631,10 +677,14 @@ mod tests {
         let metrics = RouterMetrics::new().await.unwrap();
 
         for _ in 0..8 {
-            metrics.record_request("openai", "gpt-4", Duration::from_millis(100), true).await;
+            metrics
+                .record_request("openai", "gpt-4", Duration::from_millis(100), true)
+                .await;
         }
         for _ in 0..12 {
-            metrics.record_request("openai", "gpt-3.5", Duration::from_millis(100), true).await;
+            metrics
+                .record_request("openai", "gpt-3.5", Duration::from_millis(100), true)
+                .await;
         }
 
         let top = metrics.get_top_models(2).await.unwrap();
@@ -657,7 +707,9 @@ mod tests {
     async fn test_reset() {
         let metrics = RouterMetrics::new().await.unwrap();
 
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(100), true).await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(100), true)
+            .await;
         metrics.record_error("openai", "timeout").await;
 
         let snapshot_before = metrics.get_snapshot().await.unwrap();
@@ -675,7 +727,9 @@ mod tests {
     async fn test_get_snapshot() {
         let metrics = RouterMetrics::new().await.unwrap();
 
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(100), true).await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(100), true)
+            .await;
 
         let snapshot = metrics.get_snapshot().await.unwrap();
         assert_eq!(snapshot.overall_metrics.total_requests, 1);
@@ -688,8 +742,12 @@ mod tests {
     async fn test_export_prometheus() {
         let metrics = RouterMetrics::new().await.unwrap();
 
-        metrics.record_request("openai", "gpt-4", Duration::from_millis(100), true).await;
-        metrics.record_request("anthropic", "claude-3", Duration::from_millis(150), false).await;
+        metrics
+            .record_request("openai", "gpt-4", Duration::from_millis(100), true)
+            .await;
+        metrics
+            .record_request("anthropic", "claude-3", Duration::from_millis(150), false)
+            .await;
 
         let output = metrics.export_prometheus().await.unwrap();
 
@@ -765,7 +823,8 @@ mod tests {
                         "model",
                         Duration::from_millis(10),
                         true,
-                    ).await;
+                    )
+                    .await;
                 }
             });
             handles.push(handle);

@@ -332,8 +332,16 @@ mod tests {
     #[test]
     fn test_audio_transcription_with_multiple_words() {
         let words = vec![
-            WordInfo { word: "hello".to_string(), start: 0.0, end: 0.5 },
-            WordInfo { word: "world".to_string(), start: 0.6, end: 1.0 },
+            WordInfo {
+                word: "hello".to_string(),
+                start: 0.0,
+                end: 0.5,
+            },
+            WordInfo {
+                word: "world".to_string(),
+                start: 0.6,
+                end: 1.0,
+            },
         ];
         let response = AudioTranscriptionResponse {
             text: "hello world".to_string(),

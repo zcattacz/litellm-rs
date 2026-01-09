@@ -72,7 +72,10 @@ pub struct ToolInputSchema {
     pub required: Vec<String>,
 
     /// Additional properties allowed
-    #[serde(rename = "additionalProperties", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "additionalProperties",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub additional_properties: Option<bool>,
 }
 
@@ -92,7 +95,12 @@ impl ToolInputSchema {
     }
 
     /// Add a property
-    pub fn with_property(mut self, name: impl Into<String>, schema: PropertySchema, required: bool) -> Self {
+    pub fn with_property(
+        mut self,
+        name: impl Into<String>,
+        schema: PropertySchema,
+        required: bool,
+    ) -> Self {
         let name = name.into();
         self.properties.insert(name.clone(), schema);
         if required {
@@ -284,9 +292,7 @@ impl ToolResult {
     /// Create a successful text result
     pub fn text(text: impl Into<String>) -> Self {
         Self {
-            content: vec![ToolContent::Text {
-                text: text.into(),
-            }],
+            content: vec![ToolContent::Text { text: text.into() }],
             is_error: false,
         }
     }
@@ -321,9 +327,7 @@ impl ToolResult {
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum ToolContent {
     /// Text content
-    Text {
-        text: String,
-    },
+    Text { text: String },
 
     /// Image content
     Image {
@@ -395,20 +399,23 @@ mod tests {
 
     #[test]
     fn test_tool_new() {
-        let tool = Tool::new("get_weather")
-            .with_description("Get weather for a location");
+        let tool = Tool::new("get_weather").with_description("Get weather for a location");
         assert_eq!(tool.name, "get_weather");
-        assert_eq!(tool.description.as_deref(), Some("Get weather for a location"));
+        assert_eq!(
+            tool.description.as_deref(),
+            Some("Get weather for a location")
+        );
     }
 
     #[test]
     fn test_tool_to_openai_function() {
         let tool = Tool::new("get_weather")
             .with_description("Get weather")
-            .with_schema(
-                ToolInputSchema::object()
-                    .with_property("location", PropertySchema::string().with_description("City name"), true)
-            );
+            .with_schema(ToolInputSchema::object().with_property(
+                "location",
+                PropertySchema::string().with_description("City name"),
+                true,
+            ));
 
         let func = tool.to_openai_function();
         assert_eq!(func["type"], "function");
@@ -428,8 +435,7 @@ mod tests {
 
     #[test]
     fn test_property_schema_number_with_range() {
-        let schema = PropertySchema::number()
-            .with_range(Some(0.0), Some(100.0));
+        let schema = PropertySchema::number().with_range(Some(0.0), Some(100.0));
 
         assert_eq!(schema.minimum, Some(0.0));
         assert_eq!(schema.maximum, Some(100.0));

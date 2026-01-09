@@ -264,7 +264,9 @@ mod tests {
     async fn test_anthropic_calculator_estimate_cost() {
         let calc = AnthropicCostCalculator::new();
 
-        let result = calc.estimate_cost("claude-3-opus-20240229", 1000, Some(500)).await;
+        let result = calc
+            .estimate_cost("claude-3-opus-20240229", 1000, Some(500))
+            .await;
 
         if let Ok(estimate) = result {
             assert!(estimate.min_cost >= 0.0);
@@ -277,7 +279,9 @@ mod tests {
     async fn test_anthropic_calculator_estimate_cost_no_max_output() {
         let calc = AnthropicCostCalculator::new();
 
-        let result = calc.estimate_cost("claude-3-opus-20240229", 1000, None).await;
+        let result = calc
+            .estimate_cost("claude-3-opus-20240229", 1000, None)
+            .await;
 
         if let Ok(estimate) = result {
             assert!(estimate.min_cost >= 0.0);

@@ -208,7 +208,9 @@ mod tests {
         let json = r#"{"type": "latency_based", "latency_threshold_ms": 200}"#;
         let strategy: RoutingStrategyConfig = serde_json::from_str(json).unwrap();
         match strategy {
-            RoutingStrategyConfig::LatencyBased { latency_threshold_ms } => {
+            RoutingStrategyConfig::LatencyBased {
+                latency_threshold_ms,
+            } => {
                 assert_eq!(latency_threshold_ms, 200);
             }
             _ => panic!("Expected LatencyBased"),
@@ -441,7 +443,10 @@ mod tests {
             algorithm: LoadBalancerAlgorithm::RoundRobin,
             session_affinity: None,
         };
-        assert!(matches!(config.algorithm, LoadBalancerAlgorithm::RoundRobin));
+        assert!(matches!(
+            config.algorithm,
+            LoadBalancerAlgorithm::RoundRobin
+        ));
         assert!(config.session_affinity.is_none());
     }
 
@@ -548,7 +553,10 @@ mod tests {
     fn test_session_affinity_config_deserialization() {
         let json = r#"{"affinity_type": "client_ip", "timeout_seconds": 1800}"#;
         let config: SessionAffinityConfig = serde_json::from_str(json).unwrap();
-        assert!(matches!(config.affinity_type, SessionAffinityType::ClientIp));
+        assert!(matches!(
+            config.affinity_type,
+            SessionAffinityType::ClientIp
+        ));
         assert_eq!(config.timeout_seconds, 1800);
     }
 
@@ -705,7 +713,10 @@ mod tests {
             session_affinity: None,
         };
         let cloned = config.clone();
-        assert!(matches!(cloned.algorithm, LoadBalancerAlgorithm::RoundRobin));
+        assert!(matches!(
+            cloned.algorithm,
+            LoadBalancerAlgorithm::RoundRobin
+        ));
     }
 
     #[test]
@@ -735,9 +746,7 @@ mod tests {
 
     #[test]
     fn test_routing_strategy_tag_based_empty_selectors() {
-        let strategy = RoutingStrategyConfig::TagBased {
-            selectors: vec![],
-        };
+        let strategy = RoutingStrategyConfig::TagBased { selectors: vec![] };
         let json = serde_json::to_string(&strategy).unwrap();
         assert!(json.contains("[]"));
     }
@@ -779,7 +788,9 @@ mod tests {
             latency_threshold_ms: 0,
         };
         match strategy {
-            RoutingStrategyConfig::LatencyBased { latency_threshold_ms } => {
+            RoutingStrategyConfig::LatencyBased {
+                latency_threshold_ms,
+            } => {
                 assert_eq!(latency_threshold_ms, 0);
             }
             _ => panic!("Expected LatencyBased"),

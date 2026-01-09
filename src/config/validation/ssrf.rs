@@ -434,7 +434,8 @@ mod tests {
     #[test]
     fn test_localhost_with_subdomain_blocked() {
         // Subdomains of blocked hosts should also be blocked
-        let result = validate_url_against_ssrf("http://sub.localhost/api", "Subdomain of localhost");
+        let result =
+            validate_url_against_ssrf("http://sub.localhost/api", "Subdomain of localhost");
         assert!(result.is_err());
     }
 
@@ -452,8 +453,7 @@ mod tests {
 
     #[test]
     fn test_subdomain_of_internal_blocked() {
-        let result =
-            validate_url_against_ssrf("http://api.internal/v1", "Subdomain of internal");
+        let result = validate_url_against_ssrf("http://api.internal/v1", "Subdomain of internal");
         assert!(result.is_err());
     }
 

@@ -68,8 +68,8 @@ impl Validate for HealthConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::trait_def::Validate;
+    use super::*;
 
     // Helper to call the Validate trait method explicitly
     fn validate_config<T: Validate>(config: &T) -> Result<(), String> {

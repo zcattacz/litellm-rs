@@ -435,10 +435,19 @@ mod tests {
     #[test]
     fn test_transform_role() {
         let transformation = DashscopeChatTransformation::new();
-        assert_eq!(transformation.transform_role(&MessageRole::System), "system");
+        assert_eq!(
+            transformation.transform_role(&MessageRole::System),
+            "system"
+        );
         assert_eq!(transformation.transform_role(&MessageRole::User), "user");
-        assert_eq!(transformation.transform_role(&MessageRole::Assistant), "assistant");
-        assert_eq!(transformation.transform_role(&MessageRole::Function), "function");
+        assert_eq!(
+            transformation.transform_role(&MessageRole::Assistant),
+            "assistant"
+        );
+        assert_eq!(
+            transformation.transform_role(&MessageRole::Function),
+            "function"
+        );
         assert_eq!(transformation.transform_role(&MessageRole::Tool), "tool");
     }
 
@@ -447,7 +456,10 @@ mod tests {
         let transformation = DashscopeChatTransformation::new();
         assert_eq!(transformation.parse_role("system"), MessageRole::System);
         assert_eq!(transformation.parse_role("user"), MessageRole::User);
-        assert_eq!(transformation.parse_role("assistant"), MessageRole::Assistant);
+        assert_eq!(
+            transformation.parse_role("assistant"),
+            MessageRole::Assistant
+        );
         assert_eq!(transformation.parse_role("function"), MessageRole::Function);
         assert_eq!(transformation.parse_role("tool"), MessageRole::Tool);
         assert_eq!(transformation.parse_role("unknown"), MessageRole::Assistant);
@@ -563,7 +575,10 @@ mod tests {
         assert_eq!(chat_response.id, "chatcmpl-123");
         assert_eq!(chat_response.model, "qwen-turbo");
         assert_eq!(chat_response.choices.len(), 1);
-        assert_eq!(chat_response.choices[0].message.role, MessageRole::Assistant);
+        assert_eq!(
+            chat_response.choices[0].message.role,
+            MessageRole::Assistant
+        );
     }
 
     #[test]
@@ -600,8 +615,12 @@ mod tests {
         let messages = vec![ChatMessage {
             role: MessageRole::User,
             content: Some(MessageContent::Parts(vec![
-                crate::core::types::ContentPart::Text { text: "Hello".to_string() },
-                crate::core::types::ContentPart::Text { text: "World".to_string() },
+                crate::core::types::ContentPart::Text {
+                    text: "Hello".to_string(),
+                },
+                crate::core::types::ContentPart::Text {
+                    text: "World".to_string(),
+                },
             ])),
             thinking: None,
             name: None,

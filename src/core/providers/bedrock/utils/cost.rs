@@ -409,143 +409,93 @@ mod tests {
 
     #[test]
     fn test_cost_calculation_claude_sonnet() {
-        let cost = CostCalculator::calculate_cost(
-            "anthropic.claude-3-sonnet-20240229",
-            1000,
-            1000,
-        )
-        .unwrap();
+        let cost = CostCalculator::calculate_cost("anthropic.claude-3-sonnet-20240229", 1000, 1000)
+            .unwrap();
         // Expected: (1 * 0.003) + (1 * 0.015) = 0.018
         assert!((cost - 0.018).abs() < 0.0001);
     }
 
     #[test]
     fn test_cost_calculation_claude_haiku() {
-        let cost = CostCalculator::calculate_cost(
-            "anthropic.claude-3-haiku-20240307",
-            10000,
-            5000,
-        )
-        .unwrap();
+        let cost = CostCalculator::calculate_cost("anthropic.claude-3-haiku-20240307", 10000, 5000)
+            .unwrap();
         // Expected: (10 * 0.00025) + (5 * 0.00125) = 0.0025 + 0.00625 = 0.00875
         assert!((cost - 0.00875).abs() < 0.0001);
     }
 
     #[test]
     fn test_cost_calculation_titan() {
-        let cost = CostCalculator::calculate_cost(
-            "amazon.titan-text-express-v1",
-            5000,
-            2000,
-        )
-        .unwrap();
+        let cost =
+            CostCalculator::calculate_cost("amazon.titan-text-express-v1", 5000, 2000).unwrap();
         // Expected: (5 * 0.0002) + (2 * 0.0006) = 0.001 + 0.0012 = 0.0022
         assert!((cost - 0.0022).abs() < 0.0001);
     }
 
     #[test]
     fn test_cost_calculation_nova_micro() {
-        let cost = CostCalculator::calculate_cost(
-            "amazon.nova-micro-v1:0",
-            100000,
-            50000,
-        )
-        .unwrap();
+        let cost = CostCalculator::calculate_cost("amazon.nova-micro-v1:0", 100000, 50000).unwrap();
         // Expected: (100 * 0.000035) + (50 * 0.00014) = 0.0035 + 0.007 = 0.0105
         assert!((cost - 0.0105).abs() < 0.0001);
     }
 
     #[test]
     fn test_cost_calculation_mistral() {
-        let cost = CostCalculator::calculate_cost(
-            "mistral.mistral-large-2407-v1:0",
-            2000,
-            1000,
-        )
-        .unwrap();
+        let cost =
+            CostCalculator::calculate_cost("mistral.mistral-large-2407-v1:0", 2000, 1000).unwrap();
         // Expected: (2 * 0.002) + (1 * 0.006) = 0.004 + 0.006 = 0.01
         assert!((cost - 0.01).abs() < 0.0001);
     }
 
     #[test]
     fn test_cost_calculation_llama() {
-        let cost = CostCalculator::calculate_cost(
-            "meta.llama3-70b-instruct-v1:0",
-            3000,
-            2000,
-        )
-        .unwrap();
+        let cost =
+            CostCalculator::calculate_cost("meta.llama3-70b-instruct-v1:0", 3000, 2000).unwrap();
         // Expected: (3 * 0.00265) + (2 * 0.0035) = 0.00795 + 0.007 = 0.01495
         assert!((cost - 0.01495).abs() < 0.0001);
     }
 
     #[test]
     fn test_cost_calculation_cohere() {
-        let cost = CostCalculator::calculate_cost(
-            "cohere.command-r-plus-v1:0",
-            1000,
-            500,
-        )
-        .unwrap();
+        let cost = CostCalculator::calculate_cost("cohere.command-r-plus-v1:0", 1000, 500).unwrap();
         // Expected: (1 * 0.003) + (0.5 * 0.015) = 0.003 + 0.0075 = 0.0105
         assert!((cost - 0.0105).abs() < 0.0001);
     }
 
     #[test]
     fn test_cost_calculation_ai21() {
-        let cost = CostCalculator::calculate_cost(
-            "ai21.jamba-1-5-large-v1:0",
-            4000,
-            2000,
-        )
-        .unwrap();
+        let cost = CostCalculator::calculate_cost("ai21.jamba-1-5-large-v1:0", 4000, 2000).unwrap();
         // Expected: (4 * 0.002) + (2 * 0.008) = 0.008 + 0.016 = 0.024
         assert!((cost - 0.024).abs() < 0.0001);
     }
 
     #[test]
     fn test_cost_calculation_zero_tokens() {
-        let cost = CostCalculator::calculate_cost(
-            "anthropic.claude-3-opus-20240229",
-            0,
-            0,
-        )
-        .unwrap();
+        let cost =
+            CostCalculator::calculate_cost("anthropic.claude-3-opus-20240229", 0, 0).unwrap();
         assert!((cost - 0.0).abs() < 0.0001);
     }
 
     #[test]
     fn test_cost_calculation_only_input() {
-        let cost = CostCalculator::calculate_cost(
-            "anthropic.claude-3-opus-20240229",
-            1000,
-            0,
-        )
-        .unwrap();
+        let cost =
+            CostCalculator::calculate_cost("anthropic.claude-3-opus-20240229", 1000, 0).unwrap();
         // Expected: (1 * 0.015) + 0 = 0.015
         assert!((cost - 0.015).abs() < 0.0001);
     }
 
     #[test]
     fn test_cost_calculation_only_output() {
-        let cost = CostCalculator::calculate_cost(
-            "anthropic.claude-3-opus-20240229",
-            0,
-            1000,
-        )
-        .unwrap();
+        let cost =
+            CostCalculator::calculate_cost("anthropic.claude-3-opus-20240229", 0, 1000).unwrap();
         // Expected: 0 + (1 * 0.075) = 0.075
         assert!((cost - 0.075).abs() < 0.0001);
     }
 
     #[test]
     fn test_cost_calculation_large_tokens() {
-        let cost = CostCalculator::calculate_cost(
-            "anthropic.claude-3-haiku-20240307",
-            1_000_000,
-            500_000,
-        )
-        .unwrap();
+        let cost =
+            CostCalculator::calculate_cost("anthropic.claude-3-haiku-20240307", 1_000_000, 500_000)
+                .unwrap();
         // Expected: (1000 * 0.00025) + (500 * 0.00125) = 0.25 + 0.625 = 0.875
         assert!((cost - 0.875).abs() < 0.001);
     }
@@ -587,16 +537,14 @@ mod tests {
 
     #[test]
     fn test_model_pricing_lookup_titan() {
-        let pricing =
-            CostCalculator::get_model_pricing("amazon.titan-text-express-v1").unwrap();
+        let pricing = CostCalculator::get_model_pricing("amazon.titan-text-express-v1").unwrap();
         assert_eq!(pricing.input_cost_per_1k, 0.0002);
         assert_eq!(pricing.output_cost_per_1k, 0.0006);
     }
 
     #[test]
     fn test_model_pricing_lookup_nova() {
-        let pricing =
-            CostCalculator::get_model_pricing("amazon.nova-pro-v1:0").unwrap();
+        let pricing = CostCalculator::get_model_pricing("amazon.nova-pro-v1:0").unwrap();
         assert_eq!(pricing.input_cost_per_1k, 0.0008);
         assert_eq!(pricing.output_cost_per_1k, 0.0032);
     }
@@ -619,16 +567,14 @@ mod tests {
 
     #[test]
     fn test_model_pricing_lookup_cohere() {
-        let pricing =
-            CostCalculator::get_model_pricing("cohere.command-r-v1:0").unwrap();
+        let pricing = CostCalculator::get_model_pricing("cohere.command-r-v1:0").unwrap();
         assert_eq!(pricing.input_cost_per_1k, 0.0005);
         assert_eq!(pricing.output_cost_per_1k, 0.0015);
     }
 
     #[test]
     fn test_model_pricing_lookup_ai21() {
-        let pricing =
-            CostCalculator::get_model_pricing("ai21.jamba-instruct-v1:0").unwrap();
+        let pricing = CostCalculator::get_model_pricing("ai21.jamba-instruct-v1:0").unwrap();
         assert_eq!(pricing.input_cost_per_1k, 0.0005);
         assert_eq!(pricing.output_cost_per_1k, 0.0007);
     }
@@ -730,21 +676,30 @@ mod tests {
     #[test]
     fn test_all_models_contains_claude() {
         let models = CostCalculator::get_all_models();
-        let claude_count = models.iter().filter(|m| m.starts_with("anthropic.")).count();
+        let claude_count = models
+            .iter()
+            .filter(|m| m.starts_with("anthropic."))
+            .count();
         assert!(claude_count >= 8);
     }
 
     #[test]
     fn test_all_models_contains_titan() {
         let models = CostCalculator::get_all_models();
-        let titan_count = models.iter().filter(|m| m.starts_with("amazon.titan")).count();
+        let titan_count = models
+            .iter()
+            .filter(|m| m.starts_with("amazon.titan"))
+            .count();
         assert!(titan_count >= 3);
     }
 
     #[test]
     fn test_all_models_contains_nova() {
         let models = CostCalculator::get_all_models();
-        let nova_count = models.iter().filter(|m| m.starts_with("amazon.nova")).count();
+        let nova_count = models
+            .iter()
+            .filter(|m| m.starts_with("amazon.nova"))
+            .count();
         assert!(nova_count >= 3);
     }
 
@@ -758,7 +713,10 @@ mod tests {
     #[test]
     fn test_all_models_contains_llama() {
         let models = CostCalculator::get_all_models();
-        let llama_count = models.iter().filter(|m| m.starts_with("meta.llama")).count();
+        let llama_count = models
+            .iter()
+            .filter(|m| m.starts_with("meta.llama"))
+            .count();
         assert!(llama_count >= 10);
     }
 

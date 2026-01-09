@@ -284,8 +284,8 @@ mod tests {
 
     #[test]
     fn test_metrics_collector_with_datadog() {
-        let collector =
-            MetricsCollector::new().with_datadog("api-key".to_string(), "datadoghq.com".to_string());
+        let collector = MetricsCollector::new()
+            .with_datadog("api-key".to_string(), "datadoghq.com".to_string());
         assert!(collector.datadog_client.is_some());
         let client = collector.datadog_client.unwrap();
         assert_eq!(client.api_key, "api-key");
@@ -323,7 +323,14 @@ mod tests {
     async fn test_record_request_basic() {
         let collector = MetricsCollector::new();
         collector
-            .record_request("openai", "gpt-4", Duration::from_millis(100), None, None, true)
+            .record_request(
+                "openai",
+                "gpt-4",
+                Duration::from_millis(100),
+                None,
+                None,
+                true,
+            )
             .await;
 
         let metrics = collector.prometheus_metrics.read().await;
@@ -336,7 +343,14 @@ mod tests {
 
         for _ in 0..5 {
             collector
-                .record_request("openai", "gpt-4", Duration::from_millis(100), None, None, true)
+                .record_request(
+                    "openai",
+                    "gpt-4",
+                    Duration::from_millis(100),
+                    None,
+                    None,
+                    true,
+                )
                 .await;
         }
 
@@ -446,7 +460,14 @@ mod tests {
         let collector = MetricsCollector::new();
 
         collector
-            .record_request("openai", "gpt-4", Duration::from_millis(100), None, None, true)
+            .record_request(
+                "openai",
+                "gpt-4",
+                Duration::from_millis(100),
+                None,
+                None,
+                true,
+            )
             .await;
         collector
             .record_request(
@@ -552,7 +573,14 @@ mod tests {
     async fn test_export_prometheus_with_requests() {
         let collector = MetricsCollector::new();
         collector
-            .record_request("openai", "gpt-4", Duration::from_millis(100), None, None, true)
+            .record_request(
+                "openai",
+                "gpt-4",
+                Duration::from_millis(100),
+                None,
+                None,
+                true,
+            )
             .await;
 
         let output = collector.export_prometheus().await;
@@ -630,8 +658,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_to_datadog_with_client() {
-        let collector =
-            MetricsCollector::new().with_datadog("api-key".to_string(), "datadoghq.com".to_string());
+        let collector = MetricsCollector::new()
+            .with_datadog("api-key".to_string(), "datadoghq.com".to_string());
 
         // This won't actually send (no network call in test)
         // but should not error
@@ -741,9 +769,6 @@ mod tests {
             .await;
 
         let metrics = collector.prometheus_metrics.read().await;
-        assert_eq!(
-            *metrics.token_usage.get("openai:gpt-4:prompt").unwrap(),
-            0
-        );
+        assert_eq!(*metrics.token_usage.get("openai:gpt-4:prompt").unwrap(), 0);
     }
 }

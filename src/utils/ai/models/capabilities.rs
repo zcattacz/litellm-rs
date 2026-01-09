@@ -83,7 +83,10 @@ mod tests {
             ..ModelCapabilities::default()
         };
         let cloned = caps.clone();
-        assert_eq!(caps.supports_function_calling, cloned.supports_function_calling);
+        assert_eq!(
+            caps.supports_function_calling,
+            cloned.supports_function_calling
+        );
         assert_eq!(caps.max_tokens, cloned.max_tokens);
     }
 

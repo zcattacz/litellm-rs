@@ -195,10 +195,8 @@ mod tests {
 
     #[test]
     fn test_with_metadata_complex_value() {
-        let ctx = RequestContext::new().with_metadata(
-            "config",
-            serde_json::json!({"enabled": true, "count": 5}),
-        );
+        let ctx = RequestContext::new()
+            .with_metadata("config", serde_json::json!({"enabled": true, "count": 5}));
 
         let config = ctx.metadata.get("config").unwrap();
         assert_eq!(config["enabled"], true);

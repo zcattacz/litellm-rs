@@ -13,5 +13,5 @@ pub mod streaming;
 pub use client::PerplexityClient;
 pub use config::PerplexityConfig;
 pub use error::PerplexityErrorMapper;
-pub use models::{get_perplexity_registry, PerplexityModelRegistry};
+pub use models::{PerplexityModelRegistry, get_perplexity_registry};
 pub use provider::PerplexityProvider;

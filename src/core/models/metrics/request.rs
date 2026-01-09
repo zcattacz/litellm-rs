@@ -360,7 +360,10 @@ mod tests {
         let cloned = original.clone();
 
         assert_eq!(original.request_id, cloned.request_id);
-        assert_eq!(original.token_usage.input_tokens, cloned.token_usage.input_tokens);
+        assert_eq!(
+            original.token_usage.input_tokens,
+            cloned.token_usage.input_tokens
+        );
     }
 
     // ==================== Extra Metadata Tests ====================
@@ -368,8 +371,12 @@ mod tests {
     #[test]
     fn test_extra_metadata() {
         let mut metrics = create_test_metrics();
-        metrics.extra.insert("custom_key".to_string(), serde_json::json!("custom_value"));
-        metrics.extra.insert("numeric".to_string(), serde_json::json!(42));
+        metrics
+            .extra
+            .insert("custom_key".to_string(), serde_json::json!("custom_value"));
+        metrics
+            .extra
+            .insert("numeric".to_string(), serde_json::json!(42));
 
         assert_eq!(metrics.extra.len(), 2);
         assert_eq!(metrics.extra.get("custom_key").unwrap(), "custom_value");

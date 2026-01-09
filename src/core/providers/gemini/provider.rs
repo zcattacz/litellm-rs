@@ -654,7 +654,10 @@ mod tests {
         let mut params = HashMap::new();
         params.insert("max_tokens".to_string(), serde_json::json!(100));
 
-        let mapped = provider.map_openai_params(params, "gemini-1.0-pro").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params, "gemini-1.0-pro")
+            .await
+            .unwrap();
         assert!(mapped.contains_key("max_output_tokens"));
         assert!(!mapped.contains_key("max_tokens"));
     }
@@ -667,7 +670,10 @@ mod tests {
         let mut params = HashMap::new();
         params.insert("temperature".to_string(), serde_json::json!(0.7));
 
-        let mapped = provider.map_openai_params(params, "gemini-1.0-pro").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params, "gemini-1.0-pro")
+            .await
+            .unwrap();
         assert!(mapped.contains_key("temperature"));
     }
 
@@ -680,7 +686,10 @@ mod tests {
         params.insert("frequency_penalty".to_string(), serde_json::json!(0.5));
         params.insert("presence_penalty".to_string(), serde_json::json!(0.5));
 
-        let mapped = provider.map_openai_params(params, "gemini-1.0-pro").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params, "gemini-1.0-pro")
+            .await
+            .unwrap();
         assert!(!mapped.contains_key("frequency_penalty"));
         assert!(!mapped.contains_key("presence_penalty"));
     }
@@ -694,7 +703,10 @@ mod tests {
         params.insert("tools".to_string(), serde_json::json!([]));
         params.insert("tool_choice".to_string(), serde_json::json!("auto"));
 
-        let mapped = provider.map_openai_params(params, "gemini-1.0-pro").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params, "gemini-1.0-pro")
+            .await
+            .unwrap();
         assert!(mapped.contains_key("tools"));
         assert!(mapped.contains_key("tool_choice"));
     }

@@ -412,7 +412,11 @@ mod tests {
         for (i, val) in true_values.iter().enumerate() {
             let key = format!("BOOL_VAR_{}", i);
             EnvUtils::set_env(&key, val);
-            assert!(EnvUtils::get_env_as_bool(&key, false), "Failed for: {}", val);
+            assert!(
+                EnvUtils::get_env_as_bool(&key, false),
+                "Failed for: {}",
+                val
+            );
             EnvUtils::remove_env(&key);
         }
 

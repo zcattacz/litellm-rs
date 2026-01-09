@@ -569,8 +569,8 @@ mod tests {
             ..Default::default()
         };
 
-        let request = GatewayRequest::new(RequestType::ChatCompletion, data, context)
-            .with_routing(routing);
+        let request =
+            GatewayRequest::new(RequestType::ChatCompletion, data, context).with_routing(routing);
 
         assert_eq!(request.routing.preferred_providers.len(), 1);
         assert!(request.routing.optimize_latency);
@@ -587,8 +587,8 @@ mod tests {
             ..Default::default()
         };
 
-        let request = GatewayRequest::new(RequestType::ChatCompletion, data, context)
-            .with_caching(caching);
+        let request =
+            GatewayRequest::new(RequestType::ChatCompletion, data, context).with_caching(caching);
 
         assert!(request.caching.enabled);
         assert!(request.caching.semantic_cache);
@@ -605,7 +605,12 @@ mod tests {
             .add_preferred_provider("anthropic");
 
         assert_eq!(request.routing.preferred_providers.len(), 2);
-        assert!(request.routing.preferred_providers.contains(&"openai".to_string()));
+        assert!(
+            request
+                .routing
+                .preferred_providers
+                .contains(&"openai".to_string())
+        );
     }
 
     #[test]
@@ -618,7 +623,12 @@ mod tests {
             .exclude_provider("azure");
 
         assert_eq!(request.routing.excluded_providers.len(), 1);
-        assert!(request.routing.excluded_providers.contains(&"azure".to_string()));
+        assert!(
+            request
+                .routing
+                .excluded_providers
+                .contains(&"azure".to_string())
+        );
     }
 
     #[test]

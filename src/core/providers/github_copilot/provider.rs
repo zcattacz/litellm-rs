@@ -190,7 +190,7 @@ impl GitHubCopilotProvider {
     fn has_vision_content(&self, messages: &[ChatMessage]) -> bool {
         for message in messages {
             if let Some(content) = &message.content {
-                if let crate::core::types::requests::MessageContent::Array(parts) = content {
+                if let crate::core::types::requests::MessageContent::Parts(parts) = content {
                     for part in parts {
                         if let crate::core::types::requests::ContentPart::ImageUrl { .. } = part {
                             return true;
@@ -536,7 +536,6 @@ impl LLMProvider for GitHubCopilotProvider {
 }
 
 /// SSE stream implementation for GitHub Copilot
-use futures::StreamExt;
 
 pub struct GitHubCopilotStream {
     inner: Pin<Box<dyn Stream<Item = Result<Bytes, reqwest::Error>> + Send>>,
@@ -698,14 +697,10 @@ mod tests {
         // User message only
         let messages = vec![ChatMessage {
             role: MessageRole::User,
-            content: Some(crate::core::types::requests::MessageContent::Text(
+            content: Some(crate::core::types::message::MessageContent::Text(
                 "Hello".to_string(),
             )),
-            name: None,
-            tool_calls: None,
-            tool_call_id: None,
-            refusal: None,
-            audio: None,
+            ..Default::default()
         }];
         assert_eq!(provider.determine_initiator(&messages), "user");
 
@@ -713,25 +708,17 @@ mod tests {
         let messages = vec![
             ChatMessage {
                 role: MessageRole::User,
-                content: Some(crate::core::types::requests::MessageContent::Text(
+                content: Some(crate::core::types::message::MessageContent::Text(
                     "Hello".to_string(),
                 )),
-                name: None,
-                tool_calls: None,
-                tool_call_id: None,
-                refusal: None,
-                audio: None,
+                ..Default::default()
             },
             ChatMessage {
                 role: MessageRole::Assistant,
-                content: Some(crate::core::types::requests::MessageContent::Text(
+                content: Some(crate::core::types::message::MessageContent::Text(
                     "Hi!".to_string(),
                 )),
-                name: None,
-                tool_calls: None,
-                tool_call_id: None,
-                refusal: None,
-                audio: None,
+                ..Default::default()
             },
         ];
         assert_eq!(provider.determine_initiator(&messages), "agent");

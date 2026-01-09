@@ -263,7 +263,10 @@ mod tests {
             session_id: None,
             custom,
         };
-        assert_eq!(metadata.custom.get("key"), Some(&serde_json::json!("value")));
+        assert_eq!(
+            metadata.custom.get("key"),
+            Some(&serde_json::json!("value"))
+        );
     }
 
     #[test]
@@ -316,7 +319,10 @@ mod tests {
             computer_use: None,
             mcp_servers: None,
         };
-        assert_eq!(params.system, Some("You are a helpful assistant.".to_string()));
+        assert_eq!(
+            params.system,
+            Some("You are a helpful assistant.".to_string())
+        );
     }
 
     #[test]

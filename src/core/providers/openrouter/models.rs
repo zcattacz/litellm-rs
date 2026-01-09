@@ -387,9 +387,11 @@ mod tests {
         assert!(llama.is_some());
         let spec = llama.unwrap();
         assert_eq!(spec.provider, "meta");
-        assert!(!spec
-            .features
-            .contains(&OpenRouterModelFeature::FunctionCalling));
+        assert!(
+            !spec
+                .features
+                .contains(&OpenRouterModelFeature::FunctionCalling)
+        );
     }
 
     #[test]
@@ -400,9 +402,10 @@ mod tests {
         assert!(deepseek.is_some());
         let spec = deepseek.unwrap();
         assert_eq!(spec.provider, "deepseek");
-        assert!(spec
-            .features
-            .contains(&OpenRouterModelFeature::FunctionCalling));
+        assert!(
+            spec.features
+                .contains(&OpenRouterModelFeature::FunctionCalling)
+        );
         assert!(spec.features.contains(&OpenRouterModelFeature::Json));
     }
 
@@ -470,7 +473,10 @@ mod tests {
         let models = registry.get_all_models();
 
         // GPT-4 turbo should have function calling capability
-        let gpt4_turbo = models.iter().find(|m| m.id == "openai/gpt-4-turbo").unwrap();
+        let gpt4_turbo = models
+            .iter()
+            .find(|m| m.id == "openai/gpt-4-turbo")
+            .unwrap();
         assert!(gpt4_turbo.supports_tools);
         assert!(gpt4_turbo.supports_streaming);
         assert!(gpt4_turbo.supports_multimodal);

@@ -519,7 +519,10 @@ mod tests {
 
     #[test]
     fn test_team_serialize() {
-        let team = Team::new("serialize-test".to_string(), Some("Serialize Test".to_string()));
+        let team = Team::new(
+            "serialize-test".to_string(),
+            Some("Serialize Test".to_string()),
+        );
 
         let json = serde_json::to_string(&team).unwrap();
 
@@ -558,8 +561,10 @@ mod tests {
     #[test]
     fn test_team_metadata_with_data() {
         let mut team = Team::new("metadata-data".to_string(), None);
-        team.team_metadata.insert("key1".to_string(), serde_json::json!("value1"));
-        team.team_metadata.insert("key2".to_string(), serde_json::json!(123));
+        team.team_metadata
+            .insert("key1".to_string(), serde_json::json!("value1"));
+        team.team_metadata
+            .insert("key2".to_string(), serde_json::json!(123));
 
         assert_eq!(team.team_metadata.len(), 2);
         assert_eq!(team.team_metadata.get("key1").unwrap(), "value1");

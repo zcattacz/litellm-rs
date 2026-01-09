@@ -162,8 +162,7 @@ mod tests {
     #[test]
     fn test_azure_client_new_missing_endpoint() {
         // Config without endpoint should fail validation
-        let config = AzureConfig::new()
-            .with_api_key("test-key".to_string());
+        let config = AzureConfig::new().with_api_key("test-key".to_string());
 
         let client = AzureClient::new(config);
         assert!(client.is_err());
@@ -172,8 +171,8 @@ mod tests {
     #[test]
     fn test_azure_client_new_without_key_but_with_endpoint() {
         // Config without key but with endpoint should succeed (key validated at request time)
-        let config = AzureConfig::new()
-            .with_azure_endpoint("https://test.openai.azure.com".to_string());
+        let config =
+            AzureConfig::new().with_azure_endpoint("https://test.openai.azure.com".to_string());
 
         let client = AzureClient::new(config);
         assert!(client.is_ok());
@@ -208,8 +207,7 @@ mod tests {
 
     #[test]
     fn test_azure_client_build_url_no_endpoint() {
-        let config = AzureConfig::new()
-            .with_api_key("test-key".to_string());
+        let config = AzureConfig::new().with_api_key("test-key".to_string());
 
         // This should fail validation during client creation
         let client = AzureClient::new(config);
@@ -274,9 +272,18 @@ mod tests {
     #[test]
     fn test_rate_limit_info_from_headers_requests() {
         let mut headers = HeaderMap::new();
-        headers.insert("x-ratelimit-limit-requests", HeaderValue::from_static("100"));
-        headers.insert("x-ratelimit-remaining-requests", HeaderValue::from_static("95"));
-        headers.insert("x-ratelimit-reset-requests", HeaderValue::from_static("1234567890"));
+        headers.insert(
+            "x-ratelimit-limit-requests",
+            HeaderValue::from_static("100"),
+        );
+        headers.insert(
+            "x-ratelimit-remaining-requests",
+            HeaderValue::from_static("95"),
+        );
+        headers.insert(
+            "x-ratelimit-reset-requests",
+            HeaderValue::from_static("1234567890"),
+        );
 
         let info = AzureRateLimitInfo::from_headers(&headers);
 
@@ -288,9 +295,18 @@ mod tests {
     #[test]
     fn test_rate_limit_info_from_headers_tokens() {
         let mut headers = HeaderMap::new();
-        headers.insert("x-ratelimit-limit-tokens", HeaderValue::from_static("10000"));
-        headers.insert("x-ratelimit-remaining-tokens", HeaderValue::from_static("9500"));
-        headers.insert("x-ratelimit-reset-tokens", HeaderValue::from_static("1234567890"));
+        headers.insert(
+            "x-ratelimit-limit-tokens",
+            HeaderValue::from_static("10000"),
+        );
+        headers.insert(
+            "x-ratelimit-remaining-tokens",
+            HeaderValue::from_static("9500"),
+        );
+        headers.insert(
+            "x-ratelimit-reset-tokens",
+            HeaderValue::from_static("1234567890"),
+        );
 
         let info = AzureRateLimitInfo::from_headers(&headers);
 
@@ -302,11 +318,26 @@ mod tests {
     #[test]
     fn test_rate_limit_info_from_headers_full() {
         let mut headers = HeaderMap::new();
-        headers.insert("x-ratelimit-limit-requests", HeaderValue::from_static("100"));
-        headers.insert("x-ratelimit-remaining-requests", HeaderValue::from_static("95"));
-        headers.insert("x-ratelimit-reset-requests", HeaderValue::from_static("1000"));
-        headers.insert("x-ratelimit-limit-tokens", HeaderValue::from_static("50000"));
-        headers.insert("x-ratelimit-remaining-tokens", HeaderValue::from_static("45000"));
+        headers.insert(
+            "x-ratelimit-limit-requests",
+            HeaderValue::from_static("100"),
+        );
+        headers.insert(
+            "x-ratelimit-remaining-requests",
+            HeaderValue::from_static("95"),
+        );
+        headers.insert(
+            "x-ratelimit-reset-requests",
+            HeaderValue::from_static("1000"),
+        );
+        headers.insert(
+            "x-ratelimit-limit-tokens",
+            HeaderValue::from_static("50000"),
+        );
+        headers.insert(
+            "x-ratelimit-remaining-tokens",
+            HeaderValue::from_static("45000"),
+        );
         headers.insert("x-ratelimit-reset-tokens", HeaderValue::from_static("2000"));
 
         let info = AzureRateLimitInfo::from_headers(&headers);
@@ -322,8 +353,14 @@ mod tests {
     #[test]
     fn test_rate_limit_info_from_headers_invalid_values() {
         let mut headers = HeaderMap::new();
-        headers.insert("x-ratelimit-limit-requests", HeaderValue::from_static("not-a-number"));
-        headers.insert("x-ratelimit-remaining-requests", HeaderValue::from_static("abc"));
+        headers.insert(
+            "x-ratelimit-limit-requests",
+            HeaderValue::from_static("not-a-number"),
+        );
+        headers.insert(
+            "x-ratelimit-remaining-requests",
+            HeaderValue::from_static("abc"),
+        );
 
         let info = AzureRateLimitInfo::from_headers(&headers);
 

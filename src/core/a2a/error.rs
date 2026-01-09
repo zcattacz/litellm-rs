@@ -11,32 +11,19 @@ pub type A2AResult<T> = Result<T, A2AError>;
 #[derive(Debug, Clone)]
 pub enum A2AError {
     /// Agent not found
-    AgentNotFound {
-        agent_name: String,
-    },
+    AgentNotFound { agent_name: String },
 
     /// Agent already registered
-    AgentAlreadyExists {
-        agent_name: String,
-    },
+    AgentAlreadyExists { agent_name: String },
 
     /// Connection error
-    ConnectionError {
-        agent_name: String,
-        message: String,
-    },
+    ConnectionError { agent_name: String, message: String },
 
     /// Authentication error
-    AuthenticationError {
-        agent_name: String,
-        message: String,
-    },
+    AuthenticationError { agent_name: String, message: String },
 
     /// Task not found
-    TaskNotFound {
-        agent_name: String,
-        task_id: String,
-    },
+    TaskNotFound { agent_name: String, task_id: String },
 
     /// Task failed
     TaskFailed {
@@ -46,35 +33,22 @@ pub enum A2AError {
     },
 
     /// Protocol error (invalid JSON-RPC message)
-    ProtocolError {
-        message: String,
-    },
+    ProtocolError { message: String },
 
     /// Invalid request
-    InvalidRequest {
-        message: String,
-    },
+    InvalidRequest { message: String },
 
     /// Timeout error
-    Timeout {
-        agent_name: String,
-        timeout_ms: u64,
-    },
+    Timeout { agent_name: String, timeout_ms: u64 },
 
     /// Configuration error
-    ConfigurationError {
-        message: String,
-    },
+    ConfigurationError { message: String },
 
     /// Serialization error
-    SerializationError {
-        message: String,
-    },
+    SerializationError { message: String },
 
     /// Provider not supported
-    UnsupportedProvider {
-        provider: String,
-    },
+    UnsupportedProvider { provider: String },
 
     /// Rate limit exceeded
     RateLimitExceeded {
@@ -83,16 +57,10 @@ pub enum A2AError {
     },
 
     /// Agent busy
-    AgentBusy {
-        agent_name: String,
-        message: String,
-    },
+    AgentBusy { agent_name: String, message: String },
 
     /// Content blocked by moderation
-    ContentBlocked {
-        agent_name: String,
-        reason: String,
-    },
+    ContentBlocked { agent_name: String, reason: String },
 }
 
 impl fmt::Display for A2AError {
@@ -120,12 +88,11 @@ impl fmt::Display for A2AError {
                     agent_name, message
                 )
             }
-            A2AError::TaskNotFound { agent_name, task_id } => {
-                write!(
-                    f,
-                    "Task '{}' not found on agent '{}'",
-                    task_id, agent_name
-                )
+            A2AError::TaskNotFound {
+                agent_name,
+                task_id,
+            } => {
+                write!(f, "Task '{}' not found on agent '{}'", task_id, agent_name)
             }
             A2AError::TaskFailed {
                 agent_name,
@@ -177,15 +144,14 @@ impl fmt::Display for A2AError {
                     write!(f, "Rate limit exceeded for agent '{}'", agent_name)
                 }
             }
-            A2AError::AgentBusy { agent_name, message } => {
+            A2AError::AgentBusy {
+                agent_name,
+                message,
+            } => {
                 write!(f, "Agent '{}' is busy: {}", agent_name, message)
             }
             A2AError::ContentBlocked { agent_name, reason } => {
-                write!(
-                    f,
-                    "Content blocked by agent '{}': {}",
-                    agent_name, reason
-                )
+                write!(f, "Content blocked by agent '{}': {}", agent_name, reason)
             }
         }
     }
@@ -414,21 +380,60 @@ mod tests {
     #[test]
     fn test_all_variants_implement_error() {
         let errors: Vec<Box<dyn std::error::Error>> = vec![
-            Box::new(A2AError::AgentNotFound { agent_name: "a".to_string() }),
-            Box::new(A2AError::AgentAlreadyExists { agent_name: "a".to_string() }),
-            Box::new(A2AError::ConnectionError { agent_name: "a".to_string(), message: "m".to_string() }),
-            Box::new(A2AError::AuthenticationError { agent_name: "a".to_string(), message: "m".to_string() }),
-            Box::new(A2AError::TaskNotFound { agent_name: "a".to_string(), task_id: "t".to_string() }),
-            Box::new(A2AError::TaskFailed { agent_name: "a".to_string(), task_id: "t".to_string(), message: "m".to_string() }),
-            Box::new(A2AError::ProtocolError { message: "m".to_string() }),
-            Box::new(A2AError::InvalidRequest { message: "m".to_string() }),
-            Box::new(A2AError::Timeout { agent_name: "a".to_string(), timeout_ms: 1000 }),
-            Box::new(A2AError::ConfigurationError { message: "m".to_string() }),
-            Box::new(A2AError::SerializationError { message: "m".to_string() }),
-            Box::new(A2AError::UnsupportedProvider { provider: "p".to_string() }),
-            Box::new(A2AError::RateLimitExceeded { agent_name: "a".to_string(), retry_after_ms: None }),
-            Box::new(A2AError::AgentBusy { agent_name: "a".to_string(), message: "m".to_string() }),
-            Box::new(A2AError::ContentBlocked { agent_name: "a".to_string(), reason: "r".to_string() }),
+            Box::new(A2AError::AgentNotFound {
+                agent_name: "a".to_string(),
+            }),
+            Box::new(A2AError::AgentAlreadyExists {
+                agent_name: "a".to_string(),
+            }),
+            Box::new(A2AError::ConnectionError {
+                agent_name: "a".to_string(),
+                message: "m".to_string(),
+            }),
+            Box::new(A2AError::AuthenticationError {
+                agent_name: "a".to_string(),
+                message: "m".to_string(),
+            }),
+            Box::new(A2AError::TaskNotFound {
+                agent_name: "a".to_string(),
+                task_id: "t".to_string(),
+            }),
+            Box::new(A2AError::TaskFailed {
+                agent_name: "a".to_string(),
+                task_id: "t".to_string(),
+                message: "m".to_string(),
+            }),
+            Box::new(A2AError::ProtocolError {
+                message: "m".to_string(),
+            }),
+            Box::new(A2AError::InvalidRequest {
+                message: "m".to_string(),
+            }),
+            Box::new(A2AError::Timeout {
+                agent_name: "a".to_string(),
+                timeout_ms: 1000,
+            }),
+            Box::new(A2AError::ConfigurationError {
+                message: "m".to_string(),
+            }),
+            Box::new(A2AError::SerializationError {
+                message: "m".to_string(),
+            }),
+            Box::new(A2AError::UnsupportedProvider {
+                provider: "p".to_string(),
+            }),
+            Box::new(A2AError::RateLimitExceeded {
+                agent_name: "a".to_string(),
+                retry_after_ms: None,
+            }),
+            Box::new(A2AError::AgentBusy {
+                agent_name: "a".to_string(),
+                message: "m".to_string(),
+            }),
+            Box::new(A2AError::ContentBlocked {
+                agent_name: "a".to_string(),
+                reason: "r".to_string(),
+            }),
         ];
 
         for err in errors {
@@ -464,10 +469,22 @@ mod tests {
     #[test]
     fn test_clone_all_variants() {
         let errors = vec![
-            A2AError::AgentNotFound { agent_name: "a".to_string() },
-            A2AError::ConnectionError { agent_name: "a".to_string(), message: "m".to_string() },
-            A2AError::TaskFailed { agent_name: "a".to_string(), task_id: "t".to_string(), message: "m".to_string() },
-            A2AError::RateLimitExceeded { agent_name: "a".to_string(), retry_after_ms: Some(1000) },
+            A2AError::AgentNotFound {
+                agent_name: "a".to_string(),
+            },
+            A2AError::ConnectionError {
+                agent_name: "a".to_string(),
+                message: "m".to_string(),
+            },
+            A2AError::TaskFailed {
+                agent_name: "a".to_string(),
+                task_id: "t".to_string(),
+                message: "m".to_string(),
+            },
+            A2AError::RateLimitExceeded {
+                agent_name: "a".to_string(),
+                retry_after_ms: Some(1000),
+            },
         ];
 
         for err in errors {

@@ -266,7 +266,8 @@ mod tests {
     fn test_error_response_invalid_request() {
         let response = ErrorResponse {
             error: ErrorDetail {
-                message: "Invalid value for 'temperature': expected a number between 0 and 2".to_string(),
+                message: "Invalid value for 'temperature': expected a number between 0 and 2"
+                    .to_string(),
                 error_type: "invalid_request_error".to_string(),
                 code: Some("invalid_value".to_string()),
                 param: Some("temperature".to_string()),

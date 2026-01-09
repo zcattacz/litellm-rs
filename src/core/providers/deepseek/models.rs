@@ -476,9 +476,7 @@ mod tests {
         for model in &reasoning_models {
             let lower = model.to_lowercase();
             assert!(
-                lower.contains("r1")
-                    || lower.contains("reasoning")
-                    || lower.contains("reasoner"),
+                lower.contains("r1") || lower.contains("reasoning") || lower.contains("reasoner"),
                 "Model {} should be a reasoning model",
                 model
             );

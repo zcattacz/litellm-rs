@@ -40,8 +40,8 @@ impl JwtHandler {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::types::TokenType;
+    use super::*;
     use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey};
     use uuid::Uuid;
 

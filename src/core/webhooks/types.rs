@@ -289,7 +289,10 @@ mod tests {
         };
 
         assert_eq!(payload.metadata.len(), 2);
-        assert_eq!(payload.metadata.get("user_id"), Some(&"user-123".to_string()));
+        assert_eq!(
+            payload.metadata.get("user_id"),
+            Some(&"user-123".to_string())
+        );
     }
 
     #[test]
@@ -408,9 +411,18 @@ mod tests {
 
     #[test]
     fn test_webhook_delivery_status_variants() {
-        assert_eq!(WebhookDeliveryStatus::Pending, WebhookDeliveryStatus::Pending);
-        assert_ne!(WebhookDeliveryStatus::Pending, WebhookDeliveryStatus::Delivered);
-        assert_ne!(WebhookDeliveryStatus::Failed, WebhookDeliveryStatus::Retrying);
+        assert_eq!(
+            WebhookDeliveryStatus::Pending,
+            WebhookDeliveryStatus::Pending
+        );
+        assert_ne!(
+            WebhookDeliveryStatus::Pending,
+            WebhookDeliveryStatus::Delivered
+        );
+        assert_ne!(
+            WebhookDeliveryStatus::Failed,
+            WebhookDeliveryStatus::Retrying
+        );
     }
 
     #[test]
@@ -730,7 +742,10 @@ mod tests {
             },
         };
 
-        assert_eq!(stats.total_events, stats.successful_deliveries + stats.failed_deliveries);
+        assert_eq!(
+            stats.total_events,
+            stats.successful_deliveries + stats.failed_deliveries
+        );
     }
 
     #[test]

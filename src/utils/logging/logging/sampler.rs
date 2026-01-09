@@ -279,8 +279,22 @@ mod tests {
             let _ = sampler.should_log("cat2");
         }
 
-        assert_eq!(sampler.counters.get("cat1").unwrap().load(Ordering::Relaxed), 5);
-        assert_eq!(sampler.counters.get("cat2").unwrap().load(Ordering::Relaxed), 3);
+        assert_eq!(
+            sampler
+                .counters
+                .get("cat1")
+                .unwrap()
+                .load(Ordering::Relaxed),
+            5
+        );
+        assert_eq!(
+            sampler
+                .counters
+                .get("cat2")
+                .unwrap()
+                .load(Ordering::Relaxed),
+            3
+        );
     }
 
     // ==================== Edge Case Tests ====================

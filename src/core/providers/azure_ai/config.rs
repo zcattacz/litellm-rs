@@ -255,7 +255,10 @@ mod tests {
 
         assert_eq!(config.api_key(), Some("test-key"));
         assert_eq!(config.api_base(), Some("https://test.com"));
-        assert_eq!(ProviderConfig::timeout(&config), std::time::Duration::from_secs(60));
+        assert_eq!(
+            ProviderConfig::timeout(&config),
+            std::time::Duration::from_secs(60)
+        );
         assert_eq!(config.max_retries(), 3);
     }
 }

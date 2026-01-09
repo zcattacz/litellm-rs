@@ -79,8 +79,15 @@ mod tests {
     fn test_provider_config_all_types() {
         // Supported types from config_validators.rs
         let provider_types = [
-            "openai", "anthropic", "azure", "google", "bedrock",
-            "cohere", "huggingface", "ollama", "custom"
+            "openai",
+            "anthropic",
+            "azure",
+            "google",
+            "bedrock",
+            "cohere",
+            "huggingface",
+            "ollama",
+            "custom",
         ];
 
         for provider_type in provider_types {
@@ -90,7 +97,11 @@ mod tests {
                 api_key: "test-key".to_string(),
                 ..Default::default()
             };
-            assert!(config.validate().is_ok(), "Provider type '{}' should be valid", provider_type);
+            assert!(
+                config.validate().is_ok(),
+                "Provider type '{}' should be valid",
+                provider_type
+            );
         }
     }
 
@@ -280,7 +291,10 @@ mod tests {
     #[test]
     fn test_ssrf_validation_aws_metadata() {
         assert!(validate_url_against_ssrf("http://169.254.169.254/latest", "test").is_err());
-        assert!(validate_url_against_ssrf("http://169.254.169.254/latest/meta-data/iam", "test").is_err());
+        assert!(
+            validate_url_against_ssrf("http://169.254.169.254/latest/meta-data/iam", "test")
+                .is_err()
+        );
     }
 
     #[test]

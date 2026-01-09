@@ -512,7 +512,9 @@ fn test_get_request_headers_with_organization() {
     };
 
     let headers = provider.get_request_headers();
-    let has_org = headers.iter().any(|h| h.0.as_ref() == "OpenAI-Organization");
+    let has_org = headers
+        .iter()
+        .any(|h| h.0.as_ref() == "OpenAI-Organization");
     assert!(has_org);
 }
 

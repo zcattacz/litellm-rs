@@ -668,8 +668,8 @@ mod tests {
 
     #[test]
     fn test_embedding_handler_new_basic_config() {
-        let config = AzureConfig::new()
-            .with_azure_endpoint("https://test.openai.azure.com".to_string());
+        let config =
+            AzureConfig::new().with_azure_endpoint("https://test.openai.azure.com".to_string());
 
         let handler = AzureEmbeddingHandler::new(config);
         assert!(handler.is_ok());

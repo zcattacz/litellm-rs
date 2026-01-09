@@ -40,9 +40,9 @@ pub struct ApiKeyVerification {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::models::{Metadata, UsageStats};
-    use crate::core::models::user::types::{UserRole, UserStatus, UserProfile};
     use crate::core::models::user::preferences::UserPreferences;
+    use crate::core::models::user::types::{UserProfile, UserRole, UserStatus};
+    use crate::core::models::{Metadata, UsageStats};
     use chrono::{Duration, Utc};
 
     // ==================== Helper Functions ====================
@@ -265,7 +265,10 @@ mod tests {
         };
 
         assert!(!verification.is_valid);
-        assert_eq!(verification.invalid_reason, Some("API key has expired".to_string()));
+        assert_eq!(
+            verification.invalid_reason,
+            Some("API key has expired".to_string())
+        );
     }
 
     #[test]
@@ -295,7 +298,10 @@ mod tests {
 
         assert!(verification.is_valid);
         assert!(verification.user.is_some());
-        assert_eq!(verification.user.as_ref().unwrap().email, "test@example.com");
+        assert_eq!(
+            verification.user.as_ref().unwrap().email,
+            "test@example.com"
+        );
     }
 
     #[test]
@@ -403,7 +409,11 @@ mod tests {
 
         // Check specific permissions
         assert!(request.permissions.contains(&"models:read".to_string()));
-        assert!(request.permissions.contains(&"chat:completions".to_string()));
+        assert!(
+            request
+                .permissions
+                .contains(&"chat:completions".to_string())
+        );
         assert!(!request.permissions.contains(&"admin".to_string()));
     }
 
@@ -475,6 +485,9 @@ mod tests {
             expires_at: None,
         };
 
-        assert!(premium_request.rate_limits.as_ref().unwrap().rpm > standard_request.rate_limits.as_ref().unwrap().rpm);
+        assert!(
+            premium_request.rate_limits.as_ref().unwrap().rpm
+                > standard_request.rate_limits.as_ref().unwrap().rpm
+        );
     }
 }

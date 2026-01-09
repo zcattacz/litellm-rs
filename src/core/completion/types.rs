@@ -165,7 +165,9 @@ mod tests {
             index: 0,
             message: ChatMessage {
                 role: MessageRole::Assistant,
-                content: Some(crate::core::types::MessageContent::Text("Hello".to_string())),
+                content: Some(crate::core::types::MessageContent::Text(
+                    "Hello".to_string(),
+                )),
                 ..Default::default()
             },
             finish_reason: Some(FinishReason::Stop),

@@ -293,7 +293,9 @@ impl RequestValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::models::openai::{ChatMessage, ContentPart, ImageUrl, MessageContent, MessageRole};
+    use crate::core::models::openai::{
+        ChatMessage, ContentPart, ImageUrl, MessageContent, MessageRole,
+    };
 
     // ==================== Helper Functions ====================
 
@@ -350,12 +352,8 @@ mod tests {
     #[test]
     fn test_validate_chat_completion_empty_messages() {
         let messages: Vec<ChatMessage> = vec![];
-        let result = RequestValidator::validate_chat_completion_request(
-            "gpt-4",
-            &messages,
-            None,
-            None,
-        );
+        let result =
+            RequestValidator::validate_chat_completion_request("gpt-4", &messages, None, None);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("empty"));
     }
@@ -367,12 +365,8 @@ mod tests {
             create_user_message("Hello"),
             create_assistant_message("Hi there!"),
         ];
-        let result = RequestValidator::validate_chat_completion_request(
-            "gpt-4",
-            &messages,
-            None,
-            None,
-        );
+        let result =
+            RequestValidator::validate_chat_completion_request("gpt-4", &messages, None, None);
         assert!(result.is_ok());
     }
 
@@ -381,12 +375,8 @@ mod tests {
     #[test]
     fn test_validate_max_tokens_zero() {
         let messages = vec![create_user_message("Hello")];
-        let result = RequestValidator::validate_chat_completion_request(
-            "gpt-4",
-            &messages,
-            Some(0),
-            None,
-        );
+        let result =
+            RequestValidator::validate_chat_completion_request("gpt-4", &messages, Some(0), None);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("max_tokens"));
     }
@@ -419,12 +409,8 @@ mod tests {
     #[test]
     fn test_validate_max_tokens_none() {
         let messages = vec![create_user_message("Hello")];
-        let result = RequestValidator::validate_chat_completion_request(
-            "gpt-4",
-            &messages,
-            None,
-            None,
-        );
+        let result =
+            RequestValidator::validate_chat_completion_request("gpt-4", &messages, None, None);
         assert!(result.is_ok());
     }
 
@@ -433,36 +419,24 @@ mod tests {
     #[test]
     fn test_validate_temperature_valid() {
         let messages = vec![create_user_message("Hello")];
-        let result = RequestValidator::validate_chat_completion_request(
-            "gpt-4",
-            &messages,
-            None,
-            Some(1.0),
-        );
+        let result =
+            RequestValidator::validate_chat_completion_request("gpt-4", &messages, None, Some(1.0));
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_validate_temperature_zero() {
         let messages = vec![create_user_message("Hello")];
-        let result = RequestValidator::validate_chat_completion_request(
-            "gpt-4",
-            &messages,
-            None,
-            Some(0.0),
-        );
+        let result =
+            RequestValidator::validate_chat_completion_request("gpt-4", &messages, None, Some(0.0));
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_validate_temperature_max() {
         let messages = vec![create_user_message("Hello")];
-        let result = RequestValidator::validate_chat_completion_request(
-            "gpt-4",
-            &messages,
-            None,
-            Some(2.0),
-        );
+        let result =
+            RequestValidator::validate_chat_completion_request("gpt-4", &messages, None, Some(2.0));
         assert!(result.is_ok());
     }
 
@@ -482,12 +456,8 @@ mod tests {
     #[test]
     fn test_validate_temperature_too_high() {
         let messages = vec![create_user_message("Hello")];
-        let result = RequestValidator::validate_chat_completion_request(
-            "gpt-4",
-            &messages,
-            None,
-            Some(2.1),
-        );
+        let result =
+            RequestValidator::validate_chat_completion_request("gpt-4", &messages, None, Some(2.1));
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("temperature"));
     }
@@ -507,24 +477,15 @@ mod tests {
     #[test]
     fn test_validate_model_name_empty() {
         let messages = vec![create_user_message("Hello")];
-        let result = RequestValidator::validate_chat_completion_request(
-            "",
-            &messages,
-            None,
-            None,
-        );
+        let result = RequestValidator::validate_chat_completion_request("", &messages, None, None);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_validate_model_name_whitespace() {
         let messages = vec![create_user_message("Hello")];
-        let result = RequestValidator::validate_chat_completion_request(
-            "   ",
-            &messages,
-            None,
-            None,
-        );
+        let result =
+            RequestValidator::validate_chat_completion_request("   ", &messages, None, None);
         assert!(result.is_err());
     }
 
@@ -532,7 +493,12 @@ mod tests {
     fn test_validate_model_name_invalid_chars() {
         let result = RequestValidator::validate_model_name("model@name");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("invalid characters"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("invalid characters")
+        );
     }
 
     // ==================== Function Name Validation Tests ====================
@@ -612,17 +578,20 @@ mod tests {
     fn test_validate_audio_format_invalid() {
         let result = RequestValidator::validate_audio_format("mp4");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Invalid audio format"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Invalid audio format")
+        );
     }
 
     // ==================== Audio Data Validation Tests ====================
 
     #[test]
     fn test_validate_audio_data_valid() {
-        let valid_base64 = base64::Engine::encode(
-            &base64::engine::general_purpose::STANDARD,
-            b"audio data",
-        );
+        let valid_base64 =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, b"audio data");
         let result = RequestValidator::validate_audio_data(&valid_base64);
         assert!(result.is_ok());
     }
@@ -688,14 +657,18 @@ mod tests {
 
     #[test]
     fn test_validate_content_part_text_valid() {
-        let part = ContentPart::Text { text: "Hello".to_string() };
+        let part = ContentPart::Text {
+            text: "Hello".to_string(),
+        };
         let result = RequestValidator::validate_content_part(&part, 0, 0);
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_validate_content_part_text_empty() {
-        let part = ContentPart::Text { text: "   ".to_string() };
+        let part = ContentPart::Text {
+            text: "   ".to_string(),
+        };
         let result = RequestValidator::validate_content_part(&part, 0, 0);
         assert!(result.is_err());
     }

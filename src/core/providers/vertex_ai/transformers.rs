@@ -554,9 +554,7 @@ mod tests {
     fn create_test_request() -> ChatRequest {
         ChatRequest {
             model: "gemini-1.5-pro".to_string(),
-            messages: vec![
-                create_test_message(MessageRole::User, "Hello"),
-            ],
+            messages: vec![create_test_message(MessageRole::User, "Hello")],
             ..Default::default()
         }
     }
@@ -664,7 +662,9 @@ mod tests {
         let result = transformer.transform_chat_request(&request, &model);
         assert!(result.is_ok());
         let body = result.unwrap();
-        let stop_seqs = body["generationConfig"]["stop_sequences"].as_array().unwrap();
+        let stop_seqs = body["generationConfig"]["stop_sequences"]
+            .as_array()
+            .unwrap();
         assert_eq!(stop_seqs.len(), 2);
     }
 
@@ -712,7 +712,10 @@ mod tests {
         let chat_response = result.unwrap();
         assert_eq!(chat_response.object, "chat.completion");
         assert_eq!(chat_response.choices.len(), 1);
-        assert_eq!(chat_response.choices[0].finish_reason, Some(FinishReason::Stop));
+        assert_eq!(
+            chat_response.choices[0].finish_reason,
+            Some(FinishReason::Stop)
+        );
     }
 
     #[test]
@@ -724,22 +727,31 @@ mod tests {
         let response = json!({
             "candidates": [{"content": {"parts": [{"text": "Done"}]}, "finishReason": "STOP"}]
         });
-        let result = transformer.transform_chat_response(response, &model).unwrap();
+        let result = transformer
+            .transform_chat_response(response, &model)
+            .unwrap();
         assert_eq!(result.choices[0].finish_reason, Some(FinishReason::Stop));
 
         // Test MAX_TOKENS
         let response = json!({
             "candidates": [{"content": {"parts": [{"text": "Done"}]}, "finishReason": "MAX_TOKENS"}]
         });
-        let result = transformer.transform_chat_response(response, &model).unwrap();
+        let result = transformer
+            .transform_chat_response(response, &model)
+            .unwrap();
         assert_eq!(result.choices[0].finish_reason, Some(FinishReason::Length));
 
         // Test SAFETY
         let response = json!({
             "candidates": [{"content": {"parts": [{"text": ""}]}, "finishReason": "SAFETY"}]
         });
-        let result = transformer.transform_chat_response(response, &model).unwrap();
-        assert_eq!(result.choices[0].finish_reason, Some(FinishReason::ContentFilter));
+        let result = transformer
+            .transform_chat_response(response, &model)
+            .unwrap();
+        assert_eq!(
+            result.choices[0].finish_reason,
+            Some(FinishReason::ContentFilter)
+        );
     }
 
     #[test]
@@ -758,7 +770,9 @@ mod tests {
         });
         let model = VertexAIModel::GeminiPro;
 
-        let result = transformer.transform_chat_response(response, &model).unwrap();
+        let result = transformer
+            .transform_chat_response(response, &model)
+            .unwrap();
         let usage = result.usage.unwrap();
         assert_eq!(usage.prompt_tokens, 100);
         assert_eq!(usage.completion_tokens, 50);
@@ -804,8 +818,12 @@ mod tests {
     fn test_message_content_to_parts_multipart_text() {
         let transformer = GeminiTransformer::new();
         let content = MessageContent::Parts(vec![
-            ContentPart::Text { text: "Part 1".to_string() },
-            ContentPart::Text { text: "Part 2".to_string() },
+            ContentPart::Text {
+                text: "Part 1".to_string(),
+            },
+            ContentPart::Text {
+                text: "Part 2".to_string(),
+            },
         ]);
 
         let result = transformer.message_content_to_parts(&content);
@@ -857,9 +875,7 @@ mod tests {
         let transformer = PartnerModelTransformer::new();
         let request = ChatRequest {
             model: "llama3-70b".to_string(),
-            messages: vec![
-                create_test_message(MessageRole::User, "Hello"),
-            ],
+            messages: vec![create_test_message(MessageRole::User, "Hello")],
             temperature: Some(0.8),
             max_tokens: Some(500),
             ..Default::default()
@@ -879,9 +895,7 @@ mod tests {
         let transformer = PartnerModelTransformer::new();
         let request = ChatRequest {
             model: "jamba-1.5-large".to_string(),
-            messages: vec![
-                create_test_message(MessageRole::User, "Hello"),
-            ],
+            messages: vec![create_test_message(MessageRole::User, "Hello")],
             ..Default::default()
         };
         let model = VertexAIModel::Jamba15Large;
@@ -898,9 +912,7 @@ mod tests {
         let transformer = PartnerModelTransformer::new();
         let request = ChatRequest {
             model: "mistral-large".to_string(),
-            messages: vec![
-                create_test_message(MessageRole::User, "Hello"),
-            ],
+            messages: vec![create_test_message(MessageRole::User, "Hello")],
             ..Default::default()
         };
         let model = VertexAIModel::MistralLarge;
@@ -914,9 +926,7 @@ mod tests {
     #[test]
     fn test_messages_to_llama_prompt_user_only() {
         let transformer = PartnerModelTransformer::new();
-        let messages = vec![
-            create_test_message(MessageRole::User, "Hello"),
-        ];
+        let messages = vec![create_test_message(MessageRole::User, "Hello")];
 
         let prompt = transformer.messages_to_llama_prompt(&messages);
         assert!(prompt.contains("[INST] Hello [/INST]"));
@@ -1018,7 +1028,9 @@ mod tests {
         });
         let model = VertexAIModel::Claude35Sonnet;
 
-        let result = transformer.transform_chat_response(response, &model).unwrap();
+        let result = transformer
+            .transform_chat_response(response, &model)
+            .unwrap();
         let usage = result.usage.unwrap();
         assert_eq!(usage.prompt_tokens, 50);
         assert_eq!(usage.completion_tokens, 100);

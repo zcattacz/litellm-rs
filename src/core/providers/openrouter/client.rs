@@ -524,7 +524,13 @@ mod tests {
     fn test_error_mapper_http_500() {
         let mapper = OpenRouterErrorMapper;
         let error = mapper.map_http_error(500, "Internal error");
-        assert!(matches!(error, OpenRouterError::ApiError { status_code: 500, .. }));
+        assert!(matches!(
+            error,
+            OpenRouterError::ApiError {
+                status_code: 500,
+                ..
+            }
+        ));
     }
 
     #[test]
@@ -547,7 +553,13 @@ mod tests {
     fn test_error_mapper_http_unknown() {
         let mapper = OpenRouterErrorMapper;
         let error = mapper.map_http_error(418, "I'm a teapot");
-        assert!(matches!(error, OpenRouterError::ApiError { status_code: 418, .. }));
+        assert!(matches!(
+            error,
+            OpenRouterError::ApiError {
+                status_code: 418,
+                ..
+            }
+        ));
     }
 
     #[test]
@@ -647,7 +659,8 @@ mod tests {
     #[test]
     fn test_error_mapper_network_error() {
         let mapper = OpenRouterErrorMapper;
-        let io_error = std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
+        let io_error =
+            std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
         let error = mapper.map_network_error(&io_error);
         assert!(matches!(error, OpenRouterError::Network(_)));
         assert!(error.to_string().contains("Network error"));

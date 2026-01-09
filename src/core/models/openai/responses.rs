@@ -6,9 +6,9 @@
 use serde::{Deserialize, Serialize};
 
 use super::audio::AudioDelta;
-use super::messages::{ChatMessage, MessageRole};
 #[cfg(test)]
 use super::messages::MessageContent;
+use super::messages::{ChatMessage, MessageRole};
 use super::tools::{FunctionCallDelta, ToolCallDelta};
 
 /// Chat completion response
@@ -819,10 +819,7 @@ mod tests {
             b64_json: None,
         };
 
-        assert_eq!(
-            obj.url,
-            Some("https://cdn.example.com/img.jpg".to_string())
-        );
+        assert_eq!(obj.url, Some("https://cdn.example.com/img.jpg".to_string()));
         assert!(obj.b64_json.is_none());
     }
 

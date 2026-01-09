@@ -91,7 +91,10 @@ mod tests {
         }
     }
 
-    fn create_cache_entry_with_ttl(ttl_seconds: Option<u64>, created_offset_secs: i64) -> SemanticCacheEntry {
+    fn create_cache_entry_with_ttl(
+        ttl_seconds: Option<u64>,
+        created_offset_secs: i64,
+    ) -> SemanticCacheEntry {
         let created_at = chrono::Utc::now() + chrono::Duration::seconds(created_offset_secs);
         SemanticCacheEntry {
             id: "test-entry".to_string(),

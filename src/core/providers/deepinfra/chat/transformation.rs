@@ -158,7 +158,6 @@ impl DeepInfraChatTransformation {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

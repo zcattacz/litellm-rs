@@ -78,14 +78,12 @@ mod tests {
             object: "text_completion".to_string(),
             created: 1700000000,
             model: "text-davinci-003".to_string(),
-            choices: vec![
-                CompletionChoice {
-                    index: 0,
-                    text: "Hello, world!".to_string(),
-                    finish_reason: Some(FinishReason::Stop),
-                    logprobs: None,
-                },
-            ],
+            choices: vec![CompletionChoice {
+                index: 0,
+                text: "Hello, world!".to_string(),
+                finish_reason: Some(FinishReason::Stop),
+                logprobs: None,
+            }],
             usage: None,
             system_fingerprint: None,
         };
@@ -359,7 +357,10 @@ mod tests {
             system_fingerprint: None,
         };
         assert_eq!(response.choices.len(), 3);
-        assert_eq!(response.choices[2].finish_reason, Some(FinishReason::Length));
+        assert_eq!(
+            response.choices[2].finish_reason,
+            Some(FinishReason::Length)
+        );
     }
 
     #[test]

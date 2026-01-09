@@ -366,7 +366,10 @@ mod tests {
 
         assert!(with_prefix.is_some());
         assert!(without_prefix.is_some());
-        assert_eq!(with_prefix.unwrap().model_id, without_prefix.unwrap().model_id);
+        assert_eq!(
+            with_prefix.unwrap().model_id,
+            without_prefix.unwrap().model_id
+        );
     }
 
     // ==================== get_available_models Tests ====================
@@ -381,7 +384,11 @@ mod tests {
     #[test]
     fn test_available_models_count() {
         let models = get_available_models();
-        assert!(models.len() >= 10, "Expected at least 10 models, got {}", models.len());
+        assert!(
+            models.len() >= 10,
+            "Expected at least 10 models, got {}",
+            models.len()
+        );
     }
 
     #[test]
@@ -395,7 +402,11 @@ mod tests {
     fn test_available_models_contains_llama_models() {
         let models = get_available_models();
         let llama_count = models.iter().filter(|m| m.contains("llama")).count();
-        assert!(llama_count >= 3, "Expected at least 3 llama models, got {}", llama_count);
+        assert!(
+            llama_count >= 3,
+            "Expected at least 3 llama models, got {}",
+            llama_count
+        );
     }
 
     // ==================== calculate_cost Tests ====================
@@ -435,32 +446,50 @@ mod tests {
 
     #[test]
     fn test_cloudflare_model_llama3_8b_instruct() {
-        assert_eq!(CloudflareModel::Llama3_8BInstruct.model_id(), "@cf/meta/llama-3-8b-instruct");
+        assert_eq!(
+            CloudflareModel::Llama3_8BInstruct.model_id(),
+            "@cf/meta/llama-3-8b-instruct"
+        );
     }
 
     #[test]
     fn test_cloudflare_model_llama3_70b_instruct() {
-        assert_eq!(CloudflareModel::Llama3_70BInstruct.model_id(), "@cf/meta/llama-3-70b-instruct");
+        assert_eq!(
+            CloudflareModel::Llama3_70BInstruct.model_id(),
+            "@cf/meta/llama-3-70b-instruct"
+        );
     }
 
     #[test]
     fn test_cloudflare_model_mistral() {
-        assert_eq!(CloudflareModel::Mistral7BInstruct.model_id(), "@cf/mistral/mistral-7b-instruct-v0.1");
+        assert_eq!(
+            CloudflareModel::Mistral7BInstruct.model_id(),
+            "@cf/mistral/mistral-7b-instruct-v0.1"
+        );
     }
 
     #[test]
     fn test_cloudflare_model_mixtral() {
-        assert_eq!(CloudflareModel::Mixtral8x7BInstruct.model_id(), "@hf/thebloke/mixtral-8x7b-instruct-v0.1-awq");
+        assert_eq!(
+            CloudflareModel::Mixtral8x7BInstruct.model_id(),
+            "@hf/thebloke/mixtral-8x7b-instruct-v0.1-awq"
+        );
     }
 
     #[test]
     fn test_cloudflare_model_codellama() {
-        assert_eq!(CloudflareModel::CodeLlama7B.model_id(), "@cf/meta/codellama-7b-instruct");
+        assert_eq!(
+            CloudflareModel::CodeLlama7B.model_id(),
+            "@cf/meta/codellama-7b-instruct"
+        );
     }
 
     #[test]
     fn test_cloudflare_model_deepseek_coder() {
-        assert_eq!(CloudflareModel::DeepseekCoder6_7B.model_id(), "@cf/deepseek-ai/deepseek-coder-6.7b-instruct-awq");
+        assert_eq!(
+            CloudflareModel::DeepseekCoder6_7B.model_id(),
+            "@cf/deepseek-ai/deepseek-coder-6.7b-instruct-awq"
+        );
     }
 
     #[test]
@@ -470,17 +499,26 @@ mod tests {
 
     #[test]
     fn test_cloudflare_model_gemma() {
-        assert_eq!(CloudflareModel::Gemma7BIT.model_id(), "@cf/google/gemma-7b-it");
+        assert_eq!(
+            CloudflareModel::Gemma7BIT.model_id(),
+            "@cf/google/gemma-7b-it"
+        );
     }
 
     #[test]
     fn test_cloudflare_model_qwen() {
-        assert_eq!(CloudflareModel::Qwen15_7BChat.model_id(), "@cf/qwen/qwen1.5-7b-chat-awq");
+        assert_eq!(
+            CloudflareModel::Qwen15_7BChat.model_id(),
+            "@cf/qwen/qwen1.5-7b-chat-awq"
+        );
     }
 
     #[test]
     fn test_cloudflare_model_llama2() {
-        assert_eq!(CloudflareModel::Llama2_7B.model_id(), "@cf/meta/llama-2-7b-chat-int8");
+        assert_eq!(
+            CloudflareModel::Llama2_7B.model_id(),
+            "@cf/meta/llama-2-7b-chat-int8"
+        );
     }
 
     // ==================== CloudflareModel::info() Tests ====================
@@ -517,8 +555,16 @@ mod tests {
         let models = get_available_models();
         for model_id in models {
             if let Some(info) = get_model_info(model_id) {
-                assert_eq!(info.input_cost_per_million, 0.0, "Model {} should be free", model_id);
-                assert_eq!(info.output_cost_per_million, 0.0, "Model {} should be free", model_id);
+                assert_eq!(
+                    info.input_cost_per_million, 0.0,
+                    "Model {} should be free",
+                    model_id
+                );
+                assert_eq!(
+                    info.output_cost_per_million, 0.0,
+                    "Model {} should be free",
+                    model_id
+                );
             }
         }
     }
@@ -528,7 +574,11 @@ mod tests {
         let models = get_available_models();
         for model_id in models {
             if let Some(info) = get_model_info(model_id) {
-                assert!(info.supports_streaming, "Model {} should support streaming", model_id);
+                assert!(
+                    info.supports_streaming,
+                    "Model {} should support streaming",
+                    model_id
+                );
             }
         }
     }
@@ -539,7 +589,11 @@ mod tests {
         let models = get_available_models();
         for model_id in models {
             if let Some(info) = get_model_info(model_id) {
-                assert!(!info.supports_tools, "Model {} shouldn't support tools yet", model_id);
+                assert!(
+                    !info.supports_tools,
+                    "Model {} shouldn't support tools yet",
+                    model_id
+                );
             }
         }
     }
@@ -550,7 +604,11 @@ mod tests {
         let models = get_available_models();
         for model_id in models {
             if let Some(info) = get_model_info(model_id) {
-                assert!(!info.supports_vision, "Model {} shouldn't support vision yet", model_id);
+                assert!(
+                    !info.supports_vision,
+                    "Model {} shouldn't support vision yet",
+                    model_id
+                );
             }
         }
     }

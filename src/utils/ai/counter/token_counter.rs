@@ -356,7 +356,10 @@ mod tests {
     #[test]
     fn test_extract_model_family_gpt35() {
         let counter = TokenCounter::new();
-        assert_eq!(counter.extract_model_family("gpt-3.5-turbo"), "gpt-3.5-turbo");
+        assert_eq!(
+            counter.extract_model_family("gpt-3.5-turbo"),
+            "gpt-3.5-turbo"
+        );
         assert_eq!(
             counter.extract_model_family("gpt-3.5-turbo-16k"),
             "gpt-3.5-turbo"
@@ -369,19 +372,13 @@ mod tests {
         assert_eq!(counter.extract_model_family("claude-3-opus"), "claude-3");
         assert_eq!(counter.extract_model_family("claude-3-sonnet"), "claude-3");
         assert_eq!(counter.extract_model_family("claude-3-haiku"), "claude-3");
-        assert_eq!(
-            counter.extract_model_family("claude-2.1"),
-            "claude-2"
-        );
+        assert_eq!(counter.extract_model_family("claude-2.1"), "claude-2");
     }
 
     #[test]
     fn test_extract_model_family_with_provider_prefix() {
         let counter = TokenCounter::new();
-        assert_eq!(
-            counter.extract_model_family("openai/gpt-4"),
-            "gpt-4"
-        );
+        assert_eq!(counter.extract_model_family("openai/gpt-4"), "gpt-4");
         assert_eq!(
             counter.extract_model_family("anthropic/claude-3-opus"),
             "claude-3"

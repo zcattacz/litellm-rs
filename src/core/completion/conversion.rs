@@ -122,9 +122,7 @@ mod tests {
 
     #[test]
     fn test_convert_to_chat_completion_request_basic() {
-        let messages = vec![
-            create_test_message(MessageRole::User, "Hello"),
-        ];
+        let messages = vec![create_test_message(MessageRole::User, "Hello")];
         let options = CompletionOptions::default();
 
         let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
@@ -198,7 +196,10 @@ mod tests {
 
         let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
 
-        assert_eq!(result.stop, Some(vec!["END".to_string(), "STOP".to_string()]));
+        assert_eq!(
+            result.stop,
+            Some(vec!["END".to_string(), "STOP".to_string()])
+        );
     }
 
     #[test]
@@ -273,7 +274,10 @@ mod tests {
         let messages = vec![create_test_message(MessageRole::User, "Test")];
         let mut options = CompletionOptions::default();
         let mut extra = HashMap::new();
-        extra.insert("custom_field".to_string(), serde_json::json!("custom_value"));
+        extra.insert(
+            "custom_field".to_string(),
+            serde_json::json!("custom_value"),
+        );
         options.extra_params = extra;
 
         let result = convert_to_chat_completion_request("gpt-4", messages, options).unwrap();
@@ -439,7 +443,12 @@ mod tests {
 
             let result = convert_from_chat_completion_response(response).unwrap();
 
-            assert_eq!(result.choices[0].finish_reason, Some(reason), "Failed at index {}", i);
+            assert_eq!(
+                result.choices[0].finish_reason,
+                Some(reason),
+                "Failed at index {}",
+                i
+            );
         }
     }
 

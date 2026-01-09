@@ -372,23 +372,14 @@ mod tests {
             rate_limit_tpm: None,
             settings: HashMap::new(),
         };
-        assert_eq!(
-            config.base_url,
-            Some("http://localhost:8000".to_string())
-        );
+        assert_eq!(config.base_url, Some("http://localhost:8000".to_string()));
     }
 
     #[test]
     fn test_provider_config_with_settings() {
         let mut settings = HashMap::new();
-        settings.insert(
-            "temperature".to_string(),
-            serde_json::json!(0.7),
-        );
-        settings.insert(
-            "max_tokens".to_string(),
-            serde_json::json!(1000),
-        );
+        settings.insert("temperature".to_string(), serde_json::json!(0.7));
+        settings.insert("max_tokens".to_string(), serde_json::json!(1000));
 
         let config = ProviderConfig {
             id: "openai".to_string(),
@@ -404,7 +395,10 @@ mod tests {
             settings,
         };
         assert_eq!(config.settings.len(), 2);
-        assert_eq!(config.settings.get("temperature").unwrap(), &serde_json::json!(0.7));
+        assert_eq!(
+            config.settings.get("temperature").unwrap(),
+            &serde_json::json!(0.7)
+        );
     }
 
     #[test]
@@ -432,22 +426,40 @@ mod tests {
     #[test]
     fn test_provider_type_from_str_known() {
         assert!(matches!(ProviderType::from("openai"), ProviderType::OpenAI));
-        assert!(matches!(ProviderType::from("anthropic"), ProviderType::Anthropic));
+        assert!(matches!(
+            ProviderType::from("anthropic"),
+            ProviderType::Anthropic
+        ));
         assert!(matches!(ProviderType::from("azure"), ProviderType::Azure));
         assert!(matches!(ProviderType::from("google"), ProviderType::Google));
         assert!(matches!(ProviderType::from("cohere"), ProviderType::Cohere));
-        assert!(matches!(ProviderType::from("huggingface"), ProviderType::HuggingFace));
+        assert!(matches!(
+            ProviderType::from("huggingface"),
+            ProviderType::HuggingFace
+        ));
         assert!(matches!(ProviderType::from("ollama"), ProviderType::Ollama));
-        assert!(matches!(ProviderType::from("aws_bedrock"), ProviderType::AwsBedrock));
-        assert!(matches!(ProviderType::from("google_vertex"), ProviderType::GoogleVertex));
-        assert!(matches!(ProviderType::from("mistral"), ProviderType::Mistral));
+        assert!(matches!(
+            ProviderType::from("aws_bedrock"),
+            ProviderType::AwsBedrock
+        ));
+        assert!(matches!(
+            ProviderType::from("google_vertex"),
+            ProviderType::GoogleVertex
+        ));
+        assert!(matches!(
+            ProviderType::from("mistral"),
+            ProviderType::Mistral
+        ));
     }
 
     #[test]
     fn test_provider_type_from_str_case_insensitive() {
         assert!(matches!(ProviderType::from("OpenAI"), ProviderType::OpenAI));
         assert!(matches!(ProviderType::from("OPENAI"), ProviderType::OpenAI));
-        assert!(matches!(ProviderType::from("Anthropic"), ProviderType::Anthropic));
+        assert!(matches!(
+            ProviderType::from("Anthropic"),
+            ProviderType::Anthropic
+        ));
         assert!(matches!(ProviderType::from("AZURE"), ProviderType::Azure));
     }
 
@@ -507,9 +519,7 @@ mod tests {
 
     #[test]
     fn test_config_builder_default_provider() {
-        let config = ConfigBuilder::new()
-            .default_provider("openai")
-            .build();
+        let config = ConfigBuilder::new().default_provider("openai").build();
         assert_eq!(config.default_provider, Some("openai".to_string()));
     }
 
@@ -528,9 +538,7 @@ mod tests {
             rate_limit_tpm: None,
             settings: HashMap::new(),
         };
-        let config = ConfigBuilder::new()
-            .add_provider(provider)
-            .build();
+        let config = ConfigBuilder::new().add_provider(provider).build();
         assert_eq!(config.providers.len(), 1);
         assert_eq!(config.providers[0].id, "test");
     }
@@ -543,7 +551,10 @@ mod tests {
         assert_eq!(config.providers.len(), 1);
         assert_eq!(config.providers[0].id, "openai-prod");
         assert_eq!(config.providers[0].api_key, "sk-test-key");
-        assert!(matches!(config.providers[0].provider_type, ProviderType::OpenAI));
+        assert!(matches!(
+            config.providers[0].provider_type,
+            ProviderType::OpenAI
+        ));
         assert!(config.providers[0].models.contains(&"gpt-4".to_string()));
     }
 
@@ -554,23 +565,27 @@ mod tests {
             .build();
         assert_eq!(config.providers.len(), 1);
         assert_eq!(config.providers[0].id, "anthropic-prod");
-        assert!(matches!(config.providers[0].provider_type, ProviderType::Anthropic));
-        assert!(config.providers[0].models.iter().any(|m| m.contains("claude")));
+        assert!(matches!(
+            config.providers[0].provider_type,
+            ProviderType::Anthropic
+        ));
+        assert!(
+            config.providers[0]
+                .models
+                .iter()
+                .any(|m| m.contains("claude"))
+        );
     }
 
     #[test]
     fn test_config_builder_timeout() {
-        let config = ConfigBuilder::new()
-            .timeout(120)
-            .build();
+        let config = ConfigBuilder::new().timeout(120).build();
         assert_eq!(config.settings.timeout, 120);
     }
 
     #[test]
     fn test_config_builder_max_retries() {
-        let config = ConfigBuilder::new()
-            .max_retries(5)
-            .build();
+        let config = ConfigBuilder::new().max_retries(5).build();
         assert_eq!(config.settings.max_retries, 5);
     }
 
@@ -632,9 +647,7 @@ mod tests {
 
     #[test]
     fn test_yaml_serialization() {
-        let config = ConfigBuilder::new()
-            .add_openai("openai", "sk-test")
-            .build();
+        let config = ConfigBuilder::new().add_openai("openai", "sk-test").build();
 
         let yaml = serde_yaml::to_string(&config).unwrap();
         assert!(yaml.contains("providers"));

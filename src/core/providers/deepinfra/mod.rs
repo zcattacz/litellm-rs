@@ -541,7 +541,10 @@ mod tests {
     fn test_deepinfra_config_default() {
         let config = DeepInfraConfig::default();
         assert!(config.api_key.is_none());
-        assert_eq!(config.api_base, Some("https://api.deepinfra.com".to_string()));
+        assert_eq!(
+            config.api_base,
+            Some("https://api.deepinfra.com".to_string())
+        );
         assert_eq!(config.timeout, 60);
         assert_eq!(config.max_retries, 3);
     }
@@ -552,7 +555,10 @@ mod tests {
             api_key: Some("test-key".to_string()),
             ..Default::default()
         };
-        assert_eq!(config.get_effective_api_key(), Some(&"test-key".to_string()));
+        assert_eq!(
+            config.get_effective_api_key(),
+            Some(&"test-key".to_string())
+        );
     }
 
     #[test]
@@ -564,13 +570,19 @@ mod tests {
             api_base: Some("https://custom.api.com".to_string()),
             ..Default::default()
         };
-        assert_eq!(config_custom.get_effective_api_base(), "https://custom.api.com");
+        assert_eq!(
+            config_custom.get_effective_api_base(),
+            "https://custom.api.com"
+        );
 
         let config_none = DeepInfraConfig {
             api_base: None,
             ..Default::default()
         };
-        assert_eq!(config_none.get_effective_api_base(), "https://api.deepinfra.com");
+        assert_eq!(
+            config_none.get_effective_api_base(),
+            "https://api.deepinfra.com"
+        );
     }
 
     #[test]
@@ -617,7 +629,10 @@ mod tests {
         let err = DeepInfraError::Network("timeout".to_string());
         assert_eq!(err.to_string(), "Network error: timeout");
 
-        let err = DeepInfraError::Api { status: 500, message: "server error".to_string() };
+        let err = DeepInfraError::Api {
+            status: 500,
+            message: "server error".to_string(),
+        };
         assert_eq!(err.to_string(), "API error: 500 - server error");
 
         let err = DeepInfraError::Serialization("parse error".to_string());
@@ -638,54 +653,173 @@ mod tests {
 
     #[test]
     fn test_deepinfra_error_type() {
-        assert_eq!(DeepInfraError::Configuration("".to_string()).error_type(), "configuration");
-        assert_eq!(DeepInfraError::Authentication("".to_string()).error_type(), "authentication");
-        assert_eq!(DeepInfraError::Network("".to_string()).error_type(), "network");
-        assert_eq!(DeepInfraError::Api { status: 500, message: "".to_string() }.error_type(), "api_error");
-        assert_eq!(DeepInfraError::Serialization("".to_string()).error_type(), "serialization");
-        assert_eq!(DeepInfraError::Validation("".to_string()).error_type(), "validation");
-        assert_eq!(DeepInfraError::RateLimit("".to_string()).error_type(), "rate_limit");
-        assert_eq!(DeepInfraError::NotImplemented("".to_string()).error_type(), "not_implemented");
-        assert_eq!(DeepInfraError::ModelNotFound("".to_string()).error_type(), "model_not_found");
+        assert_eq!(
+            DeepInfraError::Configuration("".to_string()).error_type(),
+            "configuration"
+        );
+        assert_eq!(
+            DeepInfraError::Authentication("".to_string()).error_type(),
+            "authentication"
+        );
+        assert_eq!(
+            DeepInfraError::Network("".to_string()).error_type(),
+            "network"
+        );
+        assert_eq!(
+            DeepInfraError::Api {
+                status: 500,
+                message: "".to_string()
+            }
+            .error_type(),
+            "api_error"
+        );
+        assert_eq!(
+            DeepInfraError::Serialization("".to_string()).error_type(),
+            "serialization"
+        );
+        assert_eq!(
+            DeepInfraError::Validation("".to_string()).error_type(),
+            "validation"
+        );
+        assert_eq!(
+            DeepInfraError::RateLimit("".to_string()).error_type(),
+            "rate_limit"
+        );
+        assert_eq!(
+            DeepInfraError::NotImplemented("".to_string()).error_type(),
+            "not_implemented"
+        );
+        assert_eq!(
+            DeepInfraError::ModelNotFound("".to_string()).error_type(),
+            "model_not_found"
+        );
     }
 
     #[test]
     fn test_deepinfra_error_is_retryable() {
         assert!(DeepInfraError::Network("".to_string()).is_retryable());
         assert!(DeepInfraError::RateLimit("".to_string()).is_retryable());
-        assert!(DeepInfraError::Api { status: 500, message: "".to_string() }.is_retryable());
-        assert!(DeepInfraError::Api { status: 503, message: "".to_string() }.is_retryable());
-        assert!(DeepInfraError::Api { status: 429, message: "".to_string() }.is_retryable());
+        assert!(
+            DeepInfraError::Api {
+                status: 500,
+                message: "".to_string()
+            }
+            .is_retryable()
+        );
+        assert!(
+            DeepInfraError::Api {
+                status: 503,
+                message: "".to_string()
+            }
+            .is_retryable()
+        );
+        assert!(
+            DeepInfraError::Api {
+                status: 429,
+                message: "".to_string()
+            }
+            .is_retryable()
+        );
 
         assert!(!DeepInfraError::Configuration("".to_string()).is_retryable());
         assert!(!DeepInfraError::Authentication("".to_string()).is_retryable());
-        assert!(!DeepInfraError::Api { status: 400, message: "".to_string() }.is_retryable());
-        assert!(!DeepInfraError::Api { status: 404, message: "".to_string() }.is_retryable());
+        assert!(
+            !DeepInfraError::Api {
+                status: 400,
+                message: "".to_string()
+            }
+            .is_retryable()
+        );
+        assert!(
+            !DeepInfraError::Api {
+                status: 404,
+                message: "".to_string()
+            }
+            .is_retryable()
+        );
         assert!(!DeepInfraError::Validation("".to_string()).is_retryable());
     }
 
     #[test]
     fn test_deepinfra_error_retry_delay() {
-        assert_eq!(DeepInfraError::Network("".to_string()).retry_delay(), Some(5));
-        assert_eq!(DeepInfraError::RateLimit("".to_string()).retry_delay(), Some(60));
-        assert_eq!(DeepInfraError::Api { status: 429, message: "".to_string() }.retry_delay(), Some(30));
-        assert_eq!(DeepInfraError::Api { status: 500, message: "".to_string() }.retry_delay(), Some(10));
-        assert_eq!(DeepInfraError::Api { status: 503, message: "".to_string() }.retry_delay(), Some(10));
-        assert_eq!(DeepInfraError::Configuration("".to_string()).retry_delay(), None);
-        assert_eq!(DeepInfraError::Authentication("".to_string()).retry_delay(), None);
+        assert_eq!(
+            DeepInfraError::Network("".to_string()).retry_delay(),
+            Some(5)
+        );
+        assert_eq!(
+            DeepInfraError::RateLimit("".to_string()).retry_delay(),
+            Some(60)
+        );
+        assert_eq!(
+            DeepInfraError::Api {
+                status: 429,
+                message: "".to_string()
+            }
+            .retry_delay(),
+            Some(30)
+        );
+        assert_eq!(
+            DeepInfraError::Api {
+                status: 500,
+                message: "".to_string()
+            }
+            .retry_delay(),
+            Some(10)
+        );
+        assert_eq!(
+            DeepInfraError::Api {
+                status: 503,
+                message: "".to_string()
+            }
+            .retry_delay(),
+            Some(10)
+        );
+        assert_eq!(
+            DeepInfraError::Configuration("".to_string()).retry_delay(),
+            None
+        );
+        assert_eq!(
+            DeepInfraError::Authentication("".to_string()).retry_delay(),
+            None
+        );
     }
 
     #[test]
     fn test_deepinfra_error_http_status() {
-        assert_eq!(DeepInfraError::Api { status: 503, message: "".to_string() }.http_status(), 503);
-        assert_eq!(DeepInfraError::Authentication("".to_string()).http_status(), 401);
-        assert_eq!(DeepInfraError::Configuration("".to_string()).http_status(), 400);
-        assert_eq!(DeepInfraError::Validation("".to_string()).http_status(), 400);
+        assert_eq!(
+            DeepInfraError::Api {
+                status: 503,
+                message: "".to_string()
+            }
+            .http_status(),
+            503
+        );
+        assert_eq!(
+            DeepInfraError::Authentication("".to_string()).http_status(),
+            401
+        );
+        assert_eq!(
+            DeepInfraError::Configuration("".to_string()).http_status(),
+            400
+        );
+        assert_eq!(
+            DeepInfraError::Validation("".to_string()).http_status(),
+            400
+        );
         assert_eq!(DeepInfraError::RateLimit("".to_string()).http_status(), 429);
-        assert_eq!(DeepInfraError::ModelNotFound("".to_string()).http_status(), 404);
-        assert_eq!(DeepInfraError::NotImplemented("".to_string()).http_status(), 501);
+        assert_eq!(
+            DeepInfraError::ModelNotFound("".to_string()).http_status(),
+            404
+        );
+        assert_eq!(
+            DeepInfraError::NotImplemented("".to_string()).http_status(),
+            501
+        );
         assert_eq!(DeepInfraError::Network("".to_string()).http_status(), 500);
-        assert_eq!(DeepInfraError::Serialization("".to_string()).http_status(), 500);
+        assert_eq!(
+            DeepInfraError::Serialization("".to_string()).http_status(),
+            500
+        );
     }
 
     #[test]
@@ -821,10 +955,16 @@ mod tests {
         };
         let provider = DeepInfraProvider::new(config).unwrap();
 
-        let cost = provider.calculate_cost("meta-llama/Llama-2-70b-chat-hf", 1000, 1000).await.unwrap();
+        let cost = provider
+            .calculate_cost("meta-llama/Llama-2-70b-chat-hf", 1000, 1000)
+            .await
+            .unwrap();
         assert!(cost > 0.0);
 
-        let cost_unknown = provider.calculate_cost("unknown-model", 1000, 1000).await.unwrap();
+        let cost_unknown = provider
+            .calculate_cost("unknown-model", 1000, 1000)
+            .await
+            .unwrap();
         assert_eq!(cost_unknown, 0.0);
     }
 

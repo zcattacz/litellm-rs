@@ -215,11 +215,13 @@ mod tests {
 
     #[test]
     fn test_log_level_variants() {
-        let levels = [LogLevel::Error,
+        let levels = [
+            LogLevel::Error,
             LogLevel::Warn,
             LogLevel::Info,
             LogLevel::Debug,
-            LogLevel::Trace];
+            LogLevel::Trace,
+        ];
         assert_eq!(levels.len(), 5);
     }
 
@@ -357,12 +359,14 @@ mod tests {
 
     #[test]
     fn test_alert_condition_variants() {
-        let conditions = [AlertCondition::GreaterThan,
+        let conditions = [
+            AlertCondition::GreaterThan,
             AlertCondition::LessThan,
             AlertCondition::Equal,
             AlertCondition::NotEqual,
             AlertCondition::GreaterThanOrEqual,
-            AlertCondition::LessThanOrEqual];
+            AlertCondition::LessThanOrEqual,
+        ];
         assert_eq!(conditions.len(), 6);
     }
 
@@ -377,11 +381,13 @@ mod tests {
 
     #[test]
     fn test_alert_severity_variants() {
-        let severities = [AlertSeverity::Critical,
+        let severities = [
+            AlertSeverity::Critical,
             AlertSeverity::High,
             AlertSeverity::Medium,
             AlertSeverity::Low,
-            AlertSeverity::Info];
+            AlertSeverity::Info,
+        ];
         assert_eq!(severities.len(), 5);
     }
 

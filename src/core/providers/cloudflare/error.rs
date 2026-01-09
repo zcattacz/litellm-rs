@@ -191,16 +191,46 @@ mod tests {
 
     #[test]
     fn test_cloudflare_error_type() {
-        assert_eq!(CloudflareError::ApiError("".to_string()).error_type(), "api_error");
-        assert_eq!(CloudflareError::AuthenticationError("".to_string()).error_type(), "authentication_error");
-        assert_eq!(CloudflareError::RateLimitError("".to_string()).error_type(), "rate_limit_error");
-        assert_eq!(CloudflareError::InvalidRequestError("".to_string()).error_type(), "invalid_request_error");
-        assert_eq!(CloudflareError::ModelNotFoundError("".to_string()).error_type(), "model_not_found_error");
-        assert_eq!(CloudflareError::ServiceUnavailableError("".to_string()).error_type(), "service_unavailable_error");
-        assert_eq!(CloudflareError::ConfigurationError("".to_string()).error_type(), "configuration_error");
-        assert_eq!(CloudflareError::NetworkError("".to_string()).error_type(), "network_error");
-        assert_eq!(CloudflareError::QuotaExceededError("".to_string()).error_type(), "quota_exceeded_error");
-        assert_eq!(CloudflareError::WorkersAIError("".to_string()).error_type(), "workers_ai_error");
+        assert_eq!(
+            CloudflareError::ApiError("".to_string()).error_type(),
+            "api_error"
+        );
+        assert_eq!(
+            CloudflareError::AuthenticationError("".to_string()).error_type(),
+            "authentication_error"
+        );
+        assert_eq!(
+            CloudflareError::RateLimitError("".to_string()).error_type(),
+            "rate_limit_error"
+        );
+        assert_eq!(
+            CloudflareError::InvalidRequestError("".to_string()).error_type(),
+            "invalid_request_error"
+        );
+        assert_eq!(
+            CloudflareError::ModelNotFoundError("".to_string()).error_type(),
+            "model_not_found_error"
+        );
+        assert_eq!(
+            CloudflareError::ServiceUnavailableError("".to_string()).error_type(),
+            "service_unavailable_error"
+        );
+        assert_eq!(
+            CloudflareError::ConfigurationError("".to_string()).error_type(),
+            "configuration_error"
+        );
+        assert_eq!(
+            CloudflareError::NetworkError("".to_string()).error_type(),
+            "network_error"
+        );
+        assert_eq!(
+            CloudflareError::QuotaExceededError("".to_string()).error_type(),
+            "quota_exceeded_error"
+        );
+        assert_eq!(
+            CloudflareError::WorkersAIError("".to_string()).error_type(),
+            "workers_ai_error"
+        );
     }
 
     #[test]
@@ -216,20 +246,50 @@ mod tests {
 
     #[test]
     fn test_cloudflare_error_retry_delay() {
-        assert_eq!(CloudflareError::RateLimitError("".to_string()).retry_delay(), Some(60));
-        assert_eq!(CloudflareError::ServiceUnavailableError("".to_string()).retry_delay(), Some(5));
-        assert_eq!(CloudflareError::NetworkError("".to_string()).retry_delay(), Some(2));
-        assert_eq!(CloudflareError::ApiError("".to_string()).retry_delay(), None);
+        assert_eq!(
+            CloudflareError::RateLimitError("".to_string()).retry_delay(),
+            Some(60)
+        );
+        assert_eq!(
+            CloudflareError::ServiceUnavailableError("".to_string()).retry_delay(),
+            Some(5)
+        );
+        assert_eq!(
+            CloudflareError::NetworkError("".to_string()).retry_delay(),
+            Some(2)
+        );
+        assert_eq!(
+            CloudflareError::ApiError("".to_string()).retry_delay(),
+            None
+        );
     }
 
     #[test]
     fn test_cloudflare_error_http_status() {
-        assert_eq!(CloudflareError::AuthenticationError("".to_string()).http_status(), 401);
-        assert_eq!(CloudflareError::RateLimitError("".to_string()).http_status(), 429);
-        assert_eq!(CloudflareError::InvalidRequestError("".to_string()).http_status(), 400);
-        assert_eq!(CloudflareError::ModelNotFoundError("".to_string()).http_status(), 404);
-        assert_eq!(CloudflareError::ServiceUnavailableError("".to_string()).http_status(), 503);
-        assert_eq!(CloudflareError::QuotaExceededError("".to_string()).http_status(), 429);
+        assert_eq!(
+            CloudflareError::AuthenticationError("".to_string()).http_status(),
+            401
+        );
+        assert_eq!(
+            CloudflareError::RateLimitError("".to_string()).http_status(),
+            429
+        );
+        assert_eq!(
+            CloudflareError::InvalidRequestError("".to_string()).http_status(),
+            400
+        );
+        assert_eq!(
+            CloudflareError::ModelNotFoundError("".to_string()).http_status(),
+            404
+        );
+        assert_eq!(
+            CloudflareError::ServiceUnavailableError("".to_string()).http_status(),
+            503
+        );
+        assert_eq!(
+            CloudflareError::QuotaExceededError("".to_string()).http_status(),
+            429
+        );
         assert_eq!(CloudflareError::ApiError("".to_string()).http_status(), 500);
     }
 
@@ -259,7 +319,8 @@ mod tests {
 
     #[test]
     fn test_cloudflare_error_to_provider_error() {
-        let err: ProviderError = CloudflareError::AuthenticationError("bad token".to_string()).into();
+        let err: ProviderError =
+            CloudflareError::AuthenticationError("bad token".to_string()).into();
         assert!(matches!(err, ProviderError::Authentication { .. }));
 
         let err: ProviderError = CloudflareError::RateLimitError("limit".to_string()).into();

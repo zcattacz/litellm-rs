@@ -468,9 +468,11 @@ mod tests {
 
     #[test]
     fn test_multiple_provider_configs() {
-        let configs = [create_test_provider_config("openai", "openai"),
+        let configs = [
+            create_test_provider_config("openai", "openai"),
             create_test_provider_config("anthropic", "anthropic"),
-            create_test_provider_config("azure", "azure")];
+            create_test_provider_config("azure", "azure"),
+        ];
 
         assert_eq!(configs.len(), 3);
         assert_eq!(configs[0].name, "openai");

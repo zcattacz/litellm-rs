@@ -419,9 +419,7 @@ mod tests {
 
     #[test]
     fn test_sse_parser_content_block_stop() {
-        let result = SSEParser::parse_event(
-            "data: {\"type\":\"content_block_stop\",\"index\":0}",
-        );
+        let result = SSEParser::parse_event("data: {\"type\":\"content_block_stop\",\"index\":0}");
         assert!(matches!(result, Some(SSEEvent::ContentBlockStop(_))));
     }
 
@@ -435,9 +433,7 @@ mod tests {
 
     #[test]
     fn test_sse_parser_message_stop() {
-        let result = SSEParser::parse_event(
-            "data: {\"type\":\"message_stop\"}",
-        );
+        let result = SSEParser::parse_event("data: {\"type\":\"message_stop\"}");
         assert!(matches!(result, Some(SSEEvent::MessageStop(_))));
     }
 
@@ -481,9 +477,7 @@ mod tests {
 
     #[test]
     fn test_sse_parser_unknown_event_type() {
-        let result = SSEParser::parse_event(
-            "data: {\"type\":\"unknown_event\",\"data\":{}}",
-        );
+        let result = SSEParser::parse_event("data: {\"type\":\"unknown_event\",\"data\":{}}");
         assert!(matches!(result, Some(SSEEvent::Unknown(_))));
     }
 
@@ -583,7 +577,10 @@ mod tests {
         let mut message_id = "msg_123".to_string();
         let result = AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
         let chunk = result.unwrap().unwrap();
-        assert_eq!(chunk.choices[0].finish_reason, Some(crate::core::types::FinishReason::Stop));
+        assert_eq!(
+            chunk.choices[0].finish_reason,
+            Some(crate::core::types::FinishReason::Stop)
+        );
 
         // Test max_tokens
         let event = SSEEvent::MessageDelta(serde_json::json!({
@@ -592,7 +589,10 @@ mod tests {
         }));
         let result = AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
         let chunk = result.unwrap().unwrap();
-        assert_eq!(chunk.choices[0].finish_reason, Some(crate::core::types::FinishReason::Length));
+        assert_eq!(
+            chunk.choices[0].finish_reason,
+            Some(crate::core::types::FinishReason::Length)
+        );
 
         // Test tool_use
         let event = SSEEvent::MessageDelta(serde_json::json!({
@@ -601,7 +601,10 @@ mod tests {
         }));
         let result = AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
         let chunk = result.unwrap().unwrap();
-        assert_eq!(chunk.choices[0].finish_reason, Some(crate::core::types::FinishReason::ToolCalls));
+        assert_eq!(
+            chunk.choices[0].finish_reason,
+            Some(crate::core::types::FinishReason::ToolCalls)
+        );
     }
 
     #[test]
@@ -630,8 +633,7 @@ mod tests {
         }));
 
         let mut message_id = "msg_123".to_string();
-        let result =
-            AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
+        let result = AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
 
         assert!(result.is_ok());
         assert!(result.unwrap().is_none()); // Should skip
@@ -645,8 +647,7 @@ mod tests {
         }));
 
         let mut message_id = "msg_123".to_string();
-        let result =
-            AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
+        let result = AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
 
         assert!(result.is_ok());
         assert!(result.unwrap().is_none()); // Should skip
@@ -667,8 +668,7 @@ mod tests {
         let event = SSEEvent::Unknown("unknown_event".to_string());
 
         let mut message_id = "msg_123".to_string();
-        let result =
-            AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
+        let result = AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
 
         assert!(result.is_ok());
         assert!(result.unwrap().is_none()); // Should skip
@@ -684,8 +684,7 @@ mod tests {
         }));
 
         let mut message_id = "msg_123".to_string();
-        let result =
-            AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
+        let result = AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
 
         assert!(result.is_err());
     }
@@ -747,7 +746,9 @@ mod tests {
         let event = SSEEvent::ContentBlockDelta(serde_json::json!({"type": "test"}));
         let cloned = event.clone();
 
-        if let (SSEEvent::ContentBlockDelta(orig), SSEEvent::ContentBlockDelta(cloned_val)) = (&event, &cloned) {
+        if let (SSEEvent::ContentBlockDelta(orig), SSEEvent::ContentBlockDelta(cloned_val)) =
+            (&event, &cloned)
+        {
             assert_eq!(orig, cloned_val);
         } else {
             panic!("Clone failed");
@@ -766,8 +767,7 @@ mod tests {
         }));
 
         let mut message_id = "msg_123".to_string();
-        let result =
-            AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
+        let result = AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
 
         assert!(result.is_ok());
         let chunk = result.unwrap().unwrap();
@@ -782,8 +782,7 @@ mod tests {
         }));
 
         let mut message_id = "msg_123".to_string();
-        let result =
-            AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
+        let result = AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
 
         assert!(result.is_ok());
         let chunk = result.unwrap().unwrap();
@@ -797,8 +796,7 @@ mod tests {
         }));
 
         let mut message_id = String::new();
-        let result =
-            AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
+        let result = AnthropicStream::process_event(event, "claude-3-5-sonnet", &mut message_id, 0);
 
         assert!(result.is_ok());
         // message_id should remain empty since there's no message field

@@ -351,7 +351,10 @@ mod tests {
 
         let channel = EmailChannel::new(
             smtp_config,
-            vec!["admin@example.com".to_string(), "ops@example.com".to_string()],
+            vec![
+                "admin@example.com".to_string(),
+                "ops@example.com".to_string(),
+            ],
             AlertSeverity::Critical,
         );
 
@@ -466,7 +469,9 @@ mod tests {
 
         for severity in severities {
             let alert = create_test_alert(severity);
-            assert!(matches!(alert.severity, s if std::mem::discriminant(&s) == std::mem::discriminant(&severity)));
+            assert!(
+                matches!(alert.severity, s if std::mem::discriminant(&s) == std::mem::discriminant(&severity))
+            );
         }
     }
 

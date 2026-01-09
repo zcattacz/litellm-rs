@@ -261,7 +261,8 @@ mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     // Type alias to avoid clippy::type_complexity warning
-    type BoxedFuture<T, E> = std::pin::Pin<Box<dyn Future<Output = std::result::Result<T, E>> + Send>>;
+    type BoxedFuture<T, E> =
+        std::pin::Pin<Box<dyn Future<Output = std::result::Result<T, E>> + Send>>;
 
     // ConcurrentRunner tests
     #[tokio::test]

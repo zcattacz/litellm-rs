@@ -553,7 +553,9 @@ mod tests {
     #[test]
     fn test_supports_functions_other_models() {
         assert!(!AzureChatUtils::supports_functions("text-davinci-003"));
-        assert!(!AzureChatUtils::supports_functions("text-embedding-ada-002"));
+        assert!(!AzureChatUtils::supports_functions(
+            "text-embedding-ada-002"
+        ));
         assert!(!AzureChatUtils::supports_functions("dall-e-3"));
     }
 
@@ -584,16 +586,16 @@ mod tests {
 
     #[test]
     fn test_azure_chat_handler_new() {
-        let config = AzureConfig::new()
-            .with_azure_endpoint("https://test.openai.azure.com".to_string());
+        let config =
+            AzureConfig::new().with_azure_endpoint("https://test.openai.azure.com".to_string());
         let handler = AzureChatHandler::new(config);
         assert!(handler.is_ok());
     }
 
     #[test]
     fn test_transform_request_basic() {
-        let config = AzureConfig::new()
-            .with_azure_endpoint("https://test.openai.azure.com".to_string());
+        let config =
+            AzureConfig::new().with_azure_endpoint("https://test.openai.azure.com".to_string());
         let handler = AzureChatHandler::new(config).unwrap();
 
         let request = create_test_request();
@@ -606,8 +608,8 @@ mod tests {
 
     #[test]
     fn test_transform_request_with_options() {
-        let config = AzureConfig::new()
-            .with_azure_endpoint("https://test.openai.azure.com".to_string());
+        let config =
+            AzureConfig::new().with_azure_endpoint("https://test.openai.azure.com".to_string());
         let handler = AzureChatHandler::new(config).unwrap();
 
         let request = ChatRequest {
@@ -636,8 +638,8 @@ mod tests {
 
     #[test]
     fn test_transform_response() {
-        let config = AzureConfig::new()
-            .with_azure_endpoint("https://test.openai.azure.com".to_string());
+        let config =
+            AzureConfig::new().with_azure_endpoint("https://test.openai.azure.com".to_string());
         let handler = AzureChatHandler::new(config).unwrap();
 
         let response = json!({
@@ -666,20 +668,29 @@ mod tests {
         assert_eq!(chat_response.id, "chatcmpl-123");
         assert_eq!(chat_response.model, "gpt-4");
         assert_eq!(chat_response.choices.len(), 1);
-        assert_eq!(chat_response.choices[0].message.role, MessageRole::Assistant);
-        assert_eq!(chat_response.choices[0].finish_reason, Some(FinishReason::Stop));
+        assert_eq!(
+            chat_response.choices[0].message.role,
+            MessageRole::Assistant
+        );
+        assert_eq!(
+            chat_response.choices[0].finish_reason,
+            Some(FinishReason::Stop)
+        );
         assert!(chat_response.usage.is_some());
         let usage = chat_response.usage.unwrap();
         assert_eq!(usage.prompt_tokens, 10);
         assert_eq!(usage.completion_tokens, 5);
         assert_eq!(usage.total_tokens, 15);
-        assert_eq!(chat_response.system_fingerprint, Some("fp_abc123".to_string()));
+        assert_eq!(
+            chat_response.system_fingerprint,
+            Some("fp_abc123".to_string())
+        );
     }
 
     #[test]
     fn test_transform_response_finish_reasons() {
-        let config = AzureConfig::new()
-            .with_azure_endpoint("https://test.openai.azure.com".to_string());
+        let config =
+            AzureConfig::new().with_azure_endpoint("https://test.openai.azure.com".to_string());
         let handler = AzureChatHandler::new(config).unwrap();
 
         let finish_reasons = vec![
@@ -706,14 +717,17 @@ mod tests {
 
             let result = handler.transform_response(response, "gpt-4");
             assert!(result.is_ok());
-            assert_eq!(result.unwrap().choices[0].finish_reason, Some(expected_reason));
+            assert_eq!(
+                result.unwrap().choices[0].finish_reason,
+                Some(expected_reason)
+            );
         }
     }
 
     #[test]
     fn test_transform_response_roles() {
-        let config = AzureConfig::new()
-            .with_azure_endpoint("https://test.openai.azure.com".to_string());
+        let config =
+            AzureConfig::new().with_azure_endpoint("https://test.openai.azure.com".to_string());
         let handler = AzureChatHandler::new(config).unwrap();
 
         let roles = vec![
@@ -767,8 +781,14 @@ mod tests {
         assert_eq!(chat_chunk.id, "chatcmpl-123");
         assert_eq!(chat_chunk.model, "gpt-4");
         assert_eq!(chat_chunk.choices.len(), 1);
-        assert_eq!(chat_chunk.choices[0].delta.content, Some("Hello".to_string()));
-        assert_eq!(chat_chunk.choices[0].delta.role, Some(MessageRole::Assistant));
+        assert_eq!(
+            chat_chunk.choices[0].delta.content,
+            Some("Hello".to_string())
+        );
+        assert_eq!(
+            chat_chunk.choices[0].delta.role,
+            Some(MessageRole::Assistant)
+        );
     }
 
     #[test]
@@ -787,7 +807,10 @@ mod tests {
         assert!(result.is_ok());
 
         let chat_chunk = result.unwrap();
-        assert_eq!(chat_chunk.choices[0].finish_reason, Some(FinishReason::Stop));
+        assert_eq!(
+            chat_chunk.choices[0].finish_reason,
+            Some(FinishReason::Stop)
+        );
     }
 
     #[test]

@@ -315,8 +315,12 @@ mod tests {
         assert!(registry.model_supports_feature("sonar-reasoning", &ModelFeature::Reasoning));
 
         // Chat model should not support web search
-        assert!(!registry
-            .model_supports_feature("llama-3.1-sonar-small-128k-chat", &ModelFeature::WebSearch));
+        assert!(
+            !registry.model_supports_feature(
+                "llama-3.1-sonar-small-128k-chat",
+                &ModelFeature::WebSearch
+            )
+        );
     }
 
     #[test]

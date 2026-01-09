@@ -70,7 +70,10 @@ pub enum AgentState {
 impl AgentState {
     /// Check if agent is available for requests
     pub fn is_available(&self) -> bool {
-        matches!(self, AgentState::Healthy | AgentState::Degraded | AgentState::Unknown)
+        matches!(
+            self,
+            AgentState::Healthy | AgentState::Degraded | AgentState::Unknown
+        )
     }
 }
 
@@ -99,7 +102,9 @@ impl AgentRegistry {
     pub async fn register(&self, config: AgentConfig) -> A2AResult<()> {
         let name = config.name.clone();
 
-        config.validate().map_err(|e| A2AError::ConfigurationError { message: e })?;
+        config
+            .validate()
+            .map_err(|e| A2AError::ConfigurationError { message: e })?;
 
         let mut agents = self.agents.write().await;
         if agents.contains_key(&name) {
@@ -293,7 +298,9 @@ mod tests {
         let config = AgentConfig::new("test-agent", "https://example.com/agent");
         registry.register(config).await.unwrap();
 
-        registry.update_state("test-agent", AgentState::Healthy).await;
+        registry
+            .update_state("test-agent", AgentState::Healthy)
+            .await;
 
         let entry = registry.get("test-agent").await.unwrap();
         assert_eq!(entry.state, AgentState::Healthy);

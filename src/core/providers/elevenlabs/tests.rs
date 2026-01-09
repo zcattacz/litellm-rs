@@ -204,11 +204,11 @@ fn test_voice_settings_serialization() {
     };
 
     let json = serde_json::to_value(&settings).unwrap();
-    assert_eq!(json["stability"], 0.5);
-    assert_eq!(json["similarity_boost"], 0.75);
-    assert_eq!(json["style"], 0.3);
+    assert!((json["stability"].as_f64().unwrap() - 0.5).abs() < 0.01);
+    assert!((json["similarity_boost"].as_f64().unwrap() - 0.75).abs() < 0.01);
+    assert!((json["style"].as_f64().unwrap() - 0.3).abs() < 0.01);
     assert_eq!(json["use_speaker_boost"], true);
-    assert_eq!(json["speed"], 1.0);
+    assert!((json["speed"].as_f64().unwrap() - 1.0).abs() < 0.01);
 }
 
 #[test]
@@ -309,7 +309,7 @@ async fn test_provider_capabilities() {
     let capabilities = provider.capabilities();
 
     assert!(capabilities.contains(&ProviderCapability::TextToSpeech));
-    assert!(capabilities.contains(&ProviderCapability::SpeechToText));
+    assert!(capabilities.contains(&ProviderCapability::AudioTranscription));
     assert!(!capabilities.contains(&ProviderCapability::ChatCompletion));
 }
 

@@ -664,7 +664,10 @@ mod tests {
         params.insert("max_tokens".to_string(), serde_json::json!(100));
         params.insert("top_p".to_string(), serde_json::json!(0.9));
 
-        let mapped = provider.map_openai_params(params.clone(), "moonshot-v1-8k").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params.clone(), "moonshot-v1-8k")
+            .await
+            .unwrap();
 
         // Moonshot is OpenAI-compatible, should pass through
         assert_eq!(mapped, params);
@@ -678,10 +681,19 @@ mod tests {
         params.insert("presence_penalty".to_string(), serde_json::json!(0.5));
         params.insert("frequency_penalty".to_string(), serde_json::json!(0.3));
 
-        let mapped = provider.map_openai_params(params.clone(), "moonshot-v1-8k").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params.clone(), "moonshot-v1-8k")
+            .await
+            .unwrap();
 
-        assert_eq!(mapped.get("presence_penalty").unwrap(), &serde_json::json!(0.5));
-        assert_eq!(mapped.get("frequency_penalty").unwrap(), &serde_json::json!(0.3));
+        assert_eq!(
+            mapped.get("presence_penalty").unwrap(),
+            &serde_json::json!(0.5)
+        );
+        assert_eq!(
+            mapped.get("frequency_penalty").unwrap(),
+            &serde_json::json!(0.3)
+        );
     }
 
     // ==================== Transform Request Tests ====================
@@ -741,7 +753,9 @@ mod tests {
             messages: vec![
                 ChatMessage {
                     role: MessageRole::System,
-                    content: Some(MessageContent::Text("You are a helpful assistant.".to_string())),
+                    content: Some(MessageContent::Text(
+                        "You are a helpful assistant.".to_string(),
+                    )),
                     ..Default::default()
                 },
                 ChatMessage {
@@ -872,7 +886,8 @@ mod tests {
     #[test]
     fn test_error_mapper_network_error() {
         let mapper = MoonshotErrorMapper;
-        let error = std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
+        let error =
+            std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
         let mapped = mapper.map_network_error(&error);
 
         match mapped {

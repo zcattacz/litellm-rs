@@ -247,7 +247,10 @@ mod tests {
             replacement: PIIReplacement::Placeholder("[SSN REDACTED]".to_string()),
             confidence: 0.99,
         };
-        assert!(matches!(pattern.replacement, PIIReplacement::Placeholder(_)));
+        assert!(matches!(
+            pattern.replacement,
+            PIIReplacement::Placeholder(_)
+        ));
     }
 
     #[test]
@@ -261,7 +264,11 @@ mod tests {
             },
             confidence: 0.98,
         };
-        if let PIIReplacement::PartialMask { keep_start, keep_end } = pattern.replacement {
+        if let PIIReplacement::PartialMask {
+            keep_start,
+            keep_end,
+        } = pattern.replacement
+        {
             assert_eq!(keep_start, 4);
             assert_eq!(keep_end, 4);
         } else {
@@ -332,7 +339,11 @@ mod tests {
             keep_start: 2,
             keep_end: 3,
         };
-        if let PIIReplacement::PartialMask { keep_start, keep_end } = replacement {
+        if let PIIReplacement::PartialMask {
+            keep_start,
+            keep_end,
+        } = replacement
+        {
             assert_eq!(keep_start, 2);
             assert_eq!(keep_end, 3);
         } else {
@@ -344,7 +355,9 @@ mod tests {
     fn test_pii_replacement_clone() {
         let replacement = PIIReplacement::Placeholder("test".to_string());
         let cloned = replacement.clone();
-        if let (PIIReplacement::Placeholder(a), PIIReplacement::Placeholder(b)) = (replacement, cloned) {
+        if let (PIIReplacement::Placeholder(a), PIIReplacement::Placeholder(b)) =
+            (replacement, cloned)
+        {
             assert_eq!(a, b);
         }
     }

@@ -257,7 +257,8 @@ mod tests {
 
     #[test]
     fn test_tracing_config_deserialization() {
-        let json = r#"{"enabled": true, "endpoint": "http://zipkin:9411", "service_name": "tracer"}"#;
+        let json =
+            r#"{"enabled": true, "endpoint": "http://zipkin:9411", "service_name": "tracer"}"#;
         let config: TracingConfig = serde_json::from_str(json).unwrap();
         assert!(config.enabled);
         assert_eq!(config.service_name, "tracer");

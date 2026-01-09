@@ -506,7 +506,10 @@ mod tests {
         assert_eq!(chat_response.id, "cmpl-123");
         assert_eq!(chat_response.model, "mistral-large");
         assert_eq!(chat_response.choices.len(), 1);
-        assert_eq!(chat_response.choices[0].finish_reason, Some(FinishReason::Stop));
+        assert_eq!(
+            chat_response.choices[0].finish_reason,
+            Some(FinishReason::Stop)
+        );
         assert!(chat_response.usage.is_some());
         let usage = chat_response.usage.unwrap();
         assert_eq!(usage.prompt_tokens, 10);

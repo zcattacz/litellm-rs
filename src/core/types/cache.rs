@@ -94,14 +94,8 @@ mod tests {
 
         assert_eq!(key.identifiers.len(), 3);
         assert_eq!(key.identifiers.get("model"), Some(&"gpt-4".to_string()));
-        assert_eq!(
-            key.identifiers.get("temperature"),
-            Some(&"0.7".to_string())
-        );
-        assert_eq!(
-            key.identifiers.get("max_tokens"),
-            Some(&"100".to_string())
-        );
+        assert_eq!(key.identifiers.get("temperature"), Some(&"0.7".to_string()));
+        assert_eq!(key.identifiers.get("max_tokens"), Some(&"100".to_string()));
     }
 
     #[test]

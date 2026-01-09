@@ -549,7 +549,10 @@ mod tests {
         let client = create_test_client();
         let cloned = client.clone();
 
-        assert_eq!(client.auth().credentials().region, cloned.auth().credentials().region);
+        assert_eq!(
+            client.auth().credentials().region,
+            cloned.auth().credentials().region
+        );
         assert_eq!(
             client.auth().credentials().access_key_id,
             cloned.auth().credentials().access_key_id

@@ -184,7 +184,9 @@ pub fn transform_chat_response(
     let choices = match model_config.family {
         BedrockModelFamily::Claude => parse_claude_response(&response),
         BedrockModelFamily::TitanText => parse_titan_response(&response),
-        BedrockModelFamily::Nova | BedrockModelFamily::Llama => parse_nova_llama_response(&response),
+        BedrockModelFamily::Nova | BedrockModelFamily::Llama => {
+            parse_nova_llama_response(&response)
+        }
         BedrockModelFamily::Mistral => parse_mistral_response(&response),
         BedrockModelFamily::AI21 => parse_ai21_response(&response),
         BedrockModelFamily::Cohere => parse_cohere_response(&response),

@@ -74,7 +74,6 @@ impl AzureCostCalculator {
     }
 }
 
-
 #[async_trait]
 impl CostCalculator for AzureCostCalculator {
     type Error = CostError;
@@ -459,7 +458,8 @@ mod tests {
         let calc = AzureCostCalculator::new();
 
         // HD should cost more than standard
-        let result_standard = calc.calculate_dalle_cost("dall-e-3", "1024x1024", Some("standard"), 1);
+        let result_standard =
+            calc.calculate_dalle_cost("dall-e-3", "1024x1024", Some("standard"), 1);
         let result_hd = calc.calculate_dalle_cost("dall-e-3", "1024x1024", Some("hd"), 1);
 
         if let (Ok(cost_standard), Ok(cost_hd)) = (result_standard, result_hd) {

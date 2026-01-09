@@ -140,8 +140,8 @@ impl RbacSystem {
 mod tests {
     use super::*;
     use crate::config::RbacConfig;
-    use crate::core::models::user::types::{UserRole, UserStatus, UserProfile};
     use crate::core::models::user::preferences::UserPreferences;
+    use crate::core::models::user::types::{UserProfile, UserRole, UserStatus};
     use crate::core::models::{Metadata, UsageStats};
 
     // ==================== Helper Functions ====================
@@ -383,7 +383,10 @@ mod tests {
         let rbac = create_test_rbac_system().await;
         let user = create_test_user(UserRole::User);
 
-        let result = rbac.check_permission_detailed(&user, "api.chat").await.unwrap();
+        let result = rbac
+            .check_permission_detailed(&user, "api.chat")
+            .await
+            .unwrap();
 
         assert!(result.granted);
         assert!(!result.granted_by_roles.is_empty());
@@ -395,7 +398,10 @@ mod tests {
         let rbac = create_test_rbac_system().await;
         let user = create_test_user(UserRole::User);
 
-        let result = rbac.check_permission_detailed(&user, "users.delete").await.unwrap();
+        let result = rbac
+            .check_permission_detailed(&user, "users.delete")
+            .await
+            .unwrap();
 
         assert!(!result.granted);
         assert!(result.granted_by_roles.is_empty());
@@ -408,7 +414,10 @@ mod tests {
         let rbac = create_test_rbac_system().await;
         let user = create_test_user(UserRole::SuperAdmin);
 
-        let result = rbac.check_permission_detailed(&user, "any.permission").await.unwrap();
+        let result = rbac
+            .check_permission_detailed(&user, "any.permission")
+            .await
+            .unwrap();
 
         // Super admin has system.admin, so should be granted
         assert!(result.granted);
@@ -419,7 +428,10 @@ mod tests {
         let rbac = create_test_rbac_system().await;
         let user = create_test_user(UserRole::Admin);
 
-        let result = rbac.check_permission_detailed(&user, "api.chat").await.unwrap();
+        let result = rbac
+            .check_permission_detailed(&user, "api.chat")
+            .await
+            .unwrap();
 
         assert!(result.granted);
         assert!(result.granted_by_roles.contains(&"admin".to_string()));
@@ -530,11 +542,20 @@ mod tests {
         let rbac = create_test_rbac_system().await;
 
         let default_perms = [
-            "users.read", "users.write", "users.delete",
-            "teams.read", "teams.write", "teams.delete",
-            "api.chat", "api.embeddings", "api.images",
-            "api_keys.read", "api_keys.write", "api_keys.delete",
-            "analytics.read", "system.admin",
+            "users.read",
+            "users.write",
+            "users.delete",
+            "teams.read",
+            "teams.write",
+            "teams.delete",
+            "api.chat",
+            "api.embeddings",
+            "api.images",
+            "api_keys.read",
+            "api_keys.write",
+            "api_keys.delete",
+            "analytics.read",
+            "system.admin",
         ];
 
         for perm_name in &default_perms {
@@ -578,7 +599,12 @@ mod tests {
 
         let result = rbac.add_permission(permission);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Cannot modify system permissions"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Cannot modify system permissions")
+        );
     }
 
     #[tokio::test]
@@ -626,7 +652,10 @@ mod tests {
         assert!(!can_delete);
 
         // Detailed check
-        let detailed = rbac.check_permission_detailed(&user, "api.chat").await.unwrap();
+        let detailed = rbac
+            .check_permission_detailed(&user, "api.chat")
+            .await
+            .unwrap();
         assert!(detailed.granted);
     }
 

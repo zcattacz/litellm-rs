@@ -706,7 +706,8 @@ mod tests {
     async fn test_batch_execute_with_default_config() {
         let items = vec![1, 2, 3];
 
-        let results = batch_execute(items, |x| async move { Ok::<_, GatewayError>(x + 1) }, None).await;
+        let results =
+            batch_execute(items, |x| async move { Ok::<_, GatewayError>(x + 1) }, None).await;
 
         assert_eq!(results.len(), 3);
         assert!(results.iter().all(|r| r.result.is_ok()));

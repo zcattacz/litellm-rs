@@ -240,10 +240,18 @@ mod tests {
 
     #[test]
     fn test_should_keep_cache_control() {
-        assert!(OpenRouterRequestTransformer::should_keep_cache_control("anthropic/claude-3-opus"));
-        assert!(OpenRouterRequestTransformer::should_keep_cache_control("CLAUDE-3-sonnet"));
-        assert!(!OpenRouterRequestTransformer::should_keep_cache_control("openai/gpt-4"));
-        assert!(!OpenRouterRequestTransformer::should_keep_cache_control("meta-llama/llama-3"));
+        assert!(OpenRouterRequestTransformer::should_keep_cache_control(
+            "anthropic/claude-3-opus"
+        ));
+        assert!(OpenRouterRequestTransformer::should_keep_cache_control(
+            "CLAUDE-3-sonnet"
+        ));
+        assert!(!OpenRouterRequestTransformer::should_keep_cache_control(
+            "openai/gpt-4"
+        ));
+        assert!(!OpenRouterRequestTransformer::should_keep_cache_control(
+            "meta-llama/llama-3"
+        ));
     }
 
     #[test]
@@ -273,7 +281,8 @@ mod tests {
 
     #[test]
     fn test_create_openrouter_headers_full() {
-        let headers = create_openrouter_headers("sk-test-key", Some("https://myapp.com"), Some("My App"));
+        let headers =
+            create_openrouter_headers("sk-test-key", Some("https://myapp.com"), Some("My App"));
 
         assert_eq!(headers.get("Authorization").unwrap(), "Bearer sk-test-key");
         assert_eq!(headers.get("HTTP-Referer").unwrap(), "https://myapp.com");

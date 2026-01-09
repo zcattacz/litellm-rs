@@ -718,7 +718,10 @@ mod tests {
         params.insert("max_tokens".to_string(), serde_json::json!(100));
         params.insert("top_p".to_string(), serde_json::json!(0.9));
 
-        let mapped = provider.map_openai_params(params.clone(), "MiniMax-M2.1").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params.clone(), "MiniMax-M2.1")
+            .await
+            .unwrap();
 
         // Minimax is OpenAI-compatible, should pass through
         assert_eq!(mapped, params);
@@ -812,7 +815,9 @@ mod tests {
     async fn test_calculate_cost_m21_lightning_model() {
         let provider = MinimaxProvider::new(create_test_config()).await.unwrap();
 
-        let cost = provider.calculate_cost("MiniMax-M2.1-lightning", 1000, 500).await;
+        let cost = provider
+            .calculate_cost("MiniMax-M2.1-lightning", 1000, 500)
+            .await;
         assert!(cost.is_ok());
 
         let cost_value = cost.unwrap();
@@ -869,7 +874,8 @@ mod tests {
     #[test]
     fn test_error_mapper_network_error() {
         let mapper = MinimaxErrorMapper;
-        let error = std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
+        let error =
+            std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
         let mapped = mapper.map_network_error(&error);
 
         match mapped {

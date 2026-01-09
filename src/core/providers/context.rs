@@ -3,9 +3,9 @@
 //! This module provides context objects that carry metadata, configuration,
 //! and runtime information throughout the provider execution pipeline.
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::time::{SystemTime, Instant};
-use serde::{Serialize, Deserialize};
+use std::time::{Instant, SystemTime};
 
 use super::ProviderType;
 
@@ -14,56 +14,56 @@ use super::ProviderType;
 pub struct RequestContext {
     /// Unique request identifier for tracing
     pub request_id: String,
-    
+
     /// User identifier for authentication/authorization
     pub user_id: Option<String>,
-    
+
     /// API key or token used for the request
     pub api_key_id: Option<String>,
-    
+
     /// Original request timestamp
     pub timestamp: SystemTime,
-    
+
     /// Request execution start time (for latency measurement)
     #[serde(skip, default = "Instant::now")]
     pub start_time: Instant,
-    
+
     /// Provider configuration overrides
     pub config_overrides: HashMap<String, serde_json::Value>,
-    
+
     /// Request headers from client
     pub headers: HashMap<String, String>,
-    
+
     /// Query parameters
     pub query_params: HashMap<String, String>,
-    
+
     /// IP address of the requesting client
     pub client_ip: Option<String>,
-    
+
     /// User agent string
     pub user_agent: Option<String>,
-    
+
     /// Rate limiting information
     pub rate_limit: Option<RateLimitContext>,
-    
+
     /// Cost tracking information
     pub cost_context: Option<CostContext>,
-    
+
     /// Security context
     pub security_context: SecurityContext,
-    
+
     /// Routing context
     pub routing_context: RoutingContext,
-    
+
     /// Custom metadata
     pub metadata: HashMap<String, String>,
-    
+
     /// Request priority (0-255, higher = more priority)
     pub priority: u8,
-    
+
     /// Maximum allowed execution time
     pub timeout_ms: Option<u64>,
-    
+
     /// Whether to enable detailed logging for this request
     pub debug_mode: bool,
 }
@@ -73,37 +73,37 @@ pub struct RequestContext {
 pub struct ResponseContext {
     /// Associated request context
     pub request_context: RequestContext,
-    
+
     /// Response timestamp
     pub timestamp: SystemTime,
-    
+
     /// Total execution time
     pub execution_time_ms: f64,
-    
+
     /// Provider that handled the request
     pub provider_id: String,
-    
+
     /// Provider type used
     pub provider_type: ProviderType,
-    
+
     /// Whether request was served from cache
     pub from_cache: bool,
-    
+
     /// Cache hit information
     pub cache_info: Option<CacheInfo>,
-    
+
     /// Retry information
     pub retry_info: Option<RetryInfo>,
-    
+
     /// Cost information
     pub cost_info: Option<CostInfo>,
-    
+
     /// Performance metrics
     pub metrics: ResponseMetrics,
-    
+
     /// Any warnings generated during processing
     pub warnings: Vec<String>,
-    
+
     /// Error information if request failed
     pub error_info: Option<ErrorInfo>,
 }
@@ -113,16 +113,16 @@ pub struct ResponseContext {
 pub struct RateLimitContext {
     /// Rate limit key (usually user_id or api_key_id)
     pub key: String,
-    
+
     /// Remaining requests in current window
     pub remaining_requests: u32,
-    
+
     /// Total requests allowed in window
     pub limit: u32,
-    
+
     /// Window reset time
     pub reset_time: SystemTime,
-    
+
     /// Window duration in seconds
     pub window_seconds: u64,
 }
@@ -132,16 +132,16 @@ pub struct RateLimitContext {
 pub struct CostContext {
     /// Budget key (user_id, team_id, etc.)
     pub budget_key: String,
-    
+
     /// Remaining budget
     pub remaining_budget: f64,
-    
+
     /// Total budget for the period
     pub total_budget: f64,
-    
+
     /// Budget currency
     pub currency: String,
-    
+
     /// Budget period end time
     pub period_end: SystemTime,
 }
@@ -151,19 +151,19 @@ pub struct CostContext {
 pub struct SecurityContext {
     /// Whether request passed authentication
     pub authenticated: bool,
-    
+
     /// User roles and permissions
     pub roles: Vec<String>,
-    
+
     /// Allowed models for this user
     pub allowed_models: Vec<String>,
-    
+
     /// Content filtering level
     pub content_filter_level: ContentFilterLevel,
-    
+
     /// Whether PII detection is enabled
     pub pii_detection_enabled: bool,
-    
+
     /// Security audit tags
     pub audit_tags: Vec<String>,
 }
@@ -184,19 +184,19 @@ pub enum ContentFilterLevel {
 pub struct RoutingContext {
     /// Requested provider (if specified)
     pub preferred_provider: Option<ProviderType>,
-    
+
     /// Routing strategy to use
     pub strategy: RoutingStrategy,
-    
+
     /// Fallback providers in order of preference
     pub fallback_providers: Vec<ProviderType>,
-    
+
     /// Geographic region preference
     pub region_preference: Option<String>,
-    
+
     /// Whether to allow degraded providers
     pub allow_degraded: bool,
-    
+
     /// Maximum acceptable latency (ms)
     pub max_latency_ms: Option<f64>,
 }
@@ -219,16 +219,16 @@ pub enum RoutingStrategy {
 pub struct CacheInfo {
     /// Cache key used
     pub cache_key: String,
-    
+
     /// Cache tier that served the response
     pub cache_tier: CacheTier,
-    
+
     /// Cache hit/miss status
     pub hit: bool,
-    
+
     /// Time to live remaining (seconds)
     pub ttl_remaining: Option<u64>,
-    
+
     /// Size of cached response (bytes)
     pub size_bytes: Option<u64>,
 }
@@ -248,16 +248,16 @@ pub enum CacheTier {
 pub struct RetryInfo {
     /// Number of retry attempts made
     pub attempts: u32,
-    
+
     /// Maximum retries allowed
     pub max_attempts: u32,
-    
+
     /// Providers tried in order
     pub providers_tried: Vec<String>,
-    
+
     /// Errors encountered during retries
     pub retry_errors: Vec<String>,
-    
+
     /// Total retry delay time (ms)
     pub total_retry_delay_ms: f64,
 }
@@ -267,19 +267,19 @@ pub struct RetryInfo {
 pub struct CostInfo {
     /// Provider cost calculation
     pub provider_cost: f64,
-    
+
     /// Currency of the cost
     pub currency: String,
-    
+
     /// Input tokens consumed
     pub input_tokens: u32,
-    
+
     /// Output tokens generated
     pub output_tokens: u32,
-    
+
     /// Cost breakdown by component
     pub cost_breakdown: HashMap<String, f64>,
-    
+
     /// Cost estimation vs actual
     pub estimated_cost: Option<f64>,
 }
@@ -289,31 +289,31 @@ pub struct CostInfo {
 pub struct ResponseMetrics {
     /// Time spent on authentication (ms)
     pub auth_time_ms: f64,
-    
+
     /// Time spent on routing/load balancing (ms)
     pub routing_time_ms: f64,
-    
+
     /// Time spent on request transformation (ms)
     pub transform_request_time_ms: f64,
-    
+
     /// Time spent calling provider (ms)
     pub provider_call_time_ms: f64,
-    
+
     /// Time spent on response transformation (ms)
     pub transform_response_time_ms: f64,
-    
+
     /// Time spent on caching operations (ms)
     pub cache_time_ms: f64,
-    
+
     /// Queue wait time (ms)
     pub queue_wait_time_ms: f64,
-    
+
     /// Total time from start to finish (ms)
     pub total_time_ms: f64,
-    
+
     /// First byte time from provider (ms)
     pub first_byte_time_ms: Option<f64>,
-    
+
     /// Tokens per second (for streaming)
     pub tokens_per_second: Option<f64>,
 }
@@ -323,22 +323,22 @@ pub struct ResponseMetrics {
 pub struct ErrorInfo {
     /// Error code
     pub error_code: String,
-    
+
     /// Human-readable error message
     pub message: String,
-    
+
     /// Technical error details
     pub details: Option<String>,
-    
+
     /// HTTP status code (if applicable)
     pub http_status: Option<u16>,
-    
+
     /// Provider-specific error code
     pub provider_error_code: Option<String>,
-    
+
     /// Whether error is retryable
     pub retryable: bool,
-    
+
     /// Error category
     pub category: ErrorCategory,
 }
@@ -410,9 +410,13 @@ impl RequestContext {
 
 impl ResponseContext {
     /// Create response context from request context
-    pub fn from_request(request_context: RequestContext, provider_id: String, provider_type: ProviderType) -> Self {
+    pub fn from_request(
+        request_context: RequestContext,
+        provider_id: String,
+        provider_type: ProviderType,
+    ) -> Self {
         let execution_time_ms = request_context.elapsed_ms();
-        
+
         Self {
             request_context,
             timestamp: SystemTime::now(),
@@ -650,7 +654,10 @@ mod tests {
         assert!(!ctx.authenticated);
         assert!(ctx.roles.is_empty());
         assert!(ctx.allowed_models.is_empty());
-        assert!(matches!(ctx.content_filter_level, ContentFilterLevel::Medium));
+        assert!(matches!(
+            ctx.content_filter_level,
+            ContentFilterLevel::Medium
+        ));
         assert!(ctx.pii_detection_enabled);
         assert!(ctx.audit_tags.is_empty());
     }
@@ -669,7 +676,10 @@ mod tests {
         assert!(ctx.authenticated);
         assert_eq!(ctx.roles.len(), 2);
         assert_eq!(ctx.allowed_models.len(), 2);
-        assert!(matches!(ctx.content_filter_level, ContentFilterLevel::Strict));
+        assert!(matches!(
+            ctx.content_filter_level,
+            ContentFilterLevel::Strict
+        ));
         assert!(!ctx.pii_detection_enabled);
         assert_eq!(ctx.audit_tags.len(), 1);
     }
@@ -901,10 +911,7 @@ mod tests {
                 "anthropic".to_string(),
                 "azure".to_string(),
             ],
-            retry_errors: vec![
-                "rate_limit".to_string(),
-                "timeout".to_string(),
-            ],
+            retry_errors: vec!["rate_limit".to_string(), "timeout".to_string()],
             total_retry_delay_ms: 5500.0,
         };
 
@@ -1098,7 +1105,10 @@ mod tests {
         assert!(ctx.rate_limit.is_none());
         assert!(ctx.cost_context.is_none());
         assert!(!ctx.security_context.authenticated);
-        assert!(matches!(ctx.routing_context.strategy, RoutingStrategy::RoundRobin));
+        assert!(matches!(
+            ctx.routing_context.strategy,
+            RoutingStrategy::RoundRobin
+        ));
         assert!(ctx.metadata.is_empty());
         assert_eq!(ctx.priority, 128);
         assert!(ctx.timeout_ms.is_none());
@@ -1150,7 +1160,10 @@ mod tests {
         let mut ctx = RequestContext::new("req-ghi".to_string());
         ctx.add_metadata("test_key".to_string(), "test_value".to_string());
 
-        assert_eq!(ctx.get_metadata("test_key"), Some(&"test_value".to_string()));
+        assert_eq!(
+            ctx.get_metadata("test_key"),
+            Some(&"test_value".to_string())
+        );
         assert_eq!(ctx.get_metadata("nonexistent"), None);
     }
 
@@ -1215,11 +1228,8 @@ mod tests {
         // Small delay to ensure elapsed time > 0
         thread::sleep(Duration::from_millis(1));
 
-        let resp_ctx = ResponseContext::from_request(
-            req_ctx,
-            "openai-1".to_string(),
-            ProviderType::OpenAI,
-        );
+        let resp_ctx =
+            ResponseContext::from_request(req_ctx, "openai-1".to_string(), ProviderType::OpenAI);
 
         assert_eq!(resp_ctx.request_context.request_id, "req-response");
         assert_eq!(resp_ctx.provider_id, "openai-1");
@@ -1253,11 +1263,8 @@ mod tests {
     #[test]
     fn test_response_context_set_error() {
         let req_ctx = RequestContext::new("req-error".to_string());
-        let mut resp_ctx = ResponseContext::from_request(
-            req_ctx,
-            "azure-1".to_string(),
-            ProviderType::Azure,
-        );
+        let mut resp_ctx =
+            ResponseContext::from_request(req_ctx, "azure-1".to_string(), ProviderType::Azure);
 
         let error_info = ErrorInfo {
             error_code: "PROVIDER_ERROR".to_string(),
@@ -1272,17 +1279,17 @@ mod tests {
         resp_ctx.set_error(error_info);
 
         assert!(resp_ctx.error_info.is_some());
-        assert_eq!(resp_ctx.error_info.as_ref().unwrap().error_code, "PROVIDER_ERROR");
+        assert_eq!(
+            resp_ctx.error_info.as_ref().unwrap().error_code,
+            "PROVIDER_ERROR"
+        );
     }
 
     #[test]
     fn test_response_context_has_error() {
         let req_ctx = RequestContext::new("req-has-error".to_string());
-        let mut resp_ctx = ResponseContext::from_request(
-            req_ctx,
-            "gemini-1".to_string(),
-            ProviderType::VertexAI,
-        );
+        let mut resp_ctx =
+            ResponseContext::from_request(req_ctx, "gemini-1".to_string(), ProviderType::VertexAI);
 
         assert!(!resp_ctx.has_error());
 
@@ -1302,11 +1309,8 @@ mod tests {
     #[test]
     fn test_response_context_with_cache() {
         let req_ctx = RequestContext::new("req-cache".to_string());
-        let mut resp_ctx = ResponseContext::from_request(
-            req_ctx,
-            "openai-2".to_string(),
-            ProviderType::OpenAI,
-        );
+        let mut resp_ctx =
+            ResponseContext::from_request(req_ctx, "openai-2".to_string(), ProviderType::OpenAI);
 
         resp_ctx.from_cache = true;
         resp_ctx.cache_info = Some(CacheInfo {
@@ -1346,11 +1350,8 @@ mod tests {
     #[test]
     fn test_response_context_with_cost() {
         let req_ctx = RequestContext::new("req-cost".to_string());
-        let mut resp_ctx = ResponseContext::from_request(
-            req_ctx,
-            "openai-3".to_string(),
-            ProviderType::OpenAI,
-        );
+        let mut resp_ctx =
+            ResponseContext::from_request(req_ctx, "openai-3".to_string(), ProviderType::OpenAI);
 
         resp_ctx.cost_info = Some(CostInfo {
             provider_cost: 0.015,
@@ -1368,11 +1369,8 @@ mod tests {
     #[test]
     fn test_response_context_with_metrics() {
         let req_ctx = RequestContext::new("req-metrics".to_string());
-        let mut resp_ctx = ResponseContext::from_request(
-            req_ctx,
-            "gemini-2".to_string(),
-            ProviderType::VertexAI,
-        );
+        let mut resp_ctx =
+            ResponseContext::from_request(req_ctx, "gemini-2".to_string(), ProviderType::VertexAI);
 
         resp_ctx.metrics = ResponseMetrics {
             auth_time_ms: 2.0,
@@ -1394,11 +1392,8 @@ mod tests {
     #[test]
     fn test_response_context_clone() {
         let req_ctx = RequestContext::new("req-clone-resp".to_string());
-        let mut resp_ctx = ResponseContext::from_request(
-            req_ctx,
-            "provider-1".to_string(),
-            ProviderType::OpenAI,
-        );
+        let mut resp_ctx =
+            ResponseContext::from_request(req_ctx, "provider-1".to_string(), ProviderType::OpenAI);
         resp_ctx.add_warning("Test warning".to_string());
 
         let cloned = resp_ctx.clone();

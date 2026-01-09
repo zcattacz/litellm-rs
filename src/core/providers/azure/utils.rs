@@ -371,8 +371,8 @@ mod tests {
 
     #[test]
     fn test_validate_config_empty_api_version() {
-        let mut config = AzureConfig::new()
-            .with_azure_endpoint("https://test.openai.azure.com".to_string());
+        let mut config =
+            AzureConfig::new().with_azure_endpoint("https://test.openai.azure.com".to_string());
         config.api_version = String::new();
 
         let result = AzureUtils::validate_config(&config);
@@ -381,8 +381,8 @@ mod tests {
 
     #[test]
     fn test_validate_config_success() {
-        let config = AzureConfig::new()
-            .with_azure_endpoint("https://test.openai.azure.com".to_string());
+        let config =
+            AzureConfig::new().with_azure_endpoint("https://test.openai.azure.com".to_string());
 
         let result = AzureUtils::validate_config(&config);
         assert!(result.is_ok());
@@ -499,10 +499,7 @@ mod tests {
             processed.get("x-ratelimit-limit-tokens"),
             Some(&"10000".to_string())
         );
-        assert_eq!(
-            processed.get("x-request-id"),
-            Some(&"abc-123".to_string())
-        );
+        assert_eq!(processed.get("x-request-id"), Some(&"abc-123".to_string()));
     }
 
     #[test]
@@ -534,7 +531,10 @@ mod tests {
             (AzureEndpointType::ImageEdits, "images/edits"),
             (AzureEndpointType::ImageVariations, "images/variations"),
             (AzureEndpointType::AudioSpeech, "audio/speech"),
-            (AzureEndpointType::AudioTranscriptions, "audio/transcriptions"),
+            (
+                AzureEndpointType::AudioTranscriptions,
+                "audio/transcriptions",
+            ),
             (AzureEndpointType::AudioTranslations, "audio/translations"),
             (AzureEndpointType::Files, "files"),
             (AzureEndpointType::FineTuning, "fine_tuning/jobs"),

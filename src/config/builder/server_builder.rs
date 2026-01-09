@@ -171,8 +171,7 @@ mod tests {
 
     #[test]
     fn test_server_config_builder_add_cors_origin() {
-        let builder = ServerConfigBuilder::new()
-            .add_cors_origin("https://example.com");
+        let builder = ServerConfigBuilder::new().add_cors_origin("https://example.com");
         assert_eq!(builder.cors_origins, vec!["https://example.com"]);
     }
 
@@ -182,8 +181,16 @@ mod tests {
             .add_cors_origin("https://example.com")
             .add_cors_origin("https://other.com");
         assert_eq!(builder.cors_origins.len(), 2);
-        assert!(builder.cors_origins.contains(&"https://example.com".to_string()));
-        assert!(builder.cors_origins.contains(&"https://other.com".to_string()));
+        assert!(
+            builder
+                .cors_origins
+                .contains(&"https://example.com".to_string())
+        );
+        assert!(
+            builder
+                .cors_origins
+                .contains(&"https://other.com".to_string())
+        );
     }
 
     // ==================== Builder Chain Tests ====================
@@ -245,14 +252,17 @@ mod tests {
 
         assert!(config.cors.enabled);
         assert_eq!(config.cors.allowed_origins.len(), 2);
-        assert!(config.cors.allowed_origins.contains(&"https://example.com".to_string()));
+        assert!(
+            config
+                .cors
+                .allowed_origins
+                .contains(&"https://example.com".to_string())
+        );
     }
 
     #[test]
     fn test_server_config_builder_build_cors_default_origins() {
-        let config = ServerConfigBuilder::new()
-            .enable_cors()
-            .build();
+        let config = ServerConfigBuilder::new().enable_cors().build();
 
         assert!(config.cors.enabled);
         assert_eq!(config.cors.allowed_origins, vec!["*"]);
@@ -271,8 +281,18 @@ mod tests {
     fn test_server_config_builder_build_cors_headers() {
         let config = ServerConfigBuilder::new().build();
 
-        assert!(config.cors.allowed_headers.contains(&"Content-Type".to_string()));
-        assert!(config.cors.allowed_headers.contains(&"Authorization".to_string()));
+        assert!(
+            config
+                .cors
+                .allowed_headers
+                .contains(&"Content-Type".to_string())
+        );
+        assert!(
+            config
+                .cors
+                .allowed_headers
+                .contains(&"Authorization".to_string())
+        );
     }
 
     #[test]
@@ -299,9 +319,7 @@ mod tests {
     fn test_server_config_builder_trait() {
         use crate::utils::data::type_utils::Builder;
 
-        let builder = ServerConfigBuilder::new()
-            .host("localhost")
-            .port(8000);
+        let builder = ServerConfigBuilder::new().host("localhost").port(8000);
 
         let config: ServerConfig = Builder::build(builder);
         assert_eq!(config.host, "localhost");
@@ -312,9 +330,7 @@ mod tests {
 
     #[test]
     fn test_server_config_builder_clone() {
-        let builder = ServerConfigBuilder::new()
-            .host("test")
-            .port(1234);
+        let builder = ServerConfigBuilder::new().host("test").port(1234);
         let cloned = builder.clone();
 
         assert_eq!(builder.host, cloned.host);
@@ -334,48 +350,37 @@ mod tests {
 
     #[test]
     fn test_server_config_builder_port_zero() {
-        let config = ServerConfigBuilder::new()
-            .port(0)
-            .build();
+        let config = ServerConfigBuilder::new().port(0).build();
         assert_eq!(config.port, 0);
     }
 
     #[test]
     fn test_server_config_builder_port_max() {
-        let config = ServerConfigBuilder::new()
-            .port(65535)
-            .build();
+        let config = ServerConfigBuilder::new().port(65535).build();
         assert_eq!(config.port, 65535);
     }
 
     #[test]
     fn test_server_config_builder_workers_zero() {
-        let config = ServerConfigBuilder::new()
-            .workers(0)
-            .build();
+        let config = ServerConfigBuilder::new().workers(0).build();
         assert_eq!(config.workers, Some(0));
     }
 
     #[test]
     fn test_server_config_builder_timeout_zero() {
-        let config = ServerConfigBuilder::new()
-            .timeout(Duration::ZERO)
-            .build();
+        let config = ServerConfigBuilder::new().timeout(Duration::ZERO).build();
         assert_eq!(config.timeout, 0);
     }
 
     #[test]
     fn test_server_config_builder_empty_host() {
-        let config = ServerConfigBuilder::new()
-            .host("")
-            .build();
+        let config = ServerConfigBuilder::new().host("").build();
         assert_eq!(config.host, "");
     }
 
     #[test]
     fn test_server_config_builder_empty_cors_origin() {
-        let builder = ServerConfigBuilder::new()
-            .add_cors_origin("");
+        let builder = ServerConfigBuilder::new().add_cors_origin("");
         assert_eq!(builder.cors_origins, vec![""]);
     }
 }

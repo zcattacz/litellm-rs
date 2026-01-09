@@ -203,18 +203,15 @@ mod tests {
     fn test_user_activity_with_data() {
         let mut activity = create_test_activity(ActivityType::SettingsChanged);
 
-        activity.data.insert(
-            "changed_setting".to_string(),
-            serde_json::json!("theme"),
-        );
-        activity.data.insert(
-            "old_value".to_string(),
-            serde_json::json!("light"),
-        );
-        activity.data.insert(
-            "new_value".to_string(),
-            serde_json::json!("dark"),
-        );
+        activity
+            .data
+            .insert("changed_setting".to_string(), serde_json::json!("theme"));
+        activity
+            .data
+            .insert("old_value".to_string(), serde_json::json!("light"));
+        activity
+            .data
+            .insert("new_value".to_string(), serde_json::json!("dark"));
 
         assert_eq!(activity.data.len(), 3);
         assert_eq!(activity.data.get("changed_setting").unwrap(), "theme");
@@ -253,10 +250,9 @@ mod tests {
     #[test]
     fn test_user_activity_serialize_with_data() {
         let mut activity = create_test_activity(ActivityType::ProfileUpdate);
-        activity.data.insert(
-            "field".to_string(),
-            serde_json::json!("display_name"),
-        );
+        activity
+            .data
+            .insert("field".to_string(), serde_json::json!("display_name"));
 
         let json = serde_json::to_string(&activity).unwrap();
         assert!(json.contains("display_name"));
@@ -268,7 +264,9 @@ mod tests {
     fn test_user_activity_clone() {
         let mut activity = create_test_activity(ActivityType::TeamJoined);
         activity.ip_address = Some("1.2.3.4".to_string());
-        activity.data.insert("team_id".to_string(), serde_json::json!("team-123"));
+        activity
+            .data
+            .insert("team_id".to_string(), serde_json::json!("team-123"));
 
         let cloned = activity.clone();
 
@@ -354,7 +352,8 @@ mod tests {
     #[test]
     fn test_user_activity_special_characters_in_user_agent() {
         let mut activity = create_test_activity(ActivityType::Login);
-        activity.user_agent = Some("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36".to_string());
+        activity.user_agent =
+            Some("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36".to_string());
 
         let json = serde_json::to_string(&activity).unwrap();
         let deserialized: UserActivity = serde_json::from_str(&json).unwrap();

@@ -221,11 +221,8 @@ mod tests {
         let mut rbac = create_test_rbac_system().await;
 
         // Create role with multiple parents
-        let multi_parent = create_role_with_parent(
-            "multi_parent",
-            vec!["own.perm"],
-            vec!["user", "viewer"],
-        );
+        let multi_parent =
+            create_role_with_parent("multi_parent", vec!["own.perm"], vec!["user", "viewer"]);
         rbac.add_role(multi_parent.clone()).unwrap();
 
         let perms = rbac.get_role_permissions(&multi_parent);

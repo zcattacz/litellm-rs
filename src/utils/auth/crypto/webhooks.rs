@@ -144,7 +144,8 @@ mod tests {
         let old_timestamp = now - 400; // 400 seconds ago (> 300 limit)
 
         let signature = generate_webhook_signature(secret, payload, old_timestamp).unwrap();
-        let is_valid = verify_webhook_signature(secret, payload, old_timestamp, &signature).unwrap();
+        let is_valid =
+            verify_webhook_signature(secret, payload, old_timestamp, &signature).unwrap();
 
         assert!(!is_valid);
     }
@@ -187,8 +188,7 @@ mod tests {
             .unwrap()
             .as_secs();
 
-        let is_valid =
-            verify_webhook_signature(secret, payload, now, "invalid-signature").unwrap();
+        let is_valid = verify_webhook_signature(secret, payload, now, "invalid-signature").unwrap();
 
         assert!(!is_valid);
     }
@@ -241,9 +241,11 @@ mod tests {
     #[test]
     fn test_generate_upload_token_url_safe() {
         let token = generate_upload_token("user-test", 1700000000).unwrap();
-        assert!(token
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
+        assert!(
+            token
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        );
     }
 
     // ==================== verify_upload_token Tests ====================

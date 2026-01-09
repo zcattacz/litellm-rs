@@ -391,31 +391,42 @@ mod tests {
 
     #[test]
     fn test_cache_event_hit() {
-        let event: CacheEvent<String, i32> = CacheEvent::Hit { key: "key1".to_string() };
+        let event: CacheEvent<String, i32> = CacheEvent::Hit {
+            key: "key1".to_string(),
+        };
         assert!(matches!(event, CacheEvent::Hit { key } if key == "key1"));
     }
 
     #[test]
     fn test_cache_event_miss() {
-        let event: CacheEvent<String, i32> = CacheEvent::Miss { key: "key2".to_string() };
+        let event: CacheEvent<String, i32> = CacheEvent::Miss {
+            key: "key2".to_string(),
+        };
         assert!(matches!(event, CacheEvent::Miss { key } if key == "key2"));
     }
 
     #[test]
     fn test_cache_event_set() {
-        let event = CacheEvent::Set { key: "key3".to_string(), value: 42 };
+        let event = CacheEvent::Set {
+            key: "key3".to_string(),
+            value: 42,
+        };
         assert!(matches!(event, CacheEvent::Set { key, value } if key == "key3" && value == 42));
     }
 
     #[test]
     fn test_cache_event_delete() {
-        let event: CacheEvent<String, i32> = CacheEvent::Delete { key: "key4".to_string() };
+        let event: CacheEvent<String, i32> = CacheEvent::Delete {
+            key: "key4".to_string(),
+        };
         assert!(matches!(event, CacheEvent::Delete { key } if key == "key4"));
     }
 
     #[test]
     fn test_cache_event_expire() {
-        let event: CacheEvent<String, i32> = CacheEvent::Expire { key: "key5".to_string() };
+        let event: CacheEvent<String, i32> = CacheEvent::Expire {
+            key: "key5".to_string(),
+        };
         assert!(matches!(event, CacheEvent::Expire { key } if key == "key5"));
     }
 
@@ -427,7 +438,10 @@ mod tests {
 
     #[test]
     fn test_cache_event_clone() {
-        let event = CacheEvent::Set { key: "key".to_string(), value: 100 };
+        let event = CacheEvent::Set {
+            key: "key".to_string(),
+            value: 100,
+        };
         let cloned = event.clone();
         assert!(matches!(cloned, CacheEvent::Set { key, value } if key == "key" && value == 100));
     }

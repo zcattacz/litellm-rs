@@ -276,7 +276,8 @@ mod tests {
 
     #[test]
     fn test_provider_selection_simulation() {
-        let providers = [ProviderStats {
+        let providers = [
+            ProviderStats {
                 requests: 100,
                 errors: 1,
                 health_score: 0.99,
@@ -296,7 +297,8 @@ mod tests {
                 health_score: 1.0,
                 avg_latency_ms: 30.0,
                 ..ProviderStats::default()
-            }];
+            },
+        ];
 
         // Simulate health-based selection - choose highest health score
         let best_provider = providers
@@ -314,7 +316,8 @@ mod tests {
 
     #[test]
     fn test_latency_based_selection_simulation() {
-        let providers = [ProviderStats {
+        let providers = [
+            ProviderStats {
                 avg_latency_ms: 150.0,
                 ..ProviderStats::default()
             },
@@ -325,7 +328,8 @@ mod tests {
             ProviderStats {
                 avg_latency_ms: 100.0,
                 ..ProviderStats::default()
-            }];
+            },
+        ];
 
         // Simulate least-latency selection
         let fastest = providers
@@ -343,7 +347,8 @@ mod tests {
 
     #[test]
     fn test_stats_aggregation() {
-        let providers = [ProviderStats {
+        let providers = [
+            ProviderStats {
                 requests: 100,
                 errors: 5,
                 total_tokens: 50000,
@@ -356,7 +361,8 @@ mod tests {
                 total_tokens: 100000,
                 total_cost: 10.0,
                 ..ProviderStats::default()
-            }];
+            },
+        ];
 
         let total_requests: u64 = providers.iter().map(|p| p.requests).sum();
         let total_errors: u64 = providers.iter().map(|p| p.errors).sum();

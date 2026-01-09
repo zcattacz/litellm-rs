@@ -399,10 +399,10 @@ mod tests {
     fn test_min_max_after_eviction() {
         let mut hist = BoundedHistogram::new(3);
 
-        hist.record(1.0);  // Will be evicted
+        hist.record(1.0); // Will be evicted
         hist.record(5.0);
         hist.record(10.0);
-        hist.record(3.0);  // Evicts 1.0
+        hist.record(3.0); // Evicts 1.0
 
         assert_eq!(hist.min(), 3.0);
         assert_eq!(hist.max(), 10.0);

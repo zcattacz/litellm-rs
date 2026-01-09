@@ -278,8 +278,7 @@ mod tests {
 
     #[test]
     fn test_with_base_url() {
-        let config = OpenRouterConfig::new("test-key")
-            .with_base_url("https://custom.api.com/v1");
+        let config = OpenRouterConfig::new("test-key").with_base_url("https://custom.api.com/v1");
         assert_eq!(config.base_url, "https://custom.api.com/v1");
     }
 

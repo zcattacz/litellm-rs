@@ -64,12 +64,14 @@ mod tests {
 
         let result = parser.process_bytes(test_data).unwrap();
         assert_eq!(result.len(), 1);
-        assert!(result[0].choices[0]
-            .delta
-            .content
-            .as_ref()
-            .unwrap()
-            .contains("[1]"));
+        assert!(
+            result[0].choices[0]
+                .delta
+                .content
+                .as_ref()
+                .unwrap()
+                .contains("[1]")
+        );
     }
 
     #[tokio::test]

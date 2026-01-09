@@ -99,17 +99,15 @@ mod tests {
             object: "chat.completion.chunk".to_string(),
             created: 1234567890,
             model: "gpt-4".to_string(),
-            choices: vec![
-                StreamChoice {
-                    index: 0,
-                    delta: StreamDelta {
-                        role: Some("assistant".to_string()),
-                        content: Some("Hello".to_string()),
-                        tool_calls: None,
-                    },
-                    finish_reason: None,
+            choices: vec![StreamChoice {
+                index: 0,
+                delta: StreamDelta {
+                    role: Some("assistant".to_string()),
+                    content: Some("Hello".to_string()),
+                    tool_calls: None,
                 },
-            ],
+                finish_reason: None,
+            }],
         };
 
         assert_eq!(chunk.choices.len(), 1);
@@ -281,21 +279,42 @@ mod tests {
 
     #[test]
     fn test_parse_finish_reason_tool_calls() {
-        assert_eq!(parse_finish_reason("tool_calls"), Some(FinishReason::ToolCalls));
-        assert_eq!(parse_finish_reason("Tool_Calls"), Some(FinishReason::ToolCalls));
-        assert_eq!(parse_finish_reason("TOOL_CALLS"), Some(FinishReason::ToolCalls));
+        assert_eq!(
+            parse_finish_reason("tool_calls"),
+            Some(FinishReason::ToolCalls)
+        );
+        assert_eq!(
+            parse_finish_reason("Tool_Calls"),
+            Some(FinishReason::ToolCalls)
+        );
+        assert_eq!(
+            parse_finish_reason("TOOL_CALLS"),
+            Some(FinishReason::ToolCalls)
+        );
     }
 
     #[test]
     fn test_parse_finish_reason_function_call() {
-        assert_eq!(parse_finish_reason("function_call"), Some(FinishReason::ToolCalls));
-        assert_eq!(parse_finish_reason("Function_Call"), Some(FinishReason::ToolCalls));
+        assert_eq!(
+            parse_finish_reason("function_call"),
+            Some(FinishReason::ToolCalls)
+        );
+        assert_eq!(
+            parse_finish_reason("Function_Call"),
+            Some(FinishReason::ToolCalls)
+        );
     }
 
     #[test]
     fn test_parse_finish_reason_content_filter() {
-        assert_eq!(parse_finish_reason("content_filter"), Some(FinishReason::ContentFilter));
-        assert_eq!(parse_finish_reason("Content_Filter"), Some(FinishReason::ContentFilter));
+        assert_eq!(
+            parse_finish_reason("content_filter"),
+            Some(FinishReason::ContentFilter)
+        );
+        assert_eq!(
+            parse_finish_reason("Content_Filter"),
+            Some(FinishReason::ContentFilter)
+        );
     }
 
     #[test]
@@ -511,7 +530,13 @@ mod tests {
 
         assert_eq!(results.len(), 3);
         assert!(results[0].choices[0].delta.role.is_some());
-        assert_eq!(results[1].choices[0].delta.content, Some("Hello".to_string()));
-        assert_eq!(results[2].choices[0].finish_reason, Some(FinishReason::Stop));
+        assert_eq!(
+            results[1].choices[0].delta.content,
+            Some("Hello".to_string())
+        );
+        assert_eq!(
+            results[2].choices[0].finish_reason,
+            Some(FinishReason::Stop)
+        );
     }
 }

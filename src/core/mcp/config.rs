@@ -233,7 +233,7 @@ impl AuthConfig {
 
     /// Create Basic authentication
     pub fn basic(username: impl Into<String>, password: impl Into<String>) -> Self {
-        use base64::{engine::general_purpose::STANDARD, Engine};
+        use base64::{Engine, engine::general_purpose::STANDARD};
         let credentials = format!("{}:{}", username.into(), password.into());
         let encoded = STANDARD.encode(credentials.as_bytes());
         Self {
@@ -249,7 +249,11 @@ impl AuthConfig {
     }
 
     /// Create OAuth 2.0 client credentials authentication
-    pub fn oauth2(client_id: impl Into<String>, client_secret: impl Into<String>, token_url: impl Into<String>) -> Self {
+    pub fn oauth2(
+        client_id: impl Into<String>,
+        client_secret: impl Into<String>,
+        token_url: impl Into<String>,
+    ) -> Self {
         Self {
             auth_type: AuthType::OAuth2,
             value: None,
@@ -310,21 +314,15 @@ impl AuthConfig {
     pub fn get_header_value(&self) -> Option<String> {
         match self.auth_type {
             AuthType::None => None,
-            AuthType::ApiKey => {
-                self.value.as_ref().map(|v| {
-                    if let Some(prefix) = &self.header_prefix {
-                        format!("{} {}", prefix, v)
-                    } else {
-                        v.clone()
-                    }
-                })
-            }
-            AuthType::BearerToken => {
-                self.value.as_ref().map(|v| format!("Bearer {}", v))
-            }
-            AuthType::Basic => {
-                self.value.as_ref().map(|v| format!("Basic {}", v))
-            }
+            AuthType::ApiKey => self.value.as_ref().map(|v| {
+                if let Some(prefix) = &self.header_prefix {
+                    format!("{} {}", prefix, v)
+                } else {
+                    v.clone()
+                }
+            }),
+            AuthType::BearerToken => self.value.as_ref().map(|v| format!("Bearer {}", v)),
+            AuthType::Basic => self.value.as_ref().map(|v| format!("Basic {}", v)),
             AuthType::OAuth2 => {
                 // OAuth2 tokens are obtained separately
                 None
@@ -481,8 +479,8 @@ mod tests {
 
     #[test]
     fn test_server_config_validation_valid_http() {
-        let config = McpServerConfig::new("test", "https://example.com")
-            .with_transport(Transport::Http);
+        let config =
+            McpServerConfig::new("test", "https://example.com").with_transport(Transport::Http);
         assert!(config.validate().is_ok());
     }
 
@@ -511,8 +509,12 @@ mod tests {
 
     #[test]
     fn test_auth_config_oauth2() {
-        let auth = AuthConfig::oauth2("client-id", "client-secret", "https://auth.example.com/token")
-            .with_scopes(vec!["read".to_string(), "write".to_string()]);
+        let auth = AuthConfig::oauth2(
+            "client-id",
+            "client-secret",
+            "https://auth.example.com/token",
+        )
+        .with_scopes(vec!["read".to_string(), "write".to_string()]);
         assert_eq!(auth.auth_type, AuthType::OAuth2);
         assert_eq!(auth.client_id.as_deref(), Some("client-id"));
         assert_eq!(auth.scopes.len(), 2);
@@ -544,8 +546,13 @@ mod tests {
     #[test]
     fn test_gateway_config_aliases() {
         let mut config = McpGatewayConfig::default();
-        config.add_server(McpServerConfig::new("github_mcp_server", "https://api.github.com/mcp"));
-        config.aliases.insert("github".to_string(), "github_mcp_server".to_string());
+        config.add_server(McpServerConfig::new(
+            "github_mcp_server",
+            "https://api.github.com/mcp",
+        ));
+        config
+            .aliases
+            .insert("github".to_string(), "github_mcp_server".to_string());
 
         // Can get by full name
         assert!(config.get_server("github_mcp_server").is_some());

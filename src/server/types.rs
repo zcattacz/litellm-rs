@@ -465,7 +465,11 @@ mod tests {
                 "success"
             };
 
-            assert_eq!(actual_type, expected_type, "Status code {} classification", code);
+            assert_eq!(
+                actual_type, expected_type,
+                "Status code {} classification",
+                code
+            );
         }
     }
 }

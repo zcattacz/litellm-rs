@@ -25,7 +25,10 @@ pub enum Transport {
 impl Transport {
     /// Check if this transport supports streaming
     pub fn supports_streaming(&self) -> bool {
-        matches!(self, Transport::Sse | Transport::WebSocket | Transport::Stdio)
+        matches!(
+            self,
+            Transport::Sse | Transport::WebSocket | Transport::Stdio
+        )
     }
 
     /// Check if this transport is bidirectional
@@ -111,7 +114,10 @@ mod tests {
         assert_eq!("http".parse::<Transport>().unwrap(), Transport::Http);
         assert_eq!("sse".parse::<Transport>().unwrap(), Transport::Sse);
         assert_eq!("stdio".parse::<Transport>().unwrap(), Transport::Stdio);
-        assert_eq!("websocket".parse::<Transport>().unwrap(), Transport::WebSocket);
+        assert_eq!(
+            "websocket".parse::<Transport>().unwrap(),
+            Transport::WebSocket
+        );
         assert_eq!("ws".parse::<Transport>().unwrap(), Transport::WebSocket);
     }
 

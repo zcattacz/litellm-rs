@@ -61,9 +61,7 @@ impl AgentProvider {
     pub fn supports_async_tasks(&self) -> bool {
         matches!(
             self,
-            AgentProvider::LangGraph
-                | AgentProvider::BedrockAgentCore
-                | AgentProvider::A2A
+            AgentProvider::LangGraph | AgentProvider::BedrockAgentCore | AgentProvider::A2A
         )
     }
 }
@@ -359,15 +357,30 @@ mod tests {
     #[test]
     fn test_agent_provider_display() {
         assert_eq!(AgentProvider::LangGraph.display_name(), "LangGraph");
-        assert_eq!(AgentProvider::VertexAI.display_name(), "Vertex AI Agent Engine");
+        assert_eq!(
+            AgentProvider::VertexAI.display_name(),
+            "Vertex AI Agent Engine"
+        );
     }
 
     #[test]
     fn test_agent_provider_from_str() {
-        assert_eq!("langgraph".parse::<AgentProvider>().unwrap(), AgentProvider::LangGraph);
-        assert_eq!("vertex".parse::<AgentProvider>().unwrap(), AgentProvider::VertexAI);
-        assert_eq!("azure".parse::<AgentProvider>().unwrap(), AgentProvider::AzureAIFoundry);
-        assert_eq!("bedrock".parse::<AgentProvider>().unwrap(), AgentProvider::BedrockAgentCore);
+        assert_eq!(
+            "langgraph".parse::<AgentProvider>().unwrap(),
+            AgentProvider::LangGraph
+        );
+        assert_eq!(
+            "vertex".parse::<AgentProvider>().unwrap(),
+            AgentProvider::VertexAI
+        );
+        assert_eq!(
+            "azure".parse::<AgentProvider>().unwrap(),
+            AgentProvider::AzureAIFoundry
+        );
+        assert_eq!(
+            "bedrock".parse::<AgentProvider>().unwrap(),
+            AgentProvider::BedrockAgentCore
+        );
     }
 
     #[test]
@@ -446,8 +459,8 @@ mod tests {
 
     #[test]
     fn test_config_serialization() {
-        let config = AgentConfig::new("test", "https://example.com")
-            .with_provider(AgentProvider::LangGraph);
+        let config =
+            AgentConfig::new("test", "https://example.com").with_provider(AgentProvider::LangGraph);
 
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: AgentConfig = serde_json::from_str(&json).unwrap();

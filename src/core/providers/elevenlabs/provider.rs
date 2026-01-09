@@ -17,7 +17,7 @@ use crate::core::types::common::{HealthStatus, ModelInfo, ProviderCapability};
 /// Static capabilities for ElevenLabs provider
 const ELEVENLABS_CAPABILITIES: &[ProviderCapability] = &[
     ProviderCapability::TextToSpeech,
-    ProviderCapability::SpeechToText,
+    ProviderCapability::AudioTranscription,
 ];
 
 /// ElevenLabs provider implementation
@@ -61,7 +61,7 @@ impl ElevenLabsProvider {
     }
 
     /// Build the list of available models
-    fn build_model_list() -> Vec<ModelInfo> {
+    pub fn build_model_list() -> Vec<ModelInfo> {
         vec![
             // TTS Models
             ModelInfo {
@@ -145,7 +145,7 @@ impl ElevenLabsProvider {
                 input_cost_per_1k_tokens: None,
                 output_cost_per_1k_tokens: None,
                 currency: "USD".to_string(),
-                capabilities: vec![ProviderCapability::SpeechToText],
+                capabilities: vec![ProviderCapability::AudioTranscription],
                 created_at: None,
                 updated_at: None,
                 metadata: HashMap::new(),
@@ -330,7 +330,7 @@ impl ElevenLabsProvider {
     }
 
     /// Map HTTP error to ElevenLabsError
-    fn map_http_error(status: u16, body: Option<&str>) -> ElevenLabsError {
+    pub fn map_http_error(status: u16, body: Option<&str>) -> ElevenLabsError {
         let message = body.unwrap_or("Unknown error").to_string();
 
         match status {
@@ -385,7 +385,10 @@ mod tests {
         // Check STT models
         let stt_models: Vec<_> = models
             .iter()
-            .filter(|m| m.capabilities.contains(&ProviderCapability::SpeechToText))
+            .filter(|m| {
+                m.capabilities
+                    .contains(&ProviderCapability::AudioTranscription)
+            })
             .collect();
         assert!(!stt_models.is_empty());
     }
@@ -411,6 +414,6 @@ mod tests {
     #[test]
     fn test_capabilities() {
         assert!(ELEVENLABS_CAPABILITIES.contains(&ProviderCapability::TextToSpeech));
-        assert!(ELEVENLABS_CAPABILITIES.contains(&ProviderCapability::SpeechToText));
+        assert!(ELEVENLABS_CAPABILITIES.contains(&ProviderCapability::AudioTranscription));
     }
 }

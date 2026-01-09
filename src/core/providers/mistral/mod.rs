@@ -755,7 +755,10 @@ mod tests {
         let mut params = HashMap::new();
         params.insert("seed".to_string(), serde_json::json!(42));
 
-        let mapped = provider.map_openai_params(params, "mistral-large").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params, "mistral-large")
+            .await
+            .unwrap();
 
         assert!(!mapped.contains_key("seed"));
         assert!(mapped.contains_key("random_seed"));
@@ -771,7 +774,10 @@ mod tests {
         params.insert("max_tokens".to_string(), serde_json::json!(100));
         params.insert("top_p".to_string(), serde_json::json!(0.9));
 
-        let mapped = provider.map_openai_params(params, "mistral-large").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params, "mistral-large")
+            .await
+            .unwrap();
 
         assert_eq!(mapped.get("temperature").unwrap(), &serde_json::json!(0.7));
         assert_eq!(mapped.get("max_tokens").unwrap(), &serde_json::json!(100));
@@ -786,7 +792,10 @@ mod tests {
         params.insert("unsupported_param".to_string(), serde_json::json!("value"));
         params.insert("temperature".to_string(), serde_json::json!(0.5));
 
-        let mapped = provider.map_openai_params(params, "mistral-large").await.unwrap();
+        let mapped = provider
+            .map_openai_params(params, "mistral-large")
+            .await
+            .unwrap();
 
         assert!(!mapped.contains_key("unsupported_param"));
         assert!(mapped.contains_key("temperature"));
@@ -928,7 +937,8 @@ mod tests {
     #[test]
     fn test_error_mapper_network_error() {
         let mapper = MistralErrorMapper;
-        let error = std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
+        let error =
+            std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
         let mapped = mapper.map_network_error(&error);
 
         match mapped {

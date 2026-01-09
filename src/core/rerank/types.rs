@@ -288,7 +288,12 @@ mod tests {
         let doc = RerankDocument::structured("Document content");
 
         match &doc {
-            RerankDocument::Structured { text, title, id, metadata } => {
+            RerankDocument::Structured {
+                text,
+                title,
+                id,
+                metadata,
+            } => {
                 assert_eq!(text, "Document content");
                 assert!(title.is_none());
                 assert!(id.is_none());

@@ -1004,7 +1004,8 @@ mod tests {
             period_end: now,
         };
 
-        let provider_metrics = [ProviderMetrics {
+        let provider_metrics = [
+            ProviderMetrics {
                 provider_name: "openai".to_string(),
                 request_count: 6000,
                 success_rate: 0.995,
@@ -1023,7 +1024,8 @@ mod tests {
                 cost_efficiency: 850.0,
                 uptime_percentage: 99.8,
                 rate_limit_hits: 2,
-            }];
+            },
+        ];
 
         // Verify aggregations
         let total_provider_requests: u64 = provider_metrics.iter().map(|p| p.request_count).sum();

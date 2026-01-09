@@ -2,9 +2,9 @@
 //!
 //! JSON-RPC 2.0 message types for A2A protocol communication.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use chrono::{DateTime, Utc};
 
 /// JSON-RPC 2.0 version constant
 pub const JSONRPC_VERSION: &str = "2.0";
@@ -148,9 +148,7 @@ impl Message {
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum MessagePart {
     /// Text content
-    Text {
-        text: String,
-    },
+    Text { text: String },
 
     /// File/data content
     File {
@@ -217,7 +215,10 @@ impl MessagePart {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MessageConfiguration {
     /// Whether to wait for completion
-    #[serde(rename = "acceptedOutputModes", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "acceptedOutputModes",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub accepted_output_modes: Option<Vec<String>>,
 
     /// Enable streaming
@@ -225,7 +226,10 @@ pub struct MessageConfiguration {
     pub streaming: Option<bool>,
 
     /// Push notification URL
-    #[serde(rename = "pushNotificationConfig", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        rename = "pushNotificationConfig",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub push_notification_config: Option<PushNotificationConfig>,
 
     /// History behavior
@@ -472,7 +476,9 @@ mod tests {
     fn test_message_part_file() {
         let part = MessagePart::file("image/png", "base64data");
         match part {
-            MessagePart::File { mime_type, data, .. } => {
+            MessagePart::File {
+                mime_type, data, ..
+            } => {
                 assert_eq!(mime_type, "image/png");
                 assert_eq!(data, "base64data");
             }
@@ -484,7 +490,11 @@ mod tests {
     fn test_message_part_tool_use() {
         let part = MessagePart::tool_use("id-1", "search", serde_json::json!({"query": "test"}));
         match part {
-            MessagePart::ToolUse { tool_use_id, name, input } => {
+            MessagePart::ToolUse {
+                tool_use_id,
+                name,
+                input,
+            } => {
                 assert_eq!(tool_use_id, "id-1");
                 assert_eq!(name, "search");
                 assert_eq!(input["query"], "test");

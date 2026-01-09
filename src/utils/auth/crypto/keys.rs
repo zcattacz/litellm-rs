@@ -161,7 +161,11 @@ mod tests {
     #[test]
     fn test_generate_session_token_url_safe() {
         let token = generate_session_token();
-        assert!(token.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
+        assert!(
+            token
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        );
     }
 
     // ==================== hash_api_key Tests ====================

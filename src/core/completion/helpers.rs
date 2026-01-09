@@ -96,10 +96,7 @@ mod tests {
 
     #[test]
     fn test_convert_messages() {
-        let messages = vec![
-            user_message("Hello"),
-            assistant_message("Hi!"),
-        ];
+        let messages = vec![user_message("Hello"), assistant_message("Hi!")];
         let converted = convert_messages_to_chat_messages(messages.clone());
         assert_eq!(converted.len(), 2);
     }

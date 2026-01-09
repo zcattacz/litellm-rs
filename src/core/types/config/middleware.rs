@@ -479,7 +479,11 @@ mod tests {
         let json = r#"{"allowed_origins": []}"#;
         let config: CorsConfig = serde_json::from_str(json).unwrap();
         assert!(config.allowed_headers.contains(&"Content-Type".to_string()));
-        assert!(config.allowed_headers.contains(&"Authorization".to_string()));
+        assert!(
+            config
+                .allowed_headers
+                .contains(&"Authorization".to_string())
+        );
     }
 
     // ==================== Clone and Debug Tests ====================

@@ -192,8 +192,12 @@ mod tests {
         let mut storage = ProviderMetricsStorage::default();
 
         storage.total_requests += 1;
-        *storage.provider_requests.entry("openai".to_string()).or_insert(0) += 1;
-        storage.provider_response_times
+        *storage
+            .provider_requests
+            .entry("openai".to_string())
+            .or_insert(0) += 1;
+        storage
+            .provider_response_times
             .entry("openai".to_string())
             .or_insert_with(VecDeque::new)
             .push_back(250.0);
@@ -210,7 +214,10 @@ mod tests {
 
         let providers = vec!["openai", "anthropic", "azure", "google"];
         for provider in &providers {
-            *storage.provider_requests.entry(provider.to_string()).or_insert(0) += 10;
+            *storage
+                .provider_requests
+                .entry(provider.to_string())
+                .or_insert(0) += 10;
             *storage.token_usage.entry(provider.to_string()).or_insert(0) += 1000;
         }
 
@@ -225,7 +232,9 @@ mod tests {
         storage.provider_errors.insert("openai".to_string(), 5);
         storage.provider_errors.insert("anthropic".to_string(), 2);
         storage.provider_requests.insert("openai".to_string(), 100);
-        storage.provider_requests.insert("anthropic".to_string(), 50);
+        storage
+            .provider_requests
+            .insert("anthropic".to_string(), 50);
 
         let openai_error_rate = *storage.provider_errors.get("openai").unwrap_or(&0) as f64
             / *storage.provider_requests.get("openai").unwrap_or(&1) as f64;
@@ -337,8 +346,14 @@ mod tests {
         let mut storage = ErrorMetricsStorage::default();
 
         storage.total_errors += 1;
-        *storage.error_types.entry("timeout".to_string()).or_insert(0) += 1;
-        *storage.error_endpoints.entry("/api/chat".to_string()).or_insert(0) += 1;
+        *storage
+            .error_types
+            .entry("timeout".to_string())
+            .or_insert(0) += 1;
+        *storage
+            .error_endpoints
+            .entry("/api/chat".to_string())
+            .or_insert(0) += 1;
         storage.last_minute_errors.push_back(Instant::now());
 
         assert_eq!(storage.total_errors, 1);
@@ -357,7 +372,9 @@ mod tests {
         let total: u64 = storage.error_types.values().sum();
         assert_eq!(total, 20);
 
-        let most_common = storage.error_types.iter()
+        let most_common = storage
+            .error_types
+            .iter()
             .max_by_key(|(_, count)| *count)
             .map(|(k, _)| k);
         assert_eq!(most_common, Some(&"timeout".to_string()));
@@ -419,8 +436,8 @@ mod tests {
         storage.db_query_times.push_back(10.0);
         storage.db_query_times.push_back(15.0);
 
-        let avg: f64 = storage.db_query_times.iter().sum::<f64>()
-            / storage.db_query_times.len() as f64;
+        let avg: f64 =
+            storage.db_query_times.iter().sum::<f64>() / storage.db_query_times.len() as f64;
         assert!((avg - 10.0).abs() < f64::EPSILON);
     }
 
@@ -432,7 +449,9 @@ mod tests {
         storage.throughput_samples.push_back(150.0);
         storage.throughput_samples.push_back(120.0);
 
-        let max = storage.throughput_samples.iter()
+        let max = storage
+            .throughput_samples
+            .iter()
             .cloned()
             .fold(f64::NEG_INFINITY, f64::max);
         assert!((max - 150.0).abs() < f64::EPSILON);
@@ -471,9 +490,21 @@ mod tests {
 
         // Track provider
         storage.provider.total_requests += 1;
-        *storage.provider.provider_requests.entry("openai".to_string()).or_insert(0) += 1;
-        *storage.provider.token_usage.entry("openai".to_string()).or_insert(0) += 1000;
-        *storage.provider.costs.entry("openai".to_string()).or_insert(0.0) += 0.02;
+        *storage
+            .provider
+            .provider_requests
+            .entry("openai".to_string())
+            .or_insert(0) += 1;
+        *storage
+            .provider
+            .token_usage
+            .entry("openai".to_string())
+            .or_insert(0) += 1000;
+        *storage
+            .provider
+            .costs
+            .entry("openai".to_string())
+            .or_insert(0.0) += 0.02;
 
         // Track performance
         storage.performance.cache_misses += 1;
@@ -491,7 +522,10 @@ mod tests {
         // Add multiple requests
         for i in 0..100 {
             storage.request.total_requests += 1;
-            storage.request.response_times.push_back(100.0 + (i % 50) as f64);
+            storage
+                .request
+                .response_times
+                .push_back(100.0 + (i % 50) as f64);
 
             if i % 10 == 0 {
                 storage.error.total_errors += 1;
@@ -501,8 +535,7 @@ mod tests {
         let avg_response: f64 = storage.request.response_times.iter().sum::<f64>()
             / storage.request.response_times.len() as f64;
 
-        let error_rate = storage.error.total_errors as f64
-            / storage.request.total_requests as f64;
+        let error_rate = storage.error.total_errors as f64 / storage.request.total_requests as f64;
 
         assert!(avg_response > 100.0);
         assert!((error_rate - 0.1).abs() < f64::EPSILON);
@@ -512,24 +545,42 @@ mod tests {
     fn test_provider_comparison() {
         let mut storage = MetricsStorage::default();
 
-        storage.provider.provider_requests.insert("openai".to_string(), 500);
-        storage.provider.provider_requests.insert("anthropic".to_string(), 300);
-        storage.provider.provider_requests.insert("azure".to_string(), 200);
+        storage
+            .provider
+            .provider_requests
+            .insert("openai".to_string(), 500);
+        storage
+            .provider
+            .provider_requests
+            .insert("anthropic".to_string(), 300);
+        storage
+            .provider
+            .provider_requests
+            .insert("azure".to_string(), 200);
 
         storage.provider.costs.insert("openai".to_string(), 15.0);
         storage.provider.costs.insert("anthropic".to_string(), 10.0);
         storage.provider.costs.insert("azure".to_string(), 8.0);
 
         // Find most used provider
-        let most_used = storage.provider.provider_requests.iter()
+        let most_used = storage
+            .provider
+            .provider_requests
+            .iter()
             .max_by_key(|(_, count)| *count)
             .map(|(k, _)| k);
         assert_eq!(most_used, Some(&"openai".to_string()));
 
         // Find cheapest provider (cost per request)
-        let cheapest = storage.provider.provider_requests.iter()
+        let cheapest = storage
+            .provider
+            .provider_requests
+            .iter()
             .filter_map(|(provider, requests)| {
-                storage.provider.costs.get(provider)
+                storage
+                    .provider
+                    .costs
+                    .get(provider)
                     .map(|cost| (provider, cost / *requests as f64))
             })
             .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())

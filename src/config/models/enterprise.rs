@@ -76,7 +76,10 @@ mod tests {
     fn test_sso_config_with_settings() {
         let mut settings = std::collections::HashMap::new();
         settings.insert("domain".to_string(), serde_json::json!("example.okta.com"));
-        settings.insert("scopes".to_string(), serde_json::json!(["openid", "profile"]));
+        settings.insert(
+            "scopes".to_string(),
+            serde_json::json!(["openid", "profile"]),
+        );
 
         let config = SsoConfig {
             provider: "auth0".to_string(),
