@@ -13,10 +13,14 @@ pub mod azure_ai;
 pub mod bedrock;
 pub mod cloudflare;
 pub mod dashscope;
+pub mod deepgram;
 pub mod deepinfra;
 pub mod deepseek;
+pub mod elevenlabs;
 pub mod fal_ai;
 pub mod gemini;
+pub mod github;
+pub mod github_copilot;
 pub mod groq;
 pub mod meta_llama;
 pub mod minimax;
@@ -96,6 +100,8 @@ pub enum ProviderType {
     Replicate,
     FalAI,
     AmazonNova,
+    GitHub,
+    GitHubCopilot,
     Custom(String),
 }
 
@@ -124,6 +130,8 @@ impl From<&str> for ProviderType {
             "replicate" | "replicate-ai" => ProviderType::Replicate,
             "fal_ai" | "fal-ai" | "fal" => ProviderType::FalAI,
             "amazon_nova" | "amazon-nova" | "nova" => ProviderType::AmazonNova,
+            "github" | "github-models" => ProviderType::GitHub,
+            "github_copilot" | "github-copilot" | "copilot" => ProviderType::GitHubCopilot,
             _ => ProviderType::Custom(s.to_string()),
         }
     }
@@ -154,6 +162,8 @@ impl std::fmt::Display for ProviderType {
             ProviderType::Replicate => write!(f, "replicate"),
             ProviderType::FalAI => write!(f, "fal_ai"),
             ProviderType::AmazonNova => write!(f, "amazon_nova"),
+            ProviderType::GitHub => write!(f, "github"),
+            ProviderType::GitHubCopilot => write!(f, "github_copilot"),
             ProviderType::Custom(name) => write!(f, "{}", name),
         }
     }
