@@ -1,0 +1,451 @@
+//! Tests for ElevenLabs Provider
+//!
+//! Comprehensive unit tests for the ElevenLabs provider implementation.
+
+use super::*;
+use crate::core::types::common::ProviderCapability;
+
+// ==================== Config Tests ====================
+
+#[test]
+fn test_config_default() {
+    let config = ElevenLabsConfig::default();
+    assert!(config.api_key.is_none());
+    assert!(config.api_base.is_none());
+    assert_eq!(config.timeout, 60);
+    assert_eq!(config.max_retries, 3);
+    assert!(!config.debug);
+}
+
+#[test]
+fn test_config_custom_values() {
+    let config = ElevenLabsConfig {
+        api_key: Some("test-key".to_string()),
+        api_base: Some("https://custom.api.com".to_string()),
+        timeout: 120,
+        max_retries: 5,
+        debug: true,
+    };
+
+    assert_eq!(config.api_key.as_deref(), Some("test-key"));
+    assert_eq!(config.api_base.as_deref(), Some("https://custom.api.com"));
+    assert_eq!(config.timeout, 120);
+    assert_eq!(config.max_retries, 5);
+    assert!(config.debug);
+}
+
+#[test]
+fn test_config_get_api_base_default() {
+    let config = ElevenLabsConfig::default();
+    assert_eq!(config.get_api_base(), "https://api.elevenlabs.io");
+}
+
+#[test]
+fn test_config_get_api_key() {
+    let config = ElevenLabsConfig {
+        api_key: Some("my-api-key".to_string()),
+        ..Default::default()
+    };
+    assert_eq!(config.get_api_key(), Some("my-api-key".to_string()));
+}
+
+// ==================== Error Tests ====================
+
+#[test]
+fn test_error_types() {
+    use crate::core::types::errors::ProviderErrorTrait;
+
+    let err = ElevenLabsError::ApiError("test".to_string());
+    assert_eq!(err.error_type(), "api_error");
+    assert_eq!(err.http_status(), 500);
+    assert!(!err.is_retryable());
+
+    let err = ElevenLabsError::AuthenticationError("bad key".to_string());
+    assert_eq!(err.error_type(), "authentication_error");
+    assert_eq!(err.http_status(), 401);
+    assert!(!err.is_retryable());
+
+    let err = ElevenLabsError::RateLimitError("too many".to_string());
+    assert_eq!(err.error_type(), "rate_limit_error");
+    assert_eq!(err.http_status(), 429);
+    assert!(err.is_retryable());
+    assert_eq!(err.retry_delay(), Some(60));
+
+    let err = ElevenLabsError::VoiceNotFoundError("unknown".to_string());
+    assert_eq!(err.error_type(), "voice_not_found_error");
+    assert_eq!(err.http_status(), 404);
+
+    let err = ElevenLabsError::QuotaExceededError("limit".to_string());
+    assert_eq!(err.error_type(), "quota_exceeded_error");
+    assert_eq!(err.http_status(), 402);
+}
+
+#[test]
+fn test_error_display() {
+    let err = ElevenLabsError::ApiError("something went wrong".to_string());
+    assert_eq!(err.to_string(), "API error: something went wrong");
+
+    let err = ElevenLabsError::VoiceNotFoundError("voice-123".to_string());
+    assert_eq!(err.to_string(), "Voice not found: voice-123");
+}
+
+#[test]
+fn test_error_to_provider_error() {
+    use crate::core::providers::unified_provider::ProviderError;
+
+    let err: ProviderError = ElevenLabsError::AuthenticationError("bad".to_string()).into();
+    assert!(matches!(err, ProviderError::Authentication { .. }));
+
+    let err: ProviderError = ElevenLabsError::RateLimitError("limit".to_string()).into();
+    assert!(matches!(err, ProviderError::RateLimit { .. }));
+
+    let err: ProviderError = ElevenLabsError::VoiceNotFoundError("voice".to_string()).into();
+    assert!(matches!(err, ProviderError::ModelNotFound { .. }));
+}
+
+// ==================== TTS Tests ====================
+
+#[test]
+fn test_tts_voice_mappings() {
+    let mappings = tts::get_voice_mappings();
+    assert!(mappings.contains_key("alloy"));
+    assert!(mappings.contains_key("onyx"));
+    assert!(mappings.contains_key("coral"));
+    assert_eq!(mappings.get("alloy"), Some(&"21m00Tcm4TlvDq8ikWAM"));
+}
+
+#[test]
+fn test_tts_format_mappings() {
+    let mappings = tts::get_format_mappings();
+    assert_eq!(mappings.get("mp3"), Some(&"mp3_44100_128"));
+    assert_eq!(mappings.get("pcm"), Some(&"pcm_44100"));
+    assert_eq!(mappings.get("opus"), Some(&"opus_48000_128"));
+}
+
+#[test]
+fn test_tts_resolve_voice_id_openai() {
+    let voice_id = tts::resolve_voice_id("alloy").unwrap();
+    assert_eq!(voice_id, "21m00Tcm4TlvDq8ikWAM");
+
+    let voice_id = tts::resolve_voice_id("ALLOY").unwrap();
+    assert_eq!(voice_id, "21m00Tcm4TlvDq8ikWAM");
+
+    let voice_id = tts::resolve_voice_id("  alloy  ").unwrap();
+    assert_eq!(voice_id, "21m00Tcm4TlvDq8ikWAM");
+}
+
+#[test]
+fn test_tts_resolve_voice_id_direct() {
+    let voice_id = tts::resolve_voice_id("custom-voice-id").unwrap();
+    assert_eq!(voice_id, "custom-voice-id");
+}
+
+#[test]
+fn test_tts_resolve_voice_id_empty() {
+    let result = tts::resolve_voice_id("");
+    assert!(result.is_err());
+
+    let result = tts::resolve_voice_id("   ");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_tts_map_output_format() {
+    assert_eq!(tts::map_output_format(Some("mp3")), "mp3_44100_128");
+    assert_eq!(tts::map_output_format(Some("pcm")), "pcm_44100");
+    assert_eq!(tts::map_output_format(Some("opus")), "opus_48000_128");
+    assert_eq!(tts::map_output_format(None), "mp3_44100_128");
+    assert_eq!(tts::map_output_format(Some("unknown")), "mp3_44100_128");
+}
+
+#[test]
+fn test_tts_build_url() {
+    let url = tts::build_tts_url("https://api.elevenlabs.io", "voice-123", Some("mp3"));
+    assert_eq!(
+        url,
+        "https://api.elevenlabs.io/v1/text-to-speech/voice-123?output_format=mp3_44100_128"
+    );
+
+    let url = tts::build_tts_url("https://api.elevenlabs.io/", "voice-123", None);
+    assert_eq!(
+        url,
+        "https://api.elevenlabs.io/v1/text-to-speech/voice-123?output_format=mp3_44100_128"
+    );
+}
+
+#[test]
+fn test_tts_model_enum() {
+    assert_eq!(
+        tts::TTSModel::MultilingualV2.as_str(),
+        "eleven_multilingual_v2"
+    );
+    assert_eq!(tts::TTSModel::TurboV2_5.as_str(), "eleven_turbo_v2_5");
+    assert_eq!(tts::TTSModel::TurboV2.as_str(), "eleven_turbo_v2");
+    assert_eq!(
+        tts::TTSModel::MonolingualV1.as_str(),
+        "eleven_monolingual_v1"
+    );
+
+    assert_eq!(
+        tts::TTSModel::from_str("eleven_multilingual_v2"),
+        Some(tts::TTSModel::MultilingualV2)
+    );
+    assert_eq!(tts::TTSModel::from_str("invalid"), None);
+}
+
+#[test]
+fn test_voice_settings_serialization() {
+    let settings = tts::VoiceSettings {
+        stability: Some(0.5),
+        similarity_boost: Some(0.75),
+        style: Some(0.3),
+        use_speaker_boost: Some(true),
+        speed: Some(1.0),
+    };
+
+    let json = serde_json::to_value(&settings).unwrap();
+    assert_eq!(json["stability"], 0.5);
+    assert_eq!(json["similarity_boost"], 0.75);
+    assert_eq!(json["style"], 0.3);
+    assert_eq!(json["use_speaker_boost"], true);
+    assert_eq!(json["speed"], 1.0);
+}
+
+#[test]
+fn test_voice_settings_skip_none() {
+    let settings = tts::VoiceSettings {
+        stability: Some(0.5),
+        ..Default::default()
+    };
+
+    let json = serde_json::to_value(&settings).unwrap();
+    assert!(json.get("stability").is_some());
+    assert!(json.get("similarity_boost").is_none());
+}
+
+// ==================== STT Tests ====================
+
+#[test]
+fn test_stt_model_enum() {
+    assert_eq!(stt::STTModel::ScribeV1.as_str(), "scribe_v1");
+    assert_eq!(
+        stt::STTModel::from_str("scribe_v1"),
+        Some(stt::STTModel::ScribeV1)
+    );
+    assert_eq!(stt::STTModel::from_str("invalid"), None);
+}
+
+#[test]
+fn test_stt_build_url() {
+    let url = stt::build_stt_url("https://api.elevenlabs.io");
+    assert_eq!(url, "https://api.elevenlabs.io/v1/speech-to-text");
+
+    let url = stt::build_stt_url("https://api.elevenlabs.io/");
+    assert_eq!(url, "https://api.elevenlabs.io/v1/speech-to-text");
+}
+
+#[test]
+fn test_stt_supported_formats() {
+    let formats = stt::supported_audio_formats();
+    assert!(formats.contains(&"mp3"));
+    assert!(formats.contains(&"wav"));
+    assert!(formats.contains(&"m4a"));
+    assert!(formats.contains(&"webm"));
+    assert!(formats.contains(&"flac"));
+}
+
+#[test]
+fn test_stt_transcription_response_to_openai() {
+    let response = stt::TranscriptionResponse {
+        text: "Hello world".to_string(),
+        language_code: Some("en".to_string()),
+        words: Some(vec![
+            stt::WordInfo {
+                text: "Hello".to_string(),
+                start: 0.0,
+                end: 0.5,
+                word_type: "word".to_string(),
+            },
+            stt::WordInfo {
+                text: " ".to_string(),
+                start: 0.5,
+                end: 0.6,
+                word_type: "spacing".to_string(),
+            },
+            stt::WordInfo {
+                text: "world".to_string(),
+                start: 0.6,
+                end: 1.0,
+                word_type: "word".to_string(),
+            },
+        ]),
+    };
+
+    let openai: stt::OpenAITranscriptionResponse = response.into();
+    assert_eq!(openai.text, "Hello world");
+    assert_eq!(openai.task, "transcribe");
+    assert_eq!(openai.language, "en");
+
+    let words = openai.words.unwrap();
+    assert_eq!(words.len(), 2); // Spacing filtered out
+    assert_eq!(words[0].word, "Hello");
+    assert_eq!(words[1].word, "world");
+}
+
+#[test]
+fn test_stt_max_file_size() {
+    assert_eq!(stt::MAX_FILE_SIZE, 100 * 1024 * 1024); // 100MB
+}
+
+// ==================== Provider Tests ====================
+
+#[tokio::test]
+async fn test_provider_capabilities() {
+    let config = ElevenLabsConfig {
+        api_key: Some("test-key".to_string()),
+        ..Default::default()
+    };
+    let provider = ElevenLabsProvider::new(config).await.unwrap();
+    let capabilities = provider.capabilities();
+
+    assert!(capabilities.contains(&ProviderCapability::TextToSpeech));
+    assert!(capabilities.contains(&ProviderCapability::SpeechToText));
+    assert!(!capabilities.contains(&ProviderCapability::ChatCompletion));
+}
+
+#[test]
+fn test_provider_build_model_list() {
+    let models = ElevenLabsProvider::build_model_list();
+    assert!(!models.is_empty());
+
+    // Check for TTS models
+    let has_tts = models.iter().any(|m| m.id == "eleven_multilingual_v2");
+    assert!(has_tts);
+
+    // Check for STT models
+    let has_stt = models.iter().any(|m| m.id == "scribe_v1");
+    assert!(has_stt);
+
+    // Verify model attributes
+    for model in &models {
+        assert_eq!(model.provider, "elevenlabs");
+        assert!(!model.capabilities.is_empty());
+    }
+}
+
+#[test]
+fn test_provider_map_http_error() {
+    use ElevenLabsError::*;
+
+    let err = ElevenLabsProvider::map_http_error(400, Some("Bad request"));
+    assert!(matches!(err, InvalidRequestError(_)));
+
+    let err = ElevenLabsProvider::map_http_error(401, None);
+    assert!(matches!(err, AuthenticationError(_)));
+
+    let err = ElevenLabsProvider::map_http_error(402, Some("Quota"));
+    assert!(matches!(err, QuotaExceededError(_)));
+
+    let err = ElevenLabsProvider::map_http_error(403, None);
+    assert!(matches!(err, AuthenticationError(_)));
+
+    let err = ElevenLabsProvider::map_http_error(404, None);
+    assert!(matches!(err, VoiceNotFoundError(_)));
+
+    let err = ElevenLabsProvider::map_http_error(429, None);
+    assert!(matches!(err, RateLimitError(_)));
+
+    let err = ElevenLabsProvider::map_http_error(500, None);
+    assert!(matches!(err, ApiError(_)));
+
+    let err = ElevenLabsProvider::map_http_error(502, None);
+    assert!(matches!(err, ServiceUnavailableError(_)));
+
+    let err = ElevenLabsProvider::map_http_error(503, None);
+    assert!(matches!(err, ServiceUnavailableError(_)));
+
+    let err = ElevenLabsProvider::map_http_error(418, Some("I'm a teapot"));
+    assert!(matches!(err, ApiError(_)));
+}
+
+// ==================== Error Mapper Tests ====================
+
+#[test]
+fn test_error_mapper_http_errors() {
+    use crate::core::traits::error_mapper::trait_def::ErrorMapper;
+
+    let mapper = ElevenLabsErrorMapper;
+
+    let err = mapper.map_http_error(400, "Invalid parameter");
+    assert!(matches!(err, ElevenLabsError::InvalidRequestError(_)));
+
+    let err = mapper.map_http_error(401, "");
+    assert!(matches!(err, ElevenLabsError::AuthenticationError(_)));
+
+    let err = mapper.map_http_error(402, "");
+    assert!(matches!(err, ElevenLabsError::QuotaExceededError(_)));
+
+    let err = mapper.map_http_error(404, "");
+    assert!(matches!(err, ElevenLabsError::VoiceNotFoundError(_)));
+
+    let err = mapper.map_http_error(429, "");
+    assert!(matches!(err, ElevenLabsError::RateLimitError(_)));
+
+    let err = mapper.map_http_error(500, "");
+    assert!(matches!(err, ElevenLabsError::ApiError(_)));
+
+    let err = mapper.map_http_error(502, "");
+    assert!(matches!(err, ElevenLabsError::ServiceUnavailableError(_)));
+
+    let err = mapper.map_http_error(503, "");
+    assert!(matches!(err, ElevenLabsError::ServiceUnavailableError(_)));
+}
+
+#[test]
+fn test_error_mapper_empty_body() {
+    use crate::core::traits::error_mapper::trait_def::ErrorMapper;
+
+    let mapper = ElevenLabsErrorMapper;
+    let err = mapper.map_http_error(400, "");
+    if let ElevenLabsError::InvalidRequestError(msg) = err {
+        assert!(msg.contains("HTTP error 400"));
+    } else {
+        panic!("Expected InvalidRequestError");
+    }
+}
+
+// ==================== Integration-like Tests ====================
+
+#[tokio::test]
+async fn test_provider_creation_without_key() {
+    // Clear any environment variable for this test
+    unsafe { std::env::remove_var("ELEVENLABS_API_KEY") };
+
+    let config = ElevenLabsConfig::default();
+    let result = ElevenLabsProvider::new(config).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_provider_creation_with_key() {
+    let config = ElevenLabsConfig {
+        api_key: Some("test-api-key".to_string()),
+        ..Default::default()
+    };
+
+    let result = ElevenLabsProvider::new(config).await;
+    assert!(result.is_ok());
+
+    let provider = result.unwrap();
+    assert_eq!(provider.name(), "elevenlabs");
+    assert!(!provider.models().is_empty());
+}
+
+#[tokio::test]
+async fn test_provider_with_api_key() {
+    let result = ElevenLabsProvider::with_api_key("test-key").await;
+    assert!(result.is_ok());
+
+    let provider = result.unwrap();
+    assert_eq!(provider.name(), "elevenlabs");
+}
