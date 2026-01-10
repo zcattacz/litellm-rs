@@ -13,7 +13,8 @@ use tracing::debug;
 use super::config::WatsonxConfig;
 use super::error::{WatsonxError, WatsonxErrorMapper};
 use super::model_info::{get_available_models, get_model_info, supports_tools};
-use crate::core::providers::base::{header, GlobalPoolManager, HttpMethod};
+use crate::core::providers::base::{header, header_owned, GlobalPoolManager, HttpMethod};
+use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 use crate::core::traits::{
     provider::llm_provider::trait_definition::LLMProvider, ProviderConfig as _,
 };
@@ -97,8 +98,8 @@ impl WatsonxProvider {
                     id: info.model_id.to_string(),
                     name: info.display_name.to_string(),
                     provider: "watsonx".to_string(),
-                    max_context_length: info.context_length,
-                    max_output_length: Some(info.max_output_tokens),
+                    max_context_length: info.context_length as u32,
+                    max_output_length: Some(info.max_output_tokens as u32),
                     supports_streaming: true,
                     supports_tools: info.supports_tools,
                     supports_multimodal: info
@@ -258,6 +259,7 @@ impl WatsonxProvider {
         };
 
         self.config.build_url(&endpoint, stream)
+            .map_err(WatsonxError::ConfigurationError)
     }
 
     /// Prepare the request payload
@@ -324,15 +326,17 @@ impl WatsonxProvider {
         }
 
         if let Some(ref tool_choice) = request.tool_choice {
+            // Serialize tool_choice to JSON Value for Watsonx
+            let tool_choice_value = serde_json::to_value(tool_choice).unwrap_or_default();
             // Check if it's a string option like "auto", "none", "required"
-            if let serde_json::Value::String(choice) = tool_choice {
+            if let serde_json::Value::String(ref choice) = tool_choice_value {
                 if choice == "auto" || choice == "none" || choice == "required" {
-                    payload["tool_choice_option"] = tool_choice.clone();
+                    payload["tool_choice_option"] = tool_choice_value.clone();
                 } else {
-                    payload["tool_choice"] = tool_choice.clone();
+                    payload["tool_choice"] = tool_choice_value.clone();
                 }
             } else {
-                payload["tool_choice"] = tool_choice.clone();
+                payload["tool_choice"] = tool_choice_value;
             }
         }
 
@@ -353,7 +357,7 @@ impl WatsonxProvider {
         let headers = self.build_headers().await?;
         let header_tuples: Vec<_> = headers
             .iter()
-            .map(|(k, v)| header(k.clone(), v.clone()))
+            .map(|(k, v)| header_owned(k.clone(), v.clone()))
             .collect();
 
         let response = self

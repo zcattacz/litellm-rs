@@ -150,23 +150,24 @@ impl LlamafileProvider {
                             crate::core::types::content::ContentPart::Text { text } => {
                                 Some(serde_json::json!({"type": "text", "text": text}))
                             }
+                            crate::core::types::content::ContentPart::ImageUrl { image_url } => {
+                                // Image URL format
+                                let mut img_obj = serde_json::json!({"url": &image_url.url});
+                                if let Some(d) = &image_url.detail {
+                                    img_obj["detail"] = serde_json::json!(d);
+                                }
+                                Some(serde_json::json!({
+                                    "type": "image_url",
+                                    "image_url": img_obj
+                                }))
+                            }
                             crate::core::types::content::ContentPart::Image {
                                 source,
                                 detail,
                                 ..
                             } => {
-                                // Convert image to URL format
-                                let url = match source {
-                                    crate::core::types::content::ImageSource::Url(u) => {
-                                        u.clone()
-                                    }
-                                    crate::core::types::content::ImageSource::Base64 {
-                                        media_type,
-                                        data,
-                                    } => {
-                                        format!("data:{};base64,{}", media_type, data)
-                                    }
-                                };
+                                // Base64 image format
+                                let url = format!("data:{};base64,{}", source.media_type, source.data);
                                 let mut img_obj = serde_json::json!({"url": url});
                                 if let Some(d) = detail {
                                     img_obj["detail"] = serde_json::json!(d);
@@ -274,10 +275,11 @@ impl LlamafileProvider {
             // Parse tool calls if present
             let tool_calls =
                 if let Some(tcs) = message.get("tool_calls").and_then(|v| v.as_array()) {
+                    let empty_obj = serde_json::json!({});
                     let calls: Vec<_> = tcs
                         .iter()
                         .map(|tc| {
-                            let func = tc.get("function").unwrap_or(&serde_json::json!({}));
+                            let func = tc.get("function").unwrap_or(&empty_obj);
                             ToolCall {
                                 id: tc
                                     .get("id")
@@ -324,7 +326,7 @@ impl LlamafileProvider {
             };
 
             chat_choices.push(ChatChoice {
-                index: i,
+                index: i as u32,
                 message: ChatMessage {
                     role: MessageRole::Assistant,
                     content: content.map(MessageContent::Text),
@@ -332,7 +334,7 @@ impl LlamafileProvider {
                     tool_calls,
                     function_call: None,
                     name: None,
-                    refusal: None,
+                    tool_call_id: None,
                 },
                 finish_reason: Some(finish_reason),
                 logprobs: None,
@@ -540,8 +542,7 @@ impl LLMProvider for LlamafileProvider {
                                     json.get("choices").and_then(|c| c.as_array())
                                 {
                                     if let Some(choice) = choices.first() {
-                                        let delta =
-                                            choice.get("delta").unwrap_or(&serde_json::json!({}));
+                                        let delta = choice.get("delta").cloned().unwrap_or_else(|| serde_json::json!({}));
                                         let content = delta
                                             .get("content")
                                             .and_then(|c| c.as_str())
@@ -574,15 +575,15 @@ impl LLMProvider for LlamafileProvider {
                                                 .unwrap_or("")
                                                 .to_string(),
                                             choices: vec![
-                                                crate::core::types::responses::ChunkChoice {
+                                                crate::core::types::responses::ChatStreamChoice {
                                                     index: 0,
                                                     delta:
-                                                        crate::core::types::responses::ChunkDelta {
+                                                        crate::core::types::responses::ChatDelta {
                                                             role: None,
                                                             content,
+                                                            thinking: None,
                                                             tool_calls: None,
                                                             function_call: None,
-                                                            refusal: None,
                                                         },
                                                     finish_reason,
                                                     logprobs: None,

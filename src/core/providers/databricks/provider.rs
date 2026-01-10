@@ -10,10 +10,13 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::core::providers::base::{
-    GlobalPoolManager, HeaderPair, HttpMethod, get_pricing_db, header,
+    GlobalPoolManager, HeaderPair, HttpMethod, get_pricing_db, header, header_owned,
 };
 use crate::core::providers::unified_provider::ProviderError;
-use crate::core::traits::{ProviderConfig, provider::llm_provider::trait_definition::LLMProvider};
+use crate::core::traits::{
+    ProviderConfig, error_mapper::trait_def::ErrorMapper,
+    provider::llm_provider::trait_definition::LLMProvider,
+};
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
     requests::{ChatMessage, ChatRequest, EmbeddingRequest, MessageContent},
@@ -40,7 +43,7 @@ impl DatabricksProvider {
         if let Some(api_key) = &self.config.base.api_key {
             headers.push(header("Authorization", format!("Bearer {}", api_key)));
         }
-        headers.push(header("Content-Type", "application/json"));
+        headers.push(header("Content-Type", "application/json".to_string()));
 
         // Add custom user agent
         let user_agent = DatabricksConfig::build_user_agent(None);
@@ -48,7 +51,7 @@ impl DatabricksProvider {
 
         // Add custom headers
         for (key, value) in &self.config.base.headers {
-            headers.push(header(key.as_str(), value.clone()));
+            headers.push(header_owned(key.clone(), value.clone()));
         }
 
         headers
@@ -135,8 +138,8 @@ impl DatabricksProvider {
         if let Some(stop) = &request.stop {
             body["stop"] = serde_json::json!(stop);
         }
-        if let Some(stream) = request.stream {
-            body["stream"] = serde_json::json!(stream);
+        if request.stream {
+            body["stream"] = serde_json::json!(true);
         }
 
         // Tool calling (Claude on Databricks)

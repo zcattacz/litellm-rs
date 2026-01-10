@@ -570,8 +570,6 @@ impl LLMProvider for HuggingFaceProvider {
         let input_count = match &request.input {
             crate::core::types::requests::EmbeddingInput::Text(_) => 1,
             crate::core::types::requests::EmbeddingInput::Array(arr) => arr.len(),
-            crate::core::types::requests::EmbeddingInput::TokenArray(arr) => arr.len(),
-            crate::core::types::requests::EmbeddingInput::MultiTokenArray(arr) => arr.len(),
         };
 
         self.embedding_handler

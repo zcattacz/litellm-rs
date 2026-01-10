@@ -15,7 +15,8 @@ use super::model_info::{get_model_info, OllamaModelInfo, OllamaShowResponse, Oll
 use super::streaming::OllamaStream;
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::traits::{
-    ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
+    error_mapper::trait_def::ErrorMapper, provider::llm_provider::trait_definition::LLMProvider,
+    ProviderConfig as _,
 };
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
@@ -157,6 +158,7 @@ impl OllamaProvider {
                 MessageRole::User => "user",
                 MessageRole::Assistant => "assistant",
                 MessageRole::Tool => "tool",
+                MessageRole::Function => "function",
             };
 
             let mut message = serde_json::json!({
@@ -192,6 +194,12 @@ impl OllamaProvider {
                                     images.push(url.clone());
                                 }
                             }
+                            crate::core::types::requests::ContentPart::Image { source, .. } => {
+                                // Base64 encoded image
+                                images.push(source.data.clone());
+                            }
+                            // Skip unsupported content types (Audio, Document, ToolResult, ToolUse)
+                            _ => {}
                         }
                     }
 
@@ -291,10 +299,8 @@ impl OllamaProvider {
 
         // Add response format if set
         if let Some(format) = &request.response_format {
-            if let Some(format_type) = format.get("type").and_then(|v| v.as_str()) {
-                if format_type == "json_object" {
-                    body["format"] = serde_json::json!("json");
-                }
+            if format.format_type == "json_object" {
+                body["format"] = serde_json::json!("json");
             }
         }
 
@@ -325,7 +331,7 @@ impl OllamaProvider {
         let thinking = message
             .get("thinking")
             .and_then(|t| t.as_str())
-            .map(|s| s.to_string());
+            .map(|s| crate::core::types::thinking::ThinkingContent::text(s));
 
         // Parse tool calls if present
         let tool_calls = if let Some(tcs) = message.get("tool_calls").and_then(|v| v.as_array()) {
@@ -333,7 +339,7 @@ impl OllamaProvider {
                 .iter()
                 .enumerate()
                 .map(|(i, tc)| {
-                    let func = tc.get("function").unwrap_or(&serde_json::json!({}));
+                    let func = tc.get("function").cloned().unwrap_or_else(|| serde_json::json!({}));
                     ToolCall {
                         id: format!("call_{}", uuid::Uuid::new_v4()),
                         tool_type: "function".to_string(),
@@ -411,7 +417,7 @@ impl OllamaProvider {
                     tool_calls,
                     function_call: None,
                     name: None,
-                    refusal: None,
+                    tool_call_id: None,
                 },
                 finish_reason: Some(finish_reason),
                 logprobs: None,
@@ -587,8 +593,8 @@ impl LLMProvider for OllamaProvider {
 
         // Build input array
         let input = match request.input {
-            crate::core::types::requests::EmbeddingInput::Single(text) => vec![text],
-            crate::core::types::requests::EmbeddingInput::Multiple(texts) => texts,
+            crate::core::types::embedding::EmbeddingInput::Text(text) => vec![text],
+            crate::core::types::embedding::EmbeddingInput::Array(texts) => texts,
         };
 
         let body = serde_json::json!({
@@ -624,7 +630,7 @@ impl LLMProvider for OllamaProvider {
                 EmbeddingData {
                     object: "embedding".to_string(),
                     embedding,
-                    index: i,
+                    index: i as u32,
                 }
             })
             .collect();
@@ -633,10 +639,15 @@ impl LLMProvider for OllamaProvider {
             object: "list".to_string(),
             data,
             model: format!("ollama/{}", model),
-            usage: crate::core::types::responses::EmbeddingUsage {
+            usage: Some(Usage {
                 prompt_tokens: 0, // Ollama doesn't report token usage for embeddings
+                completion_tokens: 0,
                 total_tokens: 0,
-            },
+                prompt_tokens_details: None,
+                completion_tokens_details: None,
+                thinking_usage: None,
+            }),
+            embeddings: None,
         })
     }
 
@@ -721,7 +732,7 @@ impl OllamaProvider {
                     ProviderCapability::Embeddings,
                 ],
                 created_at: None,
-                updated_at: m.modified_at,
+                updated_at: None,
                 metadata: HashMap::new(),
             })
             .collect();

@@ -149,23 +149,24 @@ impl LMStudioProvider {
                             crate::core::types::content::ContentPart::Text { text } => {
                                 Some(serde_json::json!({"type": "text", "text": text}))
                             }
+                            crate::core::types::content::ContentPart::ImageUrl { image_url } => {
+                                // Image URL format
+                                let mut img_obj = serde_json::json!({"url": &image_url.url});
+                                if let Some(d) = &image_url.detail {
+                                    img_obj["detail"] = serde_json::json!(d);
+                                }
+                                Some(serde_json::json!({
+                                    "type": "image_url",
+                                    "image_url": img_obj
+                                }))
+                            }
                             crate::core::types::content::ContentPart::Image {
                                 source,
                                 detail,
                                 ..
                             } => {
-                                // Convert image to URL format
-                                let url = match source {
-                                    crate::core::types::content::ImageSource::Url(u) => {
-                                        u.clone()
-                                    }
-                                    crate::core::types::content::ImageSource::Base64 {
-                                        media_type,
-                                        data,
-                                    } => {
-                                        format!("data:{};base64,{}", media_type, data)
-                                    }
-                                };
+                                // Base64 image format
+                                let url = format!("data:{};base64,{}", source.media_type, source.data);
                                 let mut img_obj = serde_json::json!({"url": url});
                                 if let Some(d) = detail {
                                     img_obj["detail"] = serde_json::json!(d);
@@ -265,22 +266,17 @@ impl LMStudioProvider {
         // Add response format if set (LM Studio supports json_schema)
         if let Some(format) = &request.response_format {
             // LM Studio supports both json_object and json_schema types
-            if let Some(format_type) = format.get("type").and_then(|v| v.as_str()) {
-                if format_type == "json_schema" {
-                    // Check for json_schema field or schema field
-                    if format.get("json_schema").is_some() {
-                        body["response_format"] = serde_json::json!(format);
-                    } else if let Some(schema) = format.get("schema") {
-                        body["response_format"] = serde_json::json!({
-                            "type": "json_schema",
-                            "json_schema": {"schema": schema}
-                        });
-                    } else {
-                        body["response_format"] = serde_json::json!(format);
-                    }
-                } else if format_type == "json_object" {
+            if format.format_type == "json_schema" {
+                // Check for json_schema field
+                if format.json_schema.is_some() {
                     body["response_format"] = serde_json::json!(format);
+                } else {
+                    body["response_format"] = serde_json::json!({
+                        "type": "json_schema"
+                    });
                 }
+            } else if format.format_type == "json_object" {
+                body["response_format"] = serde_json::json!(format);
             }
         }
 
@@ -315,7 +311,7 @@ impl LMStudioProvider {
                     let calls: Vec<_> = tcs
                         .iter()
                         .map(|tc| {
-                            let func = tc.get("function").unwrap_or(&serde_json::json!({}));
+                            let func = tc.get("function").cloned().unwrap_or_else(|| serde_json::json!({}));
                             ToolCall {
                                 id: tc
                                     .get("id")
@@ -362,7 +358,7 @@ impl LMStudioProvider {
             };
 
             chat_choices.push(ChatChoice {
-                index: i,
+                index: i as u32,
                 message: ChatMessage {
                     role: MessageRole::Assistant,
                     content: content.map(MessageContent::Text),
@@ -370,7 +366,7 @@ impl LMStudioProvider {
                     tool_calls,
                     function_call: None,
                     name: None,
-                    refusal: None,
+                    tool_call_id: None,
                 },
                 finish_reason: Some(finish_reason),
                 logprobs: None,
@@ -589,7 +585,7 @@ impl LLMProvider for LMStudioProvider {
                                     json.get("choices").and_then(|c| c.as_array())
                                 {
                                     if let Some(choice) = choices.first() {
-                                        let delta = choice.get("delta").unwrap_or(&serde_json::json!({}));
+                                        let delta = choice.get("delta").cloned().unwrap_or_else(|| serde_json::json!({}));
                                         let content = delta
                                             .get("content")
                                             .and_then(|c| c.as_str())
@@ -622,15 +618,15 @@ impl LLMProvider for LMStudioProvider {
                                                 .unwrap_or("")
                                                 .to_string(),
                                             choices: vec![
-                                                crate::core::types::responses::ChunkChoice {
+                                                crate::core::types::responses::ChatStreamChoice {
                                                     index: 0,
                                                     delta:
-                                                        crate::core::types::responses::ChunkDelta {
+                                                        crate::core::types::responses::ChatDelta {
                                                             role: None,
                                                             content,
+                                                            thinking: None,
                                                             tool_calls: None,
                                                             function_call: None,
-                                                            refusal: None,
                                                         },
                                                     finish_reason,
                                                     logprobs: None,

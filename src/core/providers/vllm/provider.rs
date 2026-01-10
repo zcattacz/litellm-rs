@@ -14,6 +14,7 @@ use super::config::VLLMConfig;
 use super::error::{VLLMError, VLLMErrorMapper};
 use super::model_info::{VLLMModelInfo, get_or_create_model_info};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
+use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
 };

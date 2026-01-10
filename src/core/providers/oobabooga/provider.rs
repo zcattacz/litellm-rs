@@ -11,7 +11,7 @@ use tracing::debug;
 
 use super::config::OobaboogaConfig;
 use super::error::{OobaboogaError, OobaboogaErrorMapper};
-use crate::core::providers::base::{header, GlobalPoolManager, HttpMethod};
+use crate::core::providers::base::{header_owned, GlobalPoolManager, HttpMethod};
 use crate::core::traits::{
     error_mapper::trait_def::ErrorMapper, provider::llm_provider::trait_definition::LLMProvider,
     ProviderConfig as _,
@@ -82,7 +82,7 @@ impl OobaboogaProvider {
         let auth_headers = self.config.build_auth_headers();
         let headers: Vec<_> = auth_headers
             .into_iter()
-            .map(|(k, v)| header(&k, v))
+            .map(|(k, v)| header_owned(k, v))
             .collect();
 
         let response = self
@@ -151,20 +151,20 @@ impl OobaboogaProvider {
                                 detail,
                                 ..
                             } => {
-                                // Convert image to URL format
-                                let url = match source {
-                                    crate::core::types::content::ImageSource::Url(u) => {
-                                        u.clone()
-                                    }
-                                    crate::core::types::content::ImageSource::Base64 {
-                                        media_type,
-                                        data,
-                                    } => {
-                                        format!("data:{};base64,{}", media_type, data)
-                                    }
-                                };
+                                // Convert base64 image to URL format
+                                let url = format!("data:{};base64,{}", source.media_type, source.data);
                                 let mut img_obj = serde_json::json!({"url": url});
                                 if let Some(d) = detail {
+                                    img_obj["detail"] = serde_json::json!(d);
+                                }
+                                Some(serde_json::json!({
+                                    "type": "image_url",
+                                    "image_url": img_obj
+                                }))
+                            }
+                            crate::core::types::content::ContentPart::ImageUrl { image_url } => {
+                                let mut img_obj = serde_json::json!({"url": &image_url.url});
+                                if let Some(d) = &image_url.detail {
                                     img_obj["detail"] = serde_json::json!(d);
                                 }
                                 Some(serde_json::json!({
@@ -279,7 +279,7 @@ impl OobaboogaProvider {
                     let calls: Vec<_> = tcs
                         .iter()
                         .map(|tc| {
-                            let func = tc.get("function").unwrap_or(&serde_json::json!({}));
+                            let func = tc.get("function").cloned().unwrap_or_else(|| serde_json::json!({}));
                             ToolCall {
                                 id: tc
                                     .get("id")
@@ -326,7 +326,7 @@ impl OobaboogaProvider {
             };
 
             chat_choices.push(ChatChoice {
-                index: i,
+                index: i as u32,
                 message: ChatMessage {
                     role: MessageRole::Assistant,
                     content: content.map(MessageContent::Text),
@@ -334,7 +334,7 @@ impl OobaboogaProvider {
                     tool_calls,
                     function_call: None,
                     name: None,
-                    refusal: None,
+                    tool_call_id: None,
                 },
                 finish_reason: Some(finish_reason),
                 logprobs: None,
@@ -542,8 +542,7 @@ impl LLMProvider for OobaboogaProvider {
                                     json.get("choices").and_then(|c| c.as_array())
                                 {
                                     if let Some(choice) = choices.first() {
-                                        let delta =
-                                            choice.get("delta").unwrap_or(&serde_json::json!({}));
+                                        let delta = choice.get("delta").cloned().unwrap_or_else(|| serde_json::json!({}));
                                         let content = delta
                                             .get("content")
                                             .and_then(|c| c.as_str())
@@ -576,15 +575,15 @@ impl LLMProvider for OobaboogaProvider {
                                                 .unwrap_or("")
                                                 .to_string(),
                                             choices: vec![
-                                                crate::core::types::responses::ChunkChoice {
+                                                crate::core::types::responses::ChatStreamChoice {
                                                     index: 0,
                                                     delta:
-                                                        crate::core::types::responses::ChunkDelta {
+                                                        crate::core::types::responses::ChatDelta {
                                                             role: None,
                                                             content,
+                                                            thinking: None,
                                                             tool_calls: None,
                                                             function_call: None,
-                                                            refusal: None,
                                                         },
                                                     finish_reason,
                                                     logprobs: None,

@@ -16,6 +16,7 @@ use super::model_info::{
     supports_function_calling, supports_tool_choice,
 };
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
+use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
 };
@@ -103,26 +104,19 @@ impl FireworksProvider {
     }
 
     /// Transform messages for Fireworks AI API
-    fn transform_messages(&self, request: &mut ChatRequest) {
-        // Remove unsupported fields from assistant messages
-        for message in request.messages.iter_mut() {
-            if message.role == MessageRole::Assistant {
-                // Remove cache_control if present (Fireworks doesn't support it)
-                if let Some(ref mut metadata) = message.metadata {
-                    metadata.remove("cache_control");
-                }
-            }
-        }
+    fn transform_messages(&self, _request: &mut ChatRequest) {
+        // Fireworks AI uses standard OpenAI-compatible messages
+        // No special transformation needed
     }
 
     /// Transform tools to remove unsupported fields
     fn transform_tools(&self, request: &mut ChatRequest) {
         if let Some(ref mut tools) = request.tools {
             for tool in tools.iter_mut() {
-                // Remove 'strict' field from function definitions
-                if let Some(ref mut function) = tool.function.as_mut() {
-                    if let Some(ref mut params) = function.parameters {
-                        params.as_object_mut().map(|obj| obj.remove("strict"));
+                // Remove 'strict' field from function parameters if present
+                if let Some(ref mut params) = tool.function.parameters {
+                    if let Some(obj) = params.as_object_mut() {
+                        obj.remove("strict");
                     }
                 }
             }
@@ -139,14 +133,13 @@ impl FireworksProvider {
             debug!("Fireworks AI: tools and response_format both set, using tools");
         }
 
-        // Transform json_schema format
+        // Transform json_schema format to json_object
         if let Some(ref mut format) = request.response_format {
-            if let Some(schema) = format.get("json_schema") {
-                if let Some(schema_value) = schema.get("schema") {
-                    *format = serde_json::json!({
-                        "type": "json_object",
-                        "schema": schema_value
-                    });
+            if format.format_type == "json_schema" {
+                if let Some(ref schema) = format.json_schema {
+                    // Fireworks uses json_object with a schema field
+                    format.format_type = "json_object".to_string();
+                    // Keep the schema in json_schema field
                 }
             }
         }
@@ -156,10 +149,11 @@ impl FireworksProvider {
     fn map_tool_choice(&self, request: &mut ChatRequest) {
         if let Some(ref mut tool_choice) = request.tool_choice {
             // Fireworks AI uses "any" instead of "required"
-            if let Some(choice_str) = tool_choice.as_str() {
-                if choice_str == "required" {
-                    *tool_choice = serde_json::json!("any");
+            match tool_choice {
+                crate::core::types::tools::ToolChoice::String(s) if s == "required" => {
+                    *s = "any".to_string();
                 }
+                _ => {}
             }
         }
     }
@@ -368,9 +362,7 @@ impl LLMProvider for FireworksProvider {
             .map_err(|e| FireworksError::ApiError(format!("Failed to parse response: {}", e)))?;
 
         // Prefix model with provider name
-        if let Some(ref model) = chat_response.model {
-            chat_response.model = Some(format!("fireworks_ai/{}", model));
-        }
+        chat_response.model = format!("fireworks_ai/{}", chat_response.model);
 
         Ok(chat_response)
     }
@@ -407,9 +399,7 @@ impl LLMProvider for FireworksProvider {
             .map_err(|e| FireworksError::ApiError(format!("Failed to parse response: {}", e)))?;
 
         // Prefix model with provider name
-        if let Some(ref model) = chat_response.model {
-            chat_response.model = Some(format!("fireworks_ai/{}", model));
-        }
+        chat_response.model = format!("fireworks_ai/{}", chat_response.model);
 
         Ok(chat_response)
     }

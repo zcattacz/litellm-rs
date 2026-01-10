@@ -35,12 +35,6 @@ impl HuggingFaceEmbeddingHandler {
             crate::core::types::requests::EmbeddingInput::Array(texts) => {
                 json!(texts)
             }
-            crate::core::types::requests::EmbeddingInput::TokenArray(tokens) => {
-                json!(tokens)
-            }
-            crate::core::types::requests::EmbeddingInput::MultiTokenArray(arrays) => {
-                json!(arrays)
-            }
         };
 
         let mut body = json!({

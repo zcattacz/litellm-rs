@@ -9,8 +9,10 @@ use std::collections::HashMap;
 
 use super::config::{CohereApiVersion, CohereConfig};
 use super::error::CohereError;
-use crate::core::types::requests::ChatRequest;
-use crate::core::types::responses::{ChatChoice, ChatMessage as ResponseMessage, ChatResponse, Usage};
+use crate::core::types::requests::{ChatRequest, MessageContent, MessageRole};
+use crate::core::types::responses::{ChatChoice, ChatResponse, FinishReason, Usage};
+use crate::core::types::ChatMessage as ResponseMessage;
+use crate::core::types::tools::ToolCall;
 
 /// Cohere v2 chat request (OpenAI-compatible)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -209,7 +211,12 @@ impl CohereChatHandler {
         if let Some(tools) = &request.tools {
             // Transform OpenAI tools to Cohere format if using v1
             if config.api_version == CohereApiVersion::V1 {
-                let cohere_tools = Self::transform_tools_to_v1(tools)?;
+                // Convert tools to JSON values first
+                let tools_json: Vec<Value> = tools
+                    .iter()
+                    .filter_map(|t| serde_json::to_value(t).ok())
+                    .collect();
+                let cohere_tools = Self::transform_tools_to_v1(&tools_json)?;
                 body["tools"] = cohere_tools;
             } else {
                 body["tools"] = json!(tools);
@@ -297,31 +304,31 @@ impl CohereChatHandler {
         let content = Self::extract_content(&response_json)?;
 
         // Extract tool calls if present
-        let tool_calls = response_json
-            .get("message")
-            .and_then(|m| m.get("tool_calls"))
-            .cloned();
+        // Note: tool_calls parsing is handled by parse_tool_calls method
 
         // Extract usage
         let usage = Self::extract_usage(&response_json)?;
 
-        // Extract finish reason
+        let message = ResponseMessage {
+            role: MessageRole::Assistant,
+            content: Some(MessageContent::Text(content)),
+            thinking: None,
+            tool_calls: Self::parse_tool_calls(&response_json),
+            name: None,
+            function_call: None,
+            tool_call_id: None,
+        };
+
         let finish_reason = response_json
             .get("finish_reason")
             .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-
-        let message = ResponseMessage {
-            role: "assistant".to_string(),
-            content: Some(content),
-            tool_calls,
-            name: None,
-            refusal: None,
-            audio: None,
-            function_call: None,
-            tool_call_id: None,
-            annotations: None,
-        };
+            .map(|s| match s.to_lowercase().as_str() {
+                "stop" | "complete" | "end_turn" => FinishReason::Stop,
+                "length" | "max_tokens" => FinishReason::Length,
+                "tool_calls" | "tool_use" => FinishReason::ToolCalls,
+                "content_filter" => FinishReason::ContentFilter,
+                _ => FinishReason::Stop,
+            });
 
         let choice = ChatChoice {
             index: 0,
@@ -333,12 +340,11 @@ impl CohereChatHandler {
         Ok(ChatResponse {
             id,
             object: "chat.completion".to_string(),
-            created: chrono::Utc::now().timestamp() as u64,
+            created: chrono::Utc::now().timestamp(),
             model: model.to_string(),
             choices: vec![choice],
             usage: Some(usage),
             system_fingerprint: None,
-            service_tier: None,
         })
     }
 
@@ -422,6 +428,51 @@ impl CohereChatHandler {
             completion_tokens_details: None,
             thinking_usage: None,
         })
+    }
+
+    /// Parse tool calls from Cohere response
+    fn parse_tool_calls(response_json: &Value) -> Option<Vec<ToolCall>> {
+        let tool_calls_arr = response_json
+            .get("message")
+            .and_then(|m| m.get("tool_calls"))
+            .and_then(|tc| tc.as_array())?;
+
+        let tool_calls: Vec<ToolCall> = tool_calls_arr
+            .iter()
+            .filter_map(|tc| {
+                let id = tc.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let name = tc.get("function")
+                    .and_then(|f| f.get("name"))
+                    .and_then(|n| n.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let arguments = tc.get("function")
+                    .and_then(|f| f.get("arguments"))
+                    .map(|a| {
+                        if a.is_string() {
+                            a.as_str().unwrap_or("{}").to_string()
+                        } else {
+                            serde_json::to_string(a).unwrap_or_else(|_| "{}".to_string())
+                        }
+                    })
+                    .unwrap_or_else(|| "{}".to_string());
+
+                Some(ToolCall {
+                    id,
+                    tool_type: "function".to_string(),
+                    function: crate::core::types::tools::FunctionCall {
+                        name,
+                        arguments,
+                    },
+                })
+            })
+            .collect();
+
+        if tool_calls.is_empty() {
+            None
+        } else {
+            Some(tool_calls)
+        }
     }
 
     /// Get supported OpenAI parameters for Cohere

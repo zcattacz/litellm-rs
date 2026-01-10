@@ -219,6 +219,13 @@ impl HeaderBuilder {
         self
     }
 
+    /// Add a custom header with name and value
+    pub fn with_header(mut self, name: &str, value: &str) -> Self {
+        self.headers
+            .insert(Cow::Owned(name.to_string()), value.to_string());
+        self
+    }
+
     /// Build the headers as HashMap<String, String> for compatibility
     pub fn build(self) -> HashMap<String, String> {
         self.headers

@@ -101,6 +101,12 @@ impl BaseConfig {
                     "openrouter" => "https://openrouter.ai/api/v1",
                     "ai21" => "https://api.ai21.com/studio/v1",
                     "cerebras" => "https://api.cerebras.ai/v1",
+                    "gigachat" => "https://gigachat.devices.sberbank.ru/api/v1",
+                    "friendliai" => "https://api.friendli.ai/v1",
+                    "nlp_cloud" => "https://api.nlpcloud.io/v1",
+                    "volcengine" => "https://ark.cn-beijing.volces.com/api/v3",
+                    "nebius" => "https://api.studio.nebius.ai/v1",
+                    "nscale" => "https://inference.api.nscale.ai/v1",
                     _ => "https://api.openai.com/v1", // Default
                 }
                 .to_string(),

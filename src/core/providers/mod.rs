@@ -5,37 +5,66 @@
 // Base infrastructure
 pub mod base;
 
-// Provider modules
+// Provider modules - alphabetically ordered
+pub mod ai21;
 pub mod amazon_nova;
 pub mod anthropic;
 pub mod azure;
 pub mod azure_ai;
+pub mod baseten;
 pub mod bedrock;
+pub mod cerebras;
+pub mod clarifai;
 pub mod cloudflare;
+pub mod codestral;
+pub mod cohere;
 pub mod dashscope;
+pub mod databricks;
 pub mod deepgram;
 pub mod deepinfra;
 pub mod deepseek;
 pub mod elevenlabs;
 pub mod fal_ai;
+pub mod fireworks;
 pub mod gemini;
 pub mod github;
 pub mod github_copilot;
+pub mod gradient_ai;
 pub mod groq;
+pub mod huggingface;
 pub mod hyperbolic;
 pub mod infinity;
+pub mod jina;
+pub mod llamafile;
+pub mod lm_studio;
 pub mod meta_llama;
 pub mod minimax;
 pub mod mistral;
 pub mod moonshot;
+pub mod nebius;
 pub mod novita;
+pub mod nscale;
+pub mod nvidia_nim;
+pub mod oci;
+pub mod ollama;
+pub mod oobabooga;
 pub mod openai;
 pub mod openrouter;
 pub mod perplexity;
 pub mod replicate;
+pub mod sagemaker;
+pub mod sambanova;
+pub mod snowflake;
+pub mod stability;
+pub mod together;
 pub mod v0;
 pub mod vertex_ai;
+pub mod vllm;
+pub mod volcengine;
+pub mod voyage;
+pub mod watsonx;
 pub mod xai;
+pub mod xinference;
 
 // Shared utilities and architecture
 pub mod capabilities;
@@ -108,6 +137,9 @@ pub enum ProviderType {
     Hyperbolic,
     Infinity,
     Novita,
+    Volcengine,
+    Nebius,
+    Nscale,
     Custom(String),
 }
 
@@ -141,6 +173,9 @@ impl From<&str> for ProviderType {
             "hyperbolic" | "hyperbolic-ai" => ProviderType::Hyperbolic,
             "infinity" | "infinity-embedding" => ProviderType::Infinity,
             "novita" | "novita-ai" => ProviderType::Novita,
+            "volcengine" | "volc" | "doubao" | "bytedance" => ProviderType::Volcengine,
+            "nebius" | "nebius-ai" => ProviderType::Nebius,
+            "nscale" | "nscale-ai" => ProviderType::Nscale,
             _ => ProviderType::Custom(s.to_string()),
         }
     }
@@ -176,6 +211,9 @@ impl std::fmt::Display for ProviderType {
             ProviderType::Hyperbolic => write!(f, "hyperbolic"),
             ProviderType::Infinity => write!(f, "infinity"),
             ProviderType::Novita => write!(f, "novita"),
+            ProviderType::Volcengine => write!(f, "volcengine"),
+            ProviderType::Nebius => write!(f, "nebius"),
+            ProviderType::Nscale => write!(f, "nscale"),
             ProviderType::Custom(name) => write!(f, "{}", name),
         }
     }

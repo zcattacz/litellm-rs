@@ -68,119 +68,163 @@ pub fn get_available_models() -> &'static [&'static str] {
 
 /// Get model information by model ID
 pub fn get_model_info(model_id: &str) -> Option<NvidiaNimModel> {
-    // Default values for most models
-    let base_model = NvidiaNimModel {
-        model_id,
-        display_name: model_id,
-        context_length: 8192,
-        max_output_tokens: 4096,
-        supports_streaming: true,
-        supports_tools: true,
-        supports_vision: false,
-        input_cost_per_million: 0.0,  // Pricing varies
-        output_cost_per_million: 0.0, // Pricing varies
-    };
-
     // Return model-specific configurations
-    Some(match model_id {
+    match model_id {
         // Meta Llama 3 70B
-        "meta/llama3-70b-instruct" => NvidiaNimModel {
+        "meta/llama3-70b-instruct" => Some(NvidiaNimModel {
+            model_id: "meta/llama3-70b-instruct",
             display_name: "Llama 3 70B Instruct",
             context_length: 8192,
             max_output_tokens: 4096,
+            supports_streaming: true,
             supports_tools: true,
-            ..base_model
-        },
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
         // Meta Llama 3 8B
-        "meta/llama3-8b-instruct" => NvidiaNimModel {
+        "meta/llama3-8b-instruct" => Some(NvidiaNimModel {
+            model_id: "meta/llama3-8b-instruct",
             display_name: "Llama 3 8B Instruct",
             context_length: 8192,
             max_output_tokens: 4096,
+            supports_streaming: true,
             supports_tools: true,
-            ..base_model
-        },
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
         // Mistral Large
-        "mistralai/mistral-large" => NvidiaNimModel {
+        "mistralai/mistral-large" => Some(NvidiaNimModel {
+            model_id: "mistralai/mistral-large",
             display_name: "Mistral Large",
             context_length: 32768,
             max_output_tokens: 8192,
+            supports_streaming: true,
             supports_tools: true,
-            ..base_model
-        },
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
         // Mixtral 8x22B
-        "mistralai/mixtral-8x22b-instruct-v0.1" => NvidiaNimModel {
+        "mistralai/mixtral-8x22b-instruct-v0.1" => Some(NvidiaNimModel {
+            model_id: "mistralai/mixtral-8x22b-instruct-v0.1",
             display_name: "Mixtral 8x22B Instruct",
             context_length: 65536,
             max_output_tokens: 8192,
+            supports_streaming: true,
             supports_tools: true,
-            ..base_model
-        },
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
         // Mixtral 8x7B
-        "mistralai/mixtral-8x7b-instruct-v0.1" => NvidiaNimModel {
+        "mistralai/mixtral-8x7b-instruct-v0.1" => Some(NvidiaNimModel {
+            model_id: "mistralai/mixtral-8x7b-instruct-v0.1",
             display_name: "Mixtral 8x7B Instruct",
             context_length: 32768,
             max_output_tokens: 8192,
+            supports_streaming: true,
             supports_tools: true,
-            ..base_model
-        },
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
         // Codestral
-        "mistralai/codestral-22b-instruct-v0.1" => NvidiaNimModel {
+        "mistralai/codestral-22b-instruct-v0.1" => Some(NvidiaNimModel {
+            model_id: "mistralai/codestral-22b-instruct-v0.1",
             display_name: "Codestral 22B Instruct",
             context_length: 32768,
             max_output_tokens: 8192,
+            supports_streaming: true,
             supports_tools: true,
-            ..base_model
-        },
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
         // Phi-3 models
-        "microsoft/phi-3-small-128k-instruct" => NvidiaNimModel {
+        "microsoft/phi-3-small-128k-instruct" => Some(NvidiaNimModel {
+            model_id: "microsoft/phi-3-small-128k-instruct",
             display_name: "Phi-3 Small 128K Instruct",
             context_length: 131072,
             max_output_tokens: 4096,
+            supports_streaming: true,
             supports_tools: false,
-            ..base_model
-        },
-        "microsoft/phi-3-medium-128k-instruct" => NvidiaNimModel {
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
+        "microsoft/phi-3-medium-128k-instruct" => Some(NvidiaNimModel {
+            model_id: "microsoft/phi-3-medium-128k-instruct",
             display_name: "Phi-3 Medium 128K Instruct",
             context_length: 131072,
             max_output_tokens: 4096,
+            supports_streaming: true,
             supports_tools: false,
-            ..base_model
-        },
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
         // Google Gemma models
-        "google/gemma-2-27b-it" | "google/gemma-2-9b-it" | "google/recurrentgemma-2b" => {
-            NvidiaNimModel {
-                display_name: if model_id.contains("27b") {
-                    "Gemma 2 27B IT"
-                } else if model_id.contains("9b") {
-                    "Gemma 2 9B IT"
-                } else {
-                    "RecurrentGemma 2B"
-                },
-                context_length: 8192,
-                max_output_tokens: 4096,
-                supports_tools: false,
-                ..base_model
-            }
-        }
+        "google/gemma-2-27b-it" => Some(NvidiaNimModel {
+            model_id: "google/gemma-2-27b-it",
+            display_name: "Gemma 2 27B IT",
+            context_length: 8192,
+            max_output_tokens: 4096,
+            supports_streaming: true,
+            supports_tools: false,
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
+        "google/gemma-2-9b-it" => Some(NvidiaNimModel {
+            model_id: "google/gemma-2-9b-it",
+            display_name: "Gemma 2 9B IT",
+            context_length: 8192,
+            max_output_tokens: 4096,
+            supports_streaming: true,
+            supports_tools: false,
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
+        "google/recurrentgemma-2b" => Some(NvidiaNimModel {
+            model_id: "google/recurrentgemma-2b",
+            display_name: "RecurrentGemma 2B",
+            context_length: 8192,
+            max_output_tokens: 4096,
+            supports_streaming: true,
+            supports_tools: false,
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
         // NVIDIA Nemotron
-        "nvidia/nemotron-4-340b-instruct" => NvidiaNimModel {
+        "nvidia/nemotron-4-340b-instruct" => Some(NvidiaNimModel {
+            model_id: "nvidia/nemotron-4-340b-instruct",
             display_name: "Nemotron 4 340B Instruct",
             context_length: 4096,
             max_output_tokens: 4096,
+            supports_streaming: true,
             supports_tools: false,
-            ..base_model
-        },
-        "nvidia/nemotron-4-340b-reward" => NvidiaNimModel {
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
+        "nvidia/nemotron-4-340b-reward" => Some(NvidiaNimModel {
+            model_id: "nvidia/nemotron-4-340b-reward",
             display_name: "Nemotron 4 340B Reward",
             context_length: 4096,
             max_output_tokens: 4096,
             supports_streaming: true,
             supports_tools: false,
-            ..base_model
-        },
-        // Default for any other model
-        _ => base_model,
-    })
+            supports_vision: false,
+            input_cost_per_million: 0.0,
+            output_cost_per_million: 0.0,
+        }),
+        // Unknown models - return None
+        _ => None,
+    }
 }
 
 /// Get supported OpenAI parameters for a specific model

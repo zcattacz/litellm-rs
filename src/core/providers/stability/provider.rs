@@ -11,10 +11,10 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::core::providers::base::{
-    GlobalPoolManager, HeaderPair, HttpMethod, get_pricing_db, header,
+    GlobalPoolManager, HeaderPair, get_pricing_db, header,
 };
 use crate::core::providers::unified_provider::ProviderError;
-use crate::core::traits::{ProviderConfig, provider::llm_provider::trait_definition::LLMProvider};
+use crate::core::traits::{ProviderConfig, provider::llm_provider::trait_definition::LLMProvider, error_mapper::trait_def::ErrorMapper};
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
     requests::{ChatRequest, ImageGenerationRequest},
@@ -70,7 +70,7 @@ impl StabilityProvider {
         if let Some(api_key) = &self.config.base.api_key {
             headers.push(header("Authorization", format!("Bearer {}", api_key)));
         }
-        headers.push(header("Accept", "application/json"));
+        headers.push(header("Accept", "application/json".to_string()));
 
         headers
     }

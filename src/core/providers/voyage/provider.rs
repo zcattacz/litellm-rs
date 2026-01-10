@@ -14,6 +14,7 @@ use super::config::VoyageConfig;
 use super::error::{VoyageError, VoyageErrorMapper};
 use super::model_info::{get_available_models, get_model_info, supports_custom_dimensions};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
+use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
 };
@@ -126,8 +127,6 @@ impl VoyageProvider {
         match input {
             EmbeddingInput::Text(text) => serde_json::json!([text]),
             EmbeddingInput::Array(arr) => serde_json::json!(arr),
-            EmbeddingInput::TokenArray(tokens) => serde_json::json!(tokens),
-            EmbeddingInput::TokenArrays(token_arrays) => serde_json::json!(token_arrays),
         }
     }
 

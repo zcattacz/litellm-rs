@@ -8,7 +8,8 @@ use serde_json::Value;
 
 use super::config::CohereApiVersion;
 use super::error::CohereError;
-use crate::core::types::responses::{ChatChunk, ChatChunkChoice, ChatChunkDelta, Usage};
+use crate::core::types::requests::MessageRole;
+use crate::core::types::responses::{ChatChunk, ChatStreamChoice, ChatDelta, FinishReason, Usage};
 
 /// Cohere v1 streaming event types
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -276,19 +277,19 @@ impl CohereStreamParser {
         ChatChunk {
             id: self.response_id.clone(),
             object: "chat.completion.chunk".to_string(),
-            created: chrono::Utc::now().timestamp() as u64,
+            created: chrono::Utc::now().timestamp(),
             model: self.model.clone(),
-            choices: vec![ChatChunkChoice {
+            choices: vec![ChatStreamChoice {
                 index,
-                delta: ChatChunkDelta {
+                delta: ChatDelta {
                     role: if index == 0 {
-                        Some("assistant".to_string())
+                        Some(MessageRole::Assistant)
                     } else {
                         None
                     },
                     content: Some(text.to_string()),
+                    thinking: None,
                     tool_calls: None,
-                    refusal: None,
                     function_call: None,
                 },
                 finish_reason: None,
@@ -296,32 +297,38 @@ impl CohereStreamParser {
             }],
             usage: None,
             system_fingerprint: None,
-            service_tier: None,
         }
     }
 
     /// Create a finish chunk
     fn create_finish_chunk(&self, finish_reason: &str, usage: Option<Usage>) -> ChatChunk {
+        let finish_reason_enum = match finish_reason.to_lowercase().as_str() {
+            "stop" | "complete" | "end_turn" => FinishReason::Stop,
+            "length" | "max_tokens" => FinishReason::Length,
+            "tool_calls" | "tool_use" => FinishReason::ToolCalls,
+            "content_filter" => FinishReason::ContentFilter,
+            _ => FinishReason::Stop,
+        };
+
         ChatChunk {
             id: self.response_id.clone(),
             object: "chat.completion.chunk".to_string(),
-            created: chrono::Utc::now().timestamp() as u64,
+            created: chrono::Utc::now().timestamp(),
             model: self.model.clone(),
-            choices: vec![ChatChunkChoice {
+            choices: vec![ChatStreamChoice {
                 index: 0,
-                delta: ChatChunkDelta {
+                delta: ChatDelta {
                     role: None,
                     content: None,
+                    thinking: None,
                     tool_calls: None,
-                    refusal: None,
                     function_call: None,
                 },
-                finish_reason: Some(finish_reason.to_string()),
+                finish_reason: Some(finish_reason_enum),
                 logprobs: None,
             }],
             usage,
             system_fingerprint: None,
-            service_tier: None,
         }
     }
 }
@@ -417,7 +424,7 @@ mod tests {
 
         let chunk = parser.create_text_chunk("test", None);
         assert_eq!(chunk.choices[0].delta.content, Some("test".to_string()));
-        assert_eq!(chunk.choices[0].delta.role, Some("assistant".to_string()));
+        assert_eq!(chunk.choices[0].delta.role, Some(MessageRole::Assistant));
         assert_eq!(chunk.model, "command-r-plus");
     }
 
@@ -435,7 +442,7 @@ mod tests {
         };
 
         let chunk = parser.create_finish_chunk("stop", Some(usage));
-        assert_eq!(chunk.choices[0].finish_reason, Some("stop".to_string()));
+        assert_eq!(chunk.choices[0].finish_reason, Some(FinishReason::Stop));
         assert!(chunk.usage.is_some());
         assert_eq!(chunk.usage.unwrap().total_tokens, 30);
     }
