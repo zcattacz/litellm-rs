@@ -126,15 +126,16 @@ impl OllamaModelInfo {
 
 /// Infer context length from model name
 fn infer_context_length(name_lower: &str) -> Option<u32> {
-    // Models with known large context windows
-    if name_lower.contains("llama3") || name_lower.contains("llama-3") {
-        return Some(8192);
+    // Check more specific patterns first
+    if name_lower.contains("llama3.2") || name_lower.contains("llama-3.2") {
+        return Some(128000);
     }
     if name_lower.contains("llama3.1") || name_lower.contains("llama-3.1") {
         return Some(131072);
     }
-    if name_lower.contains("llama3.2") || name_lower.contains("llama-3.2") {
-        return Some(128000);
+    // Models with known large context windows
+    if name_lower.contains("llama3") || name_lower.contains("llama-3") {
+        return Some(8192);
     }
     if name_lower.contains("mistral") && !name_lower.contains("mixtral") {
         return Some(32768);

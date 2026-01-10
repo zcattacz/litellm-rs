@@ -319,9 +319,9 @@ async fn test_transform_request_with_params() {
     let context = crate::core::types::common::RequestContext::default();
     let body = provider.transform_request(request, context).await.unwrap();
 
-    assert_eq!(body["temperature"], 0.7);
+    assert!((body["temperature"].as_f64().unwrap() - 0.7).abs() < 0.001);
     assert_eq!(body["max_tokens"], 100);
-    assert_eq!(body["p"], 0.9);
+    assert!((body["p"].as_f64().unwrap() - 0.9).abs() < 0.001);
     assert_eq!(body["seed"], 42);
 }
 

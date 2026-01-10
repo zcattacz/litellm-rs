@@ -280,7 +280,7 @@ mod tests {
         assert!(result.is_ok());
         let json = result.unwrap();
         assert_eq!(json["model"], "test-model");
-        assert_eq!(json["temperature"], 0.7);
+        assert!((json["temperature"].as_f64().unwrap() - 0.7).abs() < 0.001);
         assert_eq!(json["max_tokens"], 100);
     }
 

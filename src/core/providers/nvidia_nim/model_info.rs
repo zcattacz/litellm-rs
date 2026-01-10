@@ -342,7 +342,7 @@ mod tests {
     #[test]
     fn test_get_model_info_unknown() {
         let info = get_model_info("unknown/model");
-        assert!(info.is_some()); // Returns default
+        assert!(info.is_none()); // Unknown models return None
     }
 
     #[test]

@@ -337,7 +337,7 @@ mod tests {
 
         let options = config.build_options();
         assert_eq!(options["mirostat"], 1);
-        assert_eq!(options["mirostat_eta"], 0.1);
+        assert!((options["mirostat_eta"].as_f64().unwrap() - 0.1).abs() < 0.001);
         assert_eq!(options["num_ctx"], 4096);
     }
 

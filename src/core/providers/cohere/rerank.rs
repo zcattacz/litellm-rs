@@ -243,9 +243,9 @@ impl CohereRerankHandler {
     /// Get maximum documents supported by model
     pub fn get_max_documents(model: &str) -> u32 {
         match model {
-            m if m.contains("rerank-v3.5") => 1000,
-            m if m.contains("rerank-v3") => 1000,
-            m if m.contains("rerank-v2") => 1000,
+            m if m.contains("-v3.5") => 1000,
+            m if m.contains("-v3") => 1000,
+            m if m.contains("-v2") => 1000,
             _ => 100,
         }
     }

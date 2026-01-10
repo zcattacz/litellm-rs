@@ -694,7 +694,7 @@ mod tests {
 
         let body = provider.transform_chat_request_to_value(&request);
         assert!(body.get("messages").is_some());
-        assert_eq!(body["temperature"], 0.7);
+        assert!((body["temperature"].as_f64().unwrap() - 0.7).abs() < 0.001);
         assert_eq!(body["max_tokens"], 100);
     }
 

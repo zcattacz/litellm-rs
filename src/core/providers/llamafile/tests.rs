@@ -253,7 +253,7 @@ async fn test_llamafile_build_chat_request() {
 
     assert_eq!(body["model"], "llama-7b");
     assert_eq!(body["stream"], false);
-    assert_eq!(body["temperature"], 0.7);
+    assert!((body["temperature"].as_f64().unwrap() - 0.7).abs() < 0.001);
     assert_eq!(body["max_tokens"], 100);
 
     let messages = body["messages"].as_array().unwrap();

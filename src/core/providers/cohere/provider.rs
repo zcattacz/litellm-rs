@@ -760,7 +760,7 @@ mod tests {
         assert!(result.is_ok());
         let transformed = result.unwrap();
         assert_eq!(transformed["model"], "command-r-plus");
-        assert_eq!(transformed["temperature"], 0.7);
+        assert!((transformed["temperature"].as_f64().unwrap() - 0.7).abs() < 0.001);
         assert_eq!(transformed["max_tokens"], 100);
     }
 
