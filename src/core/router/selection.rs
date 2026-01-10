@@ -88,6 +88,7 @@ impl Router {
         }
 
         // 4. Select based on routing strategy
+        // Note: candidate_ids is guaranteed non-empty at this point (checked above)
         let selected_id = match self.config.routing_strategy {
             RoutingStrategy::SimpleShuffle => {
                 strategy_impl::weighted_random(&candidate_ids, &self.deployments)
@@ -112,7 +113,8 @@ impl Router {
                 &candidate_ids,
                 &self.round_robin_counters,
             ),
-        };
+        }
+        .ok_or_else(|| RouterError::NoAvailableDeployment(model_name.to_string()))?;
 
         // 5. Increment active_requests counter
         if let Some(deployment) = self.deployments.get(&selected_id) {

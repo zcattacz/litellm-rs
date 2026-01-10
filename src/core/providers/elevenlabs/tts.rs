@@ -128,12 +128,14 @@ pub struct TextToSpeechResponse {
 
 /// Available TTS models
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum TTSModel {
     /// Monolingual English model (v1)
     MonolingualV1,
     /// Multilingual model (v1)
     MultilingualV1,
     /// Multilingual model (v2) - recommended for non-English
+    #[default]
     MultilingualV2,
     /// Turbo model (v2) - faster, English optimized
     TurboV2,
@@ -154,7 +156,7 @@ impl TTSModel {
     }
 
     /// Parse from string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "eleven_monolingual_v1" => Some(TTSModel::MonolingualV1),
             "eleven_multilingual_v1" => Some(TTSModel::MultilingualV1),
@@ -166,11 +168,6 @@ impl TTSModel {
     }
 }
 
-impl Default for TTSModel {
-    fn default() -> Self {
-        TTSModel::MultilingualV2
-    }
-}
 
 /// Resolve voice ID from various input formats
 pub fn resolve_voice_id(voice: &str) -> Result<String, ElevenLabsError> {
@@ -300,10 +297,10 @@ mod tests {
     #[test]
     fn test_tts_model_from_str() {
         assert_eq!(
-            TTSModel::from_str("eleven_multilingual_v2"),
+            TTSModel::parse("eleven_multilingual_v2"),
             Some(TTSModel::MultilingualV2)
         );
-        assert_eq!(TTSModel::from_str("unknown"), None);
+        assert_eq!(TTSModel::parse("unknown"), None);
     }
 
     #[test]

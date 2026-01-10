@@ -342,8 +342,7 @@ impl LlamafileProvider {
         }
 
         // Build usage info
-        let usage = if let Some(usage_obj) = response.get("usage") {
-            Some(Usage {
+        let usage = response.get("usage").map(|usage_obj| Usage {
                 prompt_tokens: usage_obj
                     .get("prompt_tokens")
                     .and_then(|v| v.as_u64())
@@ -359,10 +358,7 @@ impl LlamafileProvider {
                 prompt_tokens_details: None,
                 completion_tokens_details: None,
                 thinking_usage: None,
-            })
-        } else {
-            None
-        };
+            });
 
         Ok(ChatResponse {
             id: response

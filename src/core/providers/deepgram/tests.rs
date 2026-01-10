@@ -114,14 +114,14 @@ fn test_stt_model_enum() {
     assert_eq!(stt::STTModel::Base.as_str(), "base");
 
     assert_eq!(
-        stt::STTModel::from_str("nova-2"),
+        stt::STTModel::parse("nova-2"),
         Some(stt::STTModel::Nova2)
     );
     assert_eq!(
-        stt::STTModel::from_str("nova-2-meeting"),
+        stt::STTModel::parse("nova-2-meeting"),
         Some(stt::STTModel::Nova2Meeting)
     );
-    assert_eq!(stt::STTModel::from_str("invalid"), None);
+    assert_eq!(stt::STTModel::parse("invalid"), None);
 }
 
 #[test]

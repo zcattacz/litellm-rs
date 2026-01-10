@@ -11,18 +11,15 @@ pub const GRADIENT_AI_SERVERLESS_ENDPOINT: &str = "https://inference.do-ai.run";
 /// Retrieval method options for Gradient AI
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum RetrievalMethod {
     Rewrite,
     StepBack,
     SubQueries,
+    #[default]
     None,
 }
 
-impl Default for RetrievalMethod {
-    fn default() -> Self {
-        RetrievalMethod::None
-    }
-}
 
 /// Knowledge base filter for Gradient AI
 #[derive(Debug, Clone, Serialize, Deserialize)]

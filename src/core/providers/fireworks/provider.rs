@@ -135,13 +135,12 @@ impl FireworksProvider {
 
         // Transform json_schema format to json_object
         if let Some(ref mut format) = request.response_format {
-            if format.format_type == "json_schema" {
-                if format.json_schema.is_some() {
+            if format.format_type == "json_schema"
+                && format.json_schema.is_some() {
                     // Fireworks uses json_object with a schema field
                     format.format_type = "json_object".to_string();
                     // Keep the schema in json_schema field
                 }
-            }
         }
     }
 

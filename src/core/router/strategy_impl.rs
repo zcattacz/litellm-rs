@@ -15,42 +15,42 @@ pub trait StrategySelector {
         &self,
         candidate_ids: &[DeploymentId],
         deployments: &DashMap<DeploymentId, Deployment>,
-    ) -> DeploymentId;
+    ) -> Option<DeploymentId>;
 
     /// Select a deployment with fewest active requests
     fn select_least_busy(
         &self,
         candidate_ids: &[DeploymentId],
         deployments: &DashMap<DeploymentId, Deployment>,
-    ) -> DeploymentId;
+    ) -> Option<DeploymentId>;
 
     /// Select a deployment with lowest TPM usage rate
     fn select_lowest_usage(
         &self,
         candidate_ids: &[DeploymentId],
         deployments: &DashMap<DeploymentId, Deployment>,
-    ) -> DeploymentId;
+    ) -> Option<DeploymentId>;
 
     /// Select a deployment with lowest average latency
     fn select_lowest_latency(
         &self,
         candidate_ids: &[DeploymentId],
         deployments: &DashMap<DeploymentId, Deployment>,
-    ) -> DeploymentId;
+    ) -> Option<DeploymentId>;
 
     /// Select a deployment with lowest cost (priority)
     fn select_lowest_cost(
         &self,
         candidate_ids: &[DeploymentId],
         deployments: &DashMap<DeploymentId, Deployment>,
-    ) -> DeploymentId;
+    ) -> Option<DeploymentId>;
 
     /// Select a deployment furthest from rate limits
     fn select_rate_limit_aware(
         &self,
         candidate_ids: &[DeploymentId],
         deployments: &DashMap<DeploymentId, Deployment>,
-    ) -> DeploymentId;
+    ) -> Option<DeploymentId>;
 
     /// Select a deployment using round-robin
     fn select_round_robin(
@@ -58,23 +58,24 @@ pub trait StrategySelector {
         model_name: &str,
         candidate_ids: &[DeploymentId],
         round_robin_counters: &DashMap<String, AtomicUsize>,
-    ) -> DeploymentId;
+    ) -> Option<DeploymentId>;
 }
 
 /// Weighted random selection (SimpleShuffle)
 ///
 /// Selects a deployment randomly based on weights.
 /// Higher weight = higher probability of selection.
+/// Returns None if candidate_ids is empty.
 pub fn weighted_random(
     candidate_ids: &[DeploymentId],
     deployments: &DashMap<DeploymentId, Deployment>,
-) -> DeploymentId {
+) -> Option<DeploymentId> {
     if candidate_ids.is_empty() {
-        panic!("weighted_random called with empty candidates");
+        return None;
     }
 
     if candidate_ids.len() == 1 {
-        return candidate_ids[0].clone();
+        return Some(candidate_ids[0].clone());
     }
 
     // Calculate total weight
@@ -87,7 +88,7 @@ pub fn weighted_random(
         // All weights are 0, fall back to uniform random
         let mut rng = rand::thread_rng();
         let index = rng.gen_range(0..candidate_ids.len());
-        return candidate_ids[index].clone();
+        return Some(candidate_ids[index].clone());
     }
 
     // Generate random point in [0, total_weight)
@@ -99,26 +100,27 @@ pub fn weighted_random(
         if let Some(deployment) = deployments.get(id.as_str()) {
             let weight = deployment.config.weight;
             if point < weight {
-                return id.clone();
+                return Some(id.clone());
             }
             point -= weight;
         }
     }
 
     // Fallback (shouldn't happen)
-    candidate_ids[0].clone()
+    Some(candidate_ids[0].clone())
 }
 
 /// Select deployment with fewest active requests (LeastBusy)
 ///
 /// Chooses the deployment with the lowest number of currently active requests.
 /// In case of tie, selects randomly among tied deployments.
+/// Returns None if candidate_ids is empty.
 pub fn least_busy(
     candidate_ids: &[DeploymentId],
     deployments: &DashMap<DeploymentId, Deployment>,
-) -> DeploymentId {
+) -> Option<DeploymentId> {
     if candidate_ids.is_empty() {
-        panic!("least_busy called with empty candidates");
+        return None;
     }
 
     let min_active = candidate_ids
@@ -143,16 +145,16 @@ pub fn least_busy(
         .collect();
 
     if tied.is_empty() {
-        return candidate_ids[0].clone();
+        return Some(candidate_ids[0].clone());
     }
 
     // Random selection among tied
     if tied.len() == 1 {
-        tied[0].clone()
+        Some(tied[0].clone())
     } else {
         let mut rng = rand::thread_rng();
         let index = rng.gen_range(0..tied.len());
-        tied[index].clone()
+        Some(tied[index].clone())
     }
 }
 
@@ -160,12 +162,13 @@ pub fn least_busy(
 ///
 /// Calculates TPM usage as: (tpm_current / tpm_limit) * 100
 /// Deployments without limits are considered at 0% usage.
+/// Returns None if candidate_ids is empty.
 pub fn lowest_usage(
     candidate_ids: &[DeploymentId],
     deployments: &DashMap<DeploymentId, Deployment>,
-) -> DeploymentId {
+) -> Option<DeploymentId> {
     if candidate_ids.is_empty() {
-        panic!("lowest_usage called with empty candidates");
+        return None;
     }
 
     let mut best_id = &candidate_ids[0];
@@ -186,7 +189,7 @@ pub fn lowest_usage(
         }
     }
 
-    best_id.clone()
+    Some(best_id.clone())
 }
 
 /// Select deployment with lowest average latency (LatencyBased)
@@ -194,12 +197,13 @@ pub fn lowest_usage(
 /// Selects the deployment with the lowest average latency.
 /// New deployments (latency = 0) are given a chance by treating them
 /// as having average latency.
+/// Returns None if candidate_ids is empty.
 pub fn lowest_latency(
     candidate_ids: &[DeploymentId],
     deployments: &DashMap<DeploymentId, Deployment>,
-) -> DeploymentId {
+) -> Option<DeploymentId> {
     if candidate_ids.is_empty() {
-        panic!("lowest_latency called with empty candidates");
+        return None;
     }
 
     // Calculate average latency across all candidates (for new deployments)
@@ -238,18 +242,19 @@ pub fn lowest_latency(
         }
     }
 
-    best_id.clone()
+    Some(best_id.clone())
 }
 
 /// Select deployment with lowest cost (CostBased)
 ///
 /// Currently uses priority as a cost proxy (lower priority = lower cost).
+/// Returns None if candidate_ids is empty.
 pub fn lowest_cost(
     candidate_ids: &[DeploymentId],
     deployments: &DashMap<DeploymentId, Deployment>,
-) -> DeploymentId {
+) -> Option<DeploymentId> {
     if candidate_ids.is_empty() {
-        panic!("lowest_cost called with empty candidates");
+        return None;
     }
 
     let mut best_id = &candidate_ids[0];
@@ -265,19 +270,20 @@ pub fn lowest_cost(
         }
     }
 
-    best_id.clone()
+    Some(best_id.clone())
 }
 
 /// Select deployment that is furthest from rate limits (RateLimitAware)
 ///
 /// Calculates distance from rate limit as: (limit - current) / limit
 /// Selects the deployment with maximum distance (most headroom).
+/// Returns None if candidate_ids is empty.
 pub fn rate_limit_aware(
     candidate_ids: &[DeploymentId],
     deployments: &DashMap<DeploymentId, Deployment>,
-) -> DeploymentId {
+) -> Option<DeploymentId> {
     if candidate_ids.is_empty() {
-        panic!("rate_limit_aware called with empty candidates");
+        return None;
     }
 
     let mut best_id = &candidate_ids[0];
@@ -315,23 +321,24 @@ pub fn rate_limit_aware(
         }
     }
 
-    best_id.clone()
+    Some(best_id.clone())
 }
 
 /// Round-robin selection (RoundRobin)
 ///
 /// Cycles through deployments in order, using a per-model counter.
+/// Returns None if candidate_ids is empty.
 pub fn round_robin(
     model_name: &str,
     candidate_ids: &[DeploymentId],
     round_robin_counters: &DashMap<String, AtomicUsize>,
-) -> DeploymentId {
+) -> Option<DeploymentId> {
     if candidate_ids.is_empty() {
-        panic!("round_robin called with empty candidates");
+        return None;
     }
 
     if candidate_ids.len() == 1 {
-        return candidate_ids[0].clone();
+        return Some(candidate_ids[0].clone());
     }
 
     // Get or create counter for this model
@@ -342,7 +349,7 @@ pub fn round_robin(
     // Fetch and increment counter
     let index = counter.fetch_add(1, Relaxed) % candidate_ids.len();
 
-    candidate_ids[index].clone()
+    Some(candidate_ids[index].clone())
 }
 
 // ====================================================================================
@@ -392,7 +399,7 @@ mod tests {
         deployments.insert("d1".to_string(), create_test_deployment("d1", config).await);
 
         let candidates = vec!["d1".to_string()];
-        let selected = weighted_random(&candidates, &deployments);
+        let selected = weighted_random(&candidates, &deployments).unwrap();
         assert_eq!(selected, "d1");
     }
 
@@ -414,7 +421,7 @@ mod tests {
 
         // Run multiple times and verify result is always in candidates
         for _ in 0..100 {
-            let selected = weighted_random(&candidates, &deployments);
+            let selected = weighted_random(&candidates, &deployments).unwrap();
             assert!(candidates.contains(&selected));
         }
     }
@@ -447,7 +454,7 @@ mod tests {
         let mut d2_count = 0;
 
         for _ in 0..1000 {
-            let selected = weighted_random(&candidates, &deployments);
+            let selected = weighted_random(&candidates, &deployments).unwrap();
             if selected == "d1" {
                 d1_count += 1;
             } else {
@@ -480,17 +487,16 @@ mod tests {
 
         // Should fall back to uniform random
         for _ in 0..10 {
-            let selected = weighted_random(&candidates, &deployments);
+            let selected = weighted_random(&candidates, &deployments).unwrap();
             assert!(candidates.contains(&selected));
         }
     }
 
     #[test]
-    #[should_panic(expected = "weighted_random called with empty candidates")]
     fn test_weighted_random_empty_candidates() {
         let deployments: DashMap<DeploymentId, Deployment> = DashMap::new();
         let candidates: Vec<String> = vec![];
-        weighted_random(&candidates, &deployments);
+        assert!(weighted_random(&candidates, &deployments).is_none());
     }
 
     // ====================================================================================
@@ -504,7 +510,7 @@ mod tests {
         deployments.insert("d1".to_string(), create_test_deployment("d1", config).await);
 
         let candidates = vec!["d1".to_string()];
-        let selected = least_busy(&candidates, &deployments);
+        let selected = least_busy(&candidates, &deployments).unwrap();
         assert_eq!(selected, "d1");
     }
 
@@ -525,7 +531,7 @@ mod tests {
         deployments.insert("d3".to_string(), d3);
 
         let candidates = vec!["d1".to_string(), "d2".to_string(), "d3".to_string()];
-        let selected = least_busy(&candidates, &deployments);
+        let selected = least_busy(&candidates, &deployments).unwrap();
 
         // d2 has the fewest active requests
         assert_eq!(selected, "d2");
@@ -547,7 +553,7 @@ mod tests {
 
         // Result should be one of the tied deployments
         for _ in 0..10 {
-            let selected = least_busy(&candidates, &deployments);
+            let selected = least_busy(&candidates, &deployments).unwrap();
             assert!(selected == "d1" || selected == "d2");
         }
     }
@@ -562,16 +568,15 @@ mod tests {
         }
 
         let candidates: Vec<String> = (1..=3).map(|i| format!("d{}", i)).collect();
-        let selected = least_busy(&candidates, &deployments);
+        let selected = least_busy(&candidates, &deployments).unwrap();
         assert!(candidates.contains(&selected));
     }
 
     #[test]
-    #[should_panic(expected = "least_busy called with empty candidates")]
     fn test_least_busy_empty_candidates() {
         let deployments: DashMap<DeploymentId, Deployment> = DashMap::new();
         let candidates: Vec<String> = vec![];
-        least_busy(&candidates, &deployments);
+        assert!(least_busy(&candidates, &deployments).is_none());
     }
 
     // ====================================================================================
@@ -588,7 +593,7 @@ mod tests {
         deployments.insert("d1".to_string(), create_test_deployment("d1", config).await);
 
         let candidates = vec!["d1".to_string()];
-        let selected = lowest_usage(&candidates, &deployments);
+        let selected = lowest_usage(&candidates, &deployments).unwrap();
         assert_eq!(selected, "d1");
     }
 
@@ -624,7 +629,7 @@ mod tests {
         deployments.insert("d3".to_string(), d3);
 
         let candidates = vec!["d1".to_string(), "d2".to_string(), "d3".to_string()];
-        let selected = lowest_usage(&candidates, &deployments);
+        let selected = lowest_usage(&candidates, &deployments).unwrap();
 
         // d2 has the lowest usage percentage
         assert_eq!(selected, "d2");
@@ -652,18 +657,17 @@ mod tests {
         deployments.insert("d2".to_string(), d2);
 
         let candidates = vec!["d1".to_string(), "d2".to_string()];
-        let selected = lowest_usage(&candidates, &deployments);
+        let selected = lowest_usage(&candidates, &deployments).unwrap();
 
         // d1 has 0% usage (no limit)
         assert_eq!(selected, "d1");
     }
 
     #[test]
-    #[should_panic(expected = "lowest_usage called with empty candidates")]
     fn test_lowest_usage_empty_candidates() {
         let deployments: DashMap<DeploymentId, Deployment> = DashMap::new();
         let candidates: Vec<String> = vec![];
-        lowest_usage(&candidates, &deployments);
+        assert!(lowest_usage(&candidates, &deployments).is_none());
     }
 
     // ====================================================================================
@@ -678,7 +682,7 @@ mod tests {
         deployments.insert("d1".to_string(), d1);
 
         let candidates = vec!["d1".to_string()];
-        let selected = lowest_latency(&candidates, &deployments);
+        let selected = lowest_latency(&candidates, &deployments).unwrap();
         assert_eq!(selected, "d1");
     }
 
@@ -699,7 +703,7 @@ mod tests {
         deployments.insert("d3".to_string(), d3);
 
         let candidates = vec!["d1".to_string(), "d2".to_string(), "d3".to_string()];
-        let selected = lowest_latency(&candidates, &deployments);
+        let selected = lowest_latency(&candidates, &deployments).unwrap();
 
         // d2 has the lowest latency
         assert_eq!(selected, "d2");
@@ -725,7 +729,7 @@ mod tests {
         deployments.insert("d3".to_string(), d3);
 
         let candidates = vec!["d1".to_string(), "d2".to_string(), "d3".to_string()];
-        let selected = lowest_latency(&candidates, &deployments);
+        let selected = lowest_latency(&candidates, &deployments).unwrap();
 
         // d1 has the lowest actual latency (1000)
         // d2 gets average = (1000 + 2000) / 2 = 1500
@@ -742,18 +746,17 @@ mod tests {
         }
 
         let candidates: Vec<String> = (1..=3).map(|i| format!("d{}", i)).collect();
-        let selected = lowest_latency(&candidates, &deployments);
+        let selected = lowest_latency(&candidates, &deployments).unwrap();
 
         // Any candidate is valid when all have zero latency
         assert!(candidates.contains(&selected));
     }
 
     #[test]
-    #[should_panic(expected = "lowest_latency called with empty candidates")]
     fn test_lowest_latency_empty_candidates() {
         let deployments: DashMap<DeploymentId, Deployment> = DashMap::new();
         let candidates: Vec<String> = vec![];
-        lowest_latency(&candidates, &deployments);
+        assert!(lowest_latency(&candidates, &deployments).is_none());
     }
 
     // ====================================================================================
@@ -770,7 +773,7 @@ mod tests {
         deployments.insert("d1".to_string(), create_test_deployment("d1", config).await);
 
         let candidates = vec!["d1".to_string()];
-        let selected = lowest_cost(&candidates, &deployments);
+        let selected = lowest_cost(&candidates, &deployments).unwrap();
         assert_eq!(selected, "d1");
     }
 
@@ -806,7 +809,7 @@ mod tests {
         );
 
         let candidates = vec!["d1".to_string(), "d2".to_string(), "d3".to_string()];
-        let selected = lowest_cost(&candidates, &deployments);
+        let selected = lowest_cost(&candidates, &deployments).unwrap();
 
         // d2 has the lowest priority (cheapest)
         assert_eq!(selected, "d2");
@@ -827,18 +830,17 @@ mod tests {
         }
 
         let candidates: Vec<String> = (1..=3).map(|i| format!("d{}", i)).collect();
-        let selected = lowest_cost(&candidates, &deployments);
+        let selected = lowest_cost(&candidates, &deployments).unwrap();
 
         // First one wins when all have same priority
         assert_eq!(selected, "d1");
     }
 
     #[test]
-    #[should_panic(expected = "lowest_cost called with empty candidates")]
     fn test_lowest_cost_empty_candidates() {
         let deployments: DashMap<DeploymentId, Deployment> = DashMap::new();
         let candidates: Vec<String> = vec![];
-        lowest_cost(&candidates, &deployments);
+        assert!(lowest_cost(&candidates, &deployments).is_none());
     }
 
     // ====================================================================================
@@ -856,7 +858,7 @@ mod tests {
         deployments.insert("d1".to_string(), create_test_deployment("d1", config).await);
 
         let candidates = vec!["d1".to_string()];
-        let selected = rate_limit_aware(&candidates, &deployments);
+        let selected = rate_limit_aware(&candidates, &deployments).unwrap();
         assert_eq!(selected, "d1");
     }
 
@@ -887,7 +889,7 @@ mod tests {
         deployments.insert("d2".to_string(), d2);
 
         let candidates = vec!["d1".to_string(), "d2".to_string()];
-        let selected = rate_limit_aware(&candidates, &deployments);
+        let selected = rate_limit_aware(&candidates, &deployments).unwrap();
 
         // d2 has more headroom
         assert_eq!(selected, "d2");
@@ -920,7 +922,7 @@ mod tests {
         deployments.insert("d2".to_string(), d2);
 
         let candidates = vec!["d1".to_string(), "d2".to_string()];
-        let selected = rate_limit_aware(&candidates, &deployments);
+        let selected = rate_limit_aware(&candidates, &deployments).unwrap();
 
         // d2 should win because d1 is constrained by RPM (10% headroom vs 60%)
         assert_eq!(selected, "d2");
@@ -943,18 +945,17 @@ mod tests {
         deployments.insert("d2".to_string(), create_test_deployment("d2", config).await);
 
         let candidates = vec!["d1".to_string(), "d2".to_string()];
-        let selected = rate_limit_aware(&candidates, &deployments);
+        let selected = rate_limit_aware(&candidates, &deployments).unwrap();
 
         // Both have maximum distance, first one wins
         assert_eq!(selected, "d1");
     }
 
     #[test]
-    #[should_panic(expected = "rate_limit_aware called with empty candidates")]
     fn test_rate_limit_aware_empty_candidates() {
         let deployments: DashMap<DeploymentId, Deployment> = DashMap::new();
         let candidates: Vec<String> = vec![];
-        rate_limit_aware(&candidates, &deployments);
+        assert!(rate_limit_aware(&candidates, &deployments).is_none());
     }
 
     // ====================================================================================
@@ -966,7 +967,7 @@ mod tests {
         let counters: DashMap<String, AtomicUsize> = DashMap::new();
         let candidates = vec!["d1".to_string()];
 
-        let selected = round_robin("gpt-4", &candidates, &counters);
+        let selected = round_robin("gpt-4", &candidates, &counters).unwrap();
         assert_eq!(selected, "d1");
     }
 
@@ -976,13 +977,13 @@ mod tests {
         let candidates = vec!["d1".to_string(), "d2".to_string(), "d3".to_string()];
 
         // First cycle
-        assert_eq!(round_robin("gpt-4", &candidates, &counters), "d1");
-        assert_eq!(round_robin("gpt-4", &candidates, &counters), "d2");
-        assert_eq!(round_robin("gpt-4", &candidates, &counters), "d3");
+        assert_eq!(round_robin("gpt-4", &candidates, &counters).unwrap(), "d1");
+        assert_eq!(round_robin("gpt-4", &candidates, &counters).unwrap(), "d2");
+        assert_eq!(round_robin("gpt-4", &candidates, &counters).unwrap(), "d3");
 
         // Second cycle
-        assert_eq!(round_robin("gpt-4", &candidates, &counters), "d1");
-        assert_eq!(round_robin("gpt-4", &candidates, &counters), "d2");
+        assert_eq!(round_robin("gpt-4", &candidates, &counters).unwrap(), "d1");
+        assert_eq!(round_robin("gpt-4", &candidates, &counters).unwrap(), "d2");
     }
 
     #[test]
@@ -991,15 +992,15 @@ mod tests {
         let candidates = vec!["d1".to_string(), "d2".to_string()];
 
         // gpt-4 model
-        assert_eq!(round_robin("gpt-4", &candidates, &counters), "d1");
-        assert_eq!(round_robin("gpt-4", &candidates, &counters), "d2");
+        assert_eq!(round_robin("gpt-4", &candidates, &counters).unwrap(), "d1");
+        assert_eq!(round_robin("gpt-4", &candidates, &counters).unwrap(), "d2");
 
         // claude model has its own counter
-        assert_eq!(round_robin("claude-3", &candidates, &counters), "d1");
-        assert_eq!(round_robin("claude-3", &candidates, &counters), "d2");
+        assert_eq!(round_robin("claude-3", &candidates, &counters).unwrap(), "d1");
+        assert_eq!(round_robin("claude-3", &candidates, &counters).unwrap(), "d2");
 
         // gpt-4 continues from where it left off
-        assert_eq!(round_robin("gpt-4", &candidates, &counters), "d1");
+        assert_eq!(round_robin("gpt-4", &candidates, &counters).unwrap(), "d1");
     }
 
     #[test]
@@ -1009,7 +1010,7 @@ mod tests {
 
         // Run many times and verify it keeps cycling
         for i in 0..100 {
-            let selected = round_robin("gpt-4", &candidates, &counters);
+            let selected = round_robin("gpt-4", &candidates, &counters).unwrap();
             if i % 2 == 0 {
                 assert_eq!(selected, "d1");
             } else {
@@ -1019,11 +1020,10 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "round_robin called with empty candidates")]
     fn test_round_robin_empty_candidates() {
         let counters: DashMap<String, AtomicUsize> = DashMap::new();
         let candidates: Vec<String> = vec![];
-        round_robin("gpt-4", &candidates, &counters);
+        assert!(round_robin("gpt-4", &candidates, &counters).is_none());
     }
 
     // ====================================================================================
@@ -1064,16 +1064,16 @@ mod tests {
         // Deterministic strategies should consistently return same result
         for _ in 0..10 {
             // least_busy always picks d2 (2 active vs 5)
-            assert_eq!(least_busy(&candidates, &deployments), "d2");
+            assert_eq!(least_busy(&candidates, &deployments).unwrap(), "d2");
 
             // lowest_usage always picks d2 (10% vs 50%)
-            assert_eq!(lowest_usage(&candidates, &deployments), "d2");
+            assert_eq!(lowest_usage(&candidates, &deployments).unwrap(), "d2");
 
             // lowest_latency always picks d1 (100us vs 200us)
-            assert_eq!(lowest_latency(&candidates, &deployments), "d1");
+            assert_eq!(lowest_latency(&candidates, &deployments).unwrap(), "d1");
 
             // lowest_cost always picks d2 (priority 1 vs 10)
-            assert_eq!(lowest_cost(&candidates, &deployments), "d2");
+            assert_eq!(lowest_cost(&candidates, &deployments).unwrap(), "d2");
         }
     }
 }

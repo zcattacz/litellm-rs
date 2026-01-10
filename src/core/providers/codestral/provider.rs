@@ -301,7 +301,7 @@ impl LLMProvider for CodestralProvider {
             .map(|result: Result<Vec<_>, CodestralError>| match result {
                 Ok(chunks) => chunks
                     .into_iter()
-                    .map(|c| Ok(c))
+                    .map(Ok)
                     .collect::<Vec<Result<_, CodestralError>>>(),
                 Err(e) => vec![Err(e)],
             })

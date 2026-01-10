@@ -296,8 +296,7 @@ impl DatabricksProvider {
             }
         }
 
-        let usage = response.get("usage").and_then(|u| {
-            Some(Usage {
+        let usage = response.get("usage").map(|u| Usage {
                 prompt_tokens: u.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
                 completion_tokens: u.get("completion_tokens").and_then(|v| v.as_u64()).unwrap_or(0)
                     as u32,
@@ -305,8 +304,7 @@ impl DatabricksProvider {
                 prompt_tokens_details: None,
                 completion_tokens_details: None,
                 thinking_usage: None,
-            })
-        });
+            });
 
         Ok(ChatResponse {
             id,
@@ -533,16 +531,14 @@ impl LLMProvider for DatabricksProvider {
             });
         }
 
-        let usage = response_body.get("usage").and_then(|u| {
-            Some(Usage {
+        let usage = response_body.get("usage").map(|u| Usage {
                 prompt_tokens: u.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
                 completion_tokens: 0,
                 total_tokens: u.get("total_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
                 prompt_tokens_details: None,
                 completion_tokens_details: None,
                 thinking_usage: None,
-            })
-        });
+            });
 
         Ok(EmbeddingResponse {
             object: "list".to_string(),

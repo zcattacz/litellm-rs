@@ -187,10 +187,10 @@ fn test_tts_model_enum() {
     );
 
     assert_eq!(
-        tts::TTSModel::from_str("eleven_multilingual_v2"),
+        tts::TTSModel::parse("eleven_multilingual_v2"),
         Some(tts::TTSModel::MultilingualV2)
     );
-    assert_eq!(tts::TTSModel::from_str("invalid"), None);
+    assert_eq!(tts::TTSModel::parse("invalid"), None);
 }
 
 #[test]
@@ -229,10 +229,10 @@ fn test_voice_settings_skip_none() {
 fn test_stt_model_enum() {
     assert_eq!(stt::STTModel::ScribeV1.as_str(), "scribe_v1");
     assert_eq!(
-        stt::STTModel::from_str("scribe_v1"),
+        stt::STTModel::parse("scribe_v1"),
         Some(stt::STTModel::ScribeV1)
     );
-    assert_eq!(stt::STTModel::from_str("invalid"), None);
+    assert_eq!(stt::STTModel::parse("invalid"), None);
 }
 
 #[test]

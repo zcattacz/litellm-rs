@@ -12,7 +12,7 @@ use tracing::debug;
 use super::config::GroqConfig;
 use super::error::GroqError;
 use super::model_info::{get_available_models, get_model_info, is_reasoning_model};
-use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
+use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header, streaming_client};
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
 };
@@ -177,8 +177,8 @@ impl GroqProvider {
             headers.push(("Authorization".to_string(), format!("Bearer {}", api_key)));
         }
 
-        // Use reqwest client for multipart
-        let client = reqwest::Client::new();
+        // Use streaming_client for connection pooling in multipart requests
+        let client = streaming_client();
         let mut req = client.post(&url);
         for (key, value) in headers {
             req = req.header(key, value);
@@ -386,9 +386,9 @@ impl LLMProvider for GroqProvider {
             .get_api_key()
             .ok_or_else(|| GroqError::authentication("groq", "API key is required"))?;
 
-        // Execute streaming request using reqwest directly for SSE
+        // Execute streaming request using the global connection pool
         let url = format!("{}/chat/completions", self.config.get_api_base());
-        let client = reqwest::Client::new();
+        let client = streaming_client();
         let response = client
             .post(&url)
             .header("Authorization", format!("Bearer {}", api_key))

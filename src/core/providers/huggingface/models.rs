@@ -123,7 +123,7 @@ impl InferenceProvider {
     }
 
     /// Parse provider from string
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "hf-inference" | "hf_inference" => Self::HFInference,
             "together" | "together-ai" => Self::Together,
@@ -350,19 +350,19 @@ mod tests {
     #[test]
     fn test_provider_from_str() {
         assert_eq!(
-            InferenceProvider::from_str("together"),
+            InferenceProvider::parse("together"),
             InferenceProvider::Together
         );
         assert_eq!(
-            InferenceProvider::from_str("fireworks-ai"),
+            InferenceProvider::parse("fireworks-ai"),
             InferenceProvider::FireworksAI
         );
         assert_eq!(
-            InferenceProvider::from_str("hf-inference"),
+            InferenceProvider::parse("hf-inference"),
             InferenceProvider::HFInference
         );
         assert!(matches!(
-            InferenceProvider::from_str("custom-provider"),
+            InferenceProvider::parse("custom-provider"),
             InferenceProvider::Custom(_)
         ));
     }

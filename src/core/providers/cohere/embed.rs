@@ -11,11 +11,16 @@ use super::error::CohereError;
 use crate::core::types::requests::{EmbeddingInput, EmbeddingRequest};
 use crate::core::types::responses::{EmbeddingData, EmbeddingResponse, Usage};
 
+/// Text and image inputs for Cohere embeddings
+type ExtractedInputs = (Option<Vec<String>>, Option<Vec<String>>);
+
 /// Cohere embedding input types
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum CohereEmbeddingInputType {
     /// For embedding documents to be stored in a vector database
+    #[default]
     SearchDocument,
     /// For embedding search queries
     SearchQuery,
@@ -27,11 +32,6 @@ pub enum CohereEmbeddingInputType {
     Image,
 }
 
-impl Default for CohereEmbeddingInputType {
-    fn default() -> Self {
-        Self::SearchDocument
-    }
-}
 
 impl std::fmt::Display for CohereEmbeddingInputType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -195,7 +195,7 @@ impl CohereEmbeddingHandler {
     /// Extract inputs from EmbeddingInput
     fn extract_inputs(
         input: &EmbeddingInput,
-    ) -> Result<(Option<Vec<String>>, Option<Vec<String>>), CohereError> {
+    ) -> Result<ExtractedInputs, CohereError> {
         match input {
             EmbeddingInput::Text(text) => Ok((Some(vec![text.clone()]), None)),
             EmbeddingInput::Array(arr) => {

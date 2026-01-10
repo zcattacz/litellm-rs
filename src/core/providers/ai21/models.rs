@@ -116,16 +116,14 @@ impl AI21ModelRegistry {
 
     /// Create model configuration
     fn create_config(&self, model_info: &ModelInfo) -> ModelConfig {
-        let mut config = ModelConfig::default();
-
-        // Set concurrency based on model
-        config.max_concurrent_requests = Some(match model_info.id.as_str() {
-            "jamba-1.5-large" => 5,
-            "jamba-1.5-mini" => 10,
-            _ => 5,
-        });
-
-        config
+        ModelConfig {
+            max_concurrent_requests: Some(match model_info.id.as_str() {
+                "jamba-1.5-large" => 5,
+                "jamba-1.5-mini" => 10,
+                _ => 5,
+            }),
+            ..Default::default()
+        }
     }
 
     /// Add default AI21 models

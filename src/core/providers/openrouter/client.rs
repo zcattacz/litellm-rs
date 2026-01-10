@@ -419,7 +419,6 @@ impl LLMProvider for OpenRouterProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     // ==================== ProviderError Tests ====================
 

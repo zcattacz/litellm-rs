@@ -439,7 +439,7 @@ impl CohereChatHandler {
 
         let tool_calls: Vec<ToolCall> = tool_calls_arr
             .iter()
-            .filter_map(|tc| {
+            .map(|tc| {
                 let id = tc.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
                 let name = tc.get("function")
                     .and_then(|f| f.get("name"))
@@ -457,14 +457,14 @@ impl CohereChatHandler {
                     })
                     .unwrap_or_else(|| "{}".to_string());
 
-                Some(ToolCall {
+                ToolCall {
                     id,
                     tool_type: "function".to_string(),
                     function: crate::core::types::tools::FunctionCall {
                         name,
                         arguments,
                     },
-                })
+                }
             })
             .collect();
 

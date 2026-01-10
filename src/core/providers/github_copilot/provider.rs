@@ -189,12 +189,12 @@ impl GitHubCopilotProvider {
     /// Check if request contains vision content
     fn has_vision_content(&self, messages: &[ChatMessage]) -> bool {
         for message in messages {
-            if let Some(content) = &message.content {
-                if let crate::core::types::requests::MessageContent::Parts(parts) = content {
-                    for part in parts {
-                        if let crate::core::types::requests::ContentPart::ImageUrl { .. } = part {
-                            return true;
-                        }
+            if let Some(crate::core::types::requests::MessageContent::Parts(parts)) =
+                &message.content
+            {
+                for part in parts {
+                    if let crate::core::types::requests::ContentPart::ImageUrl { .. } = part {
+                        return true;
                     }
                 }
             }
@@ -547,7 +547,6 @@ impl LLMProvider for GitHubCopilotProvider {
 }
 
 /// SSE stream implementation for GitHub Copilot
-
 pub struct GitHubCopilotStream {
     inner: Pin<Box<dyn Stream<Item = Result<Bytes, reqwest::Error>> + Send>>,
     buffer: String,

@@ -17,10 +17,10 @@ fn parse_sse_line(line: &str) -> Option<Result<ChatChunk, ProviderError>> {
     }
 
     // Extract data from "data: {json}" format
-    let data = if line.starts_with("data: ") {
-        &line[6..]
-    } else if line.starts_with("data:") {
-        &line[5..]
+    let data = if let Some(stripped) = line.strip_prefix("data: ") {
+        stripped
+    } else if let Some(stripped) = line.strip_prefix("data:") {
+        stripped
     } else {
         return None;
     };

@@ -3,9 +3,7 @@
 use super::*;
 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 use crate::core::types::common::{ProviderCapability, RequestContext};
-use crate::core::types::requests::{
-    ChatMessage, ChatRequest, EmbeddingInput, EmbeddingRequest, MessageContent, MessageRole,
-};
+use crate::core::types::requests::{ChatMessage, ChatRequest, MessageContent, MessageRole};
 
 fn create_test_config() -> HuggingFaceConfig {
     HuggingFaceConfig::new("hf_test_api_key")
@@ -227,7 +225,7 @@ async fn test_transform_request_basic() {
 
 #[tokio::test]
 async fn test_transform_request_with_options() {
-    let provider = HuggingFaceProvider::new(create_test_config())
+    let _provider = HuggingFaceProvider::new(create_test_config())
         .await
         .unwrap();
 
@@ -358,19 +356,19 @@ fn test_config_deserialization() {
 #[test]
 fn test_inference_provider_from_str() {
     assert_eq!(
-        InferenceProvider::from_str("together"),
+        InferenceProvider::parse("together"),
         InferenceProvider::Together
     );
     assert_eq!(
-        InferenceProvider::from_str("sambanova"),
+        InferenceProvider::parse("sambanova"),
         InferenceProvider::Sambanova
     );
     assert_eq!(
-        InferenceProvider::from_str("fireworks-ai"),
+        InferenceProvider::parse("fireworks-ai"),
         InferenceProvider::FireworksAI
     );
     assert_eq!(
-        InferenceProvider::from_str("hf-inference"),
+        InferenceProvider::parse("hf-inference"),
         InferenceProvider::HFInference
     );
 }

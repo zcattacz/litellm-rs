@@ -10,7 +10,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::core::providers::base::{
-    GlobalPoolManager, HeaderPair, HttpMethod, get_pricing_db, header, header_owned,
+    GlobalPoolManager, HeaderPair, HttpMethod, get_pricing_db, header, header_owned, streaming_client,
 };
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{ProviderConfig, provider::llm_provider::trait_definition::LLMProvider};
@@ -177,8 +177,8 @@ impl LLMProvider for DeepSeekProvider {
             .get_effective_api_key("deepseek")
             .ok_or_else(|| ProviderError::authentication("deepseek", "API key is required"))?;
 
-        // Create
-        let client = reqwest::Client::new();
+        // Use streaming_client for connection pooling
+        let client = streaming_client();
         let response = client
             .post(&url)
             .header("Authorization", format!("Bearer {}", api_key))

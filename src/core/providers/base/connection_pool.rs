@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use std::time::Duration;
 
 use reqwest::Client;
@@ -40,6 +41,59 @@ impl PoolConfig {
     pub const KEEPALIVE_SECS: u64 = 90;
 }
 
+/// Global HTTP client singleton
+///
+/// This is the actual global singleton that holds the reqwest::Client.
+/// All providers share this single client instance for connection pooling efficiency.
+static GLOBAL_CLIENT: LazyLock<Arc<Client>> = LazyLock::new(|| {
+    let client = Client::builder()
+        .timeout(Duration::from_secs(PoolConfig::TIMEOUT_SECS))
+        .pool_idle_timeout(Duration::from_secs(PoolConfig::KEEPALIVE_SECS))
+        .pool_max_idle_per_host(PoolConfig::POOL_SIZE)
+        .build()
+        .unwrap_or_else(|e| {
+            tracing::error!("Failed to create global HTTP client: {}", e);
+            // Fallback to a basic client
+            Client::new()
+        });
+    Arc::new(client)
+});
+
+/// Get the global HTTP client
+///
+/// Returns a reference to the shared global HTTP client instance.
+/// This is the preferred way to access the HTTP client for connection pooling.
+#[inline]
+pub fn global_client() -> Arc<Client> {
+    Arc::clone(&GLOBAL_CLIENT)
+}
+
+/// Get a streaming-ready HTTP client
+///
+/// Returns the global HTTP client for streaming requests.
+/// This should be used instead of `reqwest::Client::new()` for streaming
+/// to benefit from connection pooling.
+///
+/// # Example
+///
+/// ```ignore
+/// use crate::core::providers::base::connection_pool::streaming_client;
+///
+/// // Instead of: let client = reqwest::Client::new();
+/// // Use: let client = streaming_client();
+/// let response = streaming_client()
+///     .post(&url)
+///     .headers(headers)
+///     .json(&body)
+///     .send()
+///     .await?;
+/// let stream = response.bytes_stream();
+/// ```
+#[inline]
+pub fn streaming_client() -> Arc<Client> {
+    global_client()
+}
+
 /// Simplified connection pool without generic complexity
 #[derive(Debug, Clone)]
 pub struct ConnectionPool {
@@ -48,7 +102,21 @@ pub struct ConnectionPool {
 
 impl ConnectionPool {
     /// Create a new connection pool with optimized settings
+    ///
+    /// Note: This now uses the global client singleton instead of creating a new client.
+    /// For true isolation (rare use cases), use `new_isolated()`.
     pub fn new() -> Result<Self, ProviderError> {
+        Ok(Self {
+            client: global_client(),
+        })
+    }
+
+    /// Create an isolated connection pool with its own client
+    ///
+    /// Use this only when you need a separate connection pool from the global one.
+    /// Most use cases should use `new()` which shares the global client.
+    #[allow(dead_code)]
+    pub fn new_isolated() -> Result<Self, ProviderError> {
         let client = Client::builder()
             .timeout(Duration::from_secs(PoolConfig::TIMEOUT_SECS))
             .pool_idle_timeout(Duration::from_secs(PoolConfig::KEEPALIVE_SECS))
@@ -70,6 +138,9 @@ impl ConnectionPool {
 }
 
 /// Global pool manager - single instance for all providers
+///
+/// This manager wraps the global connection pool singleton.
+/// Multiple `GlobalPoolManager` instances all share the same underlying HTTP client.
 #[derive(Debug, Clone)]
 pub struct GlobalPoolManager {
     pool: Arc<ConnectionPool>,
@@ -77,10 +148,26 @@ pub struct GlobalPoolManager {
 
 impl GlobalPoolManager {
     /// Create a new global pool manager
+    ///
+    /// Note: This returns a manager that uses the global client singleton.
+    /// Creating multiple managers is cheap as they all share the same client.
     pub fn new() -> Result<Self, ProviderError> {
         Ok(Self {
             pool: Arc::new(ConnectionPool::new()?),
         })
+    }
+
+    /// Get a shared instance of the global pool manager
+    ///
+    /// This is the most efficient way to get a pool manager as it reuses
+    /// the global singleton without any additional allocations.
+    pub fn shared() -> Self {
+        // Use the global client directly
+        Self {
+            pool: Arc::new(ConnectionPool {
+                client: global_client(),
+            }),
+        }
     }
 
     /// Execute an HTTP request
@@ -130,22 +217,9 @@ impl GlobalPoolManager {
 impl Default for GlobalPoolManager {
     /// Create a default GlobalPoolManager
     ///
-    /// Note: This will panic if the HTTP client cannot be created,
-    /// which should be extremely rare. For fallible construction,
-    /// use `GlobalPoolManager::new()` directly.
+    /// Uses the global client singleton, so this is always cheap and fast.
     fn default() -> Self {
-        Self::new().unwrap_or_else(|e| {
-            tracing::error!(
-                "Failed to create GlobalPoolManager: {}, using minimal client",
-                e
-            );
-            // Fallback to a basic client without custom settings
-            Self {
-                pool: std::sync::Arc::new(ConnectionPool {
-                    client: std::sync::Arc::new(Client::new()),
-                }),
-            }
-        })
+        Self::shared()
     }
 }
 
@@ -167,5 +241,50 @@ mod tests {
     async fn test_global_manager() {
         let manager = GlobalPoolManager::new();
         assert!(manager.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_global_client_singleton() {
+        // Get the global client twice
+        let client1 = global_client();
+        let client2 = global_client();
+
+        // They should point to the same underlying Arc (same pointer)
+        assert!(Arc::ptr_eq(&client1, &client2));
+    }
+
+    #[tokio::test]
+    async fn test_multiple_managers_share_client() {
+        // Create multiple managers
+        let manager1 = GlobalPoolManager::new().unwrap();
+        let manager2 = GlobalPoolManager::new().unwrap();
+        let manager3 = GlobalPoolManager::shared();
+
+        // All should share the same underlying client
+        let client1 = manager1.pool.client.clone();
+        let client2 = manager2.pool.client.clone();
+        let client3 = manager3.pool.client.clone();
+
+        assert!(Arc::ptr_eq(&client1, &client2));
+        assert!(Arc::ptr_eq(&client2, &client3));
+    }
+
+    #[tokio::test]
+    async fn test_isolated_pool_is_different() {
+        // Get the global client
+        let global = global_client();
+
+        // Create an isolated pool
+        let isolated = ConnectionPool::new_isolated().unwrap();
+
+        // The isolated pool should have a different client
+        assert!(!Arc::ptr_eq(&global, &isolated.client));
+    }
+
+    #[test]
+    fn test_default_manager() {
+        let manager = GlobalPoolManager::default();
+        // Should work without panic
+        let _client = manager.client();
     }
 }

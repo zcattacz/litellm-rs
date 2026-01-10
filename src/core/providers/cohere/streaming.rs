@@ -194,11 +194,7 @@ impl CohereStreamParser {
                     .and_then(|c| {
                         if let Some(text) = c.get("text").and_then(|t| t.as_str()) {
                             Some(text.to_string())
-                        } else if let Some(text) = c.as_str() {
-                            Some(text.to_string())
-                        } else {
-                            None
-                        }
+                        } else { c.as_str().map(|text| text.to_string()) }
                     })
                     .unwrap_or_default();
 

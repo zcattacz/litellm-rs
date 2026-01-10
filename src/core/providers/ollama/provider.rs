@@ -339,14 +339,13 @@ impl OllamaProvider {
         let thinking = message
             .get("thinking")
             .and_then(|t| t.as_str())
-            .map(|s| crate::core::types::thinking::ThinkingContent::text(s));
+            .map(crate::core::types::thinking::ThinkingContent::text);
 
         // Parse tool calls if present
         let tool_calls = if let Some(tcs) = message.get("tool_calls").and_then(|v| v.as_array()) {
             let calls: Vec<_> = tcs
                 .iter()
-                .enumerate()
-                .map(|(_i, tc)| {
+                .map(|tc| {
                     let func = tc.get("function").cloned().unwrap_or_else(|| serde_json::json!({}));
                     ToolCall {
                         id: format!("call_{}", uuid::Uuid::new_v4()),

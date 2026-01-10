@@ -387,7 +387,7 @@ impl LLMProvider for VLLMProvider {
             return Err(match status {
                 400 => VLLMError::invalid_request(
                     "vllm",
-                    &body.unwrap_or_else(|| "Bad request".to_string()),
+                    body.unwrap_or_else(|| "Bad request".to_string()),
                 ),
                 401 => VLLMError::authentication("vllm", "Invalid API key"),
                 429 => VLLMError::rate_limit("vllm", None),

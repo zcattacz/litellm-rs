@@ -200,7 +200,7 @@ impl WatsonxConfig {
     }
 
     /// Build the complete API URL for a given endpoint
-    pub fn build_url(&self, endpoint: &str, stream: bool) -> Result<String, String> {
+    pub fn build_url(&self, endpoint: &str, _stream: bool) -> Result<String, String> {
         let base_url = self.get_api_base().ok_or_else(|| {
             "Watsonx API base URL not set. Set WATSONX_API_BASE environment variable \
             or pass api_base in configuration."
@@ -213,11 +213,7 @@ impl WatsonxConfig {
         let full_url = format!("{}{}", base_url, endpoint);
 
         // Add API version
-        let url_with_version = if stream {
-            format!("{}?version={}", full_url, self.api_version)
-        } else {
-            format!("{}?version={}", full_url, self.api_version)
-        };
+        let url_with_version = format!("{}?version={}", full_url, self.api_version);
 
         Ok(url_with_version)
     }

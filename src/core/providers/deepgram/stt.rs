@@ -485,8 +485,10 @@ pub fn supported_audio_formats() -> &'static [&'static str] {
 
 /// Available STT models
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum STTModel {
     /// Nova 2 - General purpose (default)
+    #[default]
     Nova2,
     /// Nova 2 - General variant
     Nova2General,
@@ -535,7 +537,7 @@ impl STTModel {
     }
 
     /// Parse from string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "nova-2" => Some(STTModel::Nova2),
             "nova-2-general" => Some(STTModel::Nova2General),
@@ -555,11 +557,6 @@ impl STTModel {
     }
 }
 
-impl Default for STTModel {
-    fn default() -> Self {
-        STTModel::Nova2
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -574,12 +571,12 @@ mod tests {
 
     #[test]
     fn test_stt_model_from_str() {
-        assert_eq!(STTModel::from_str("nova-2"), Some(STTModel::Nova2));
+        assert_eq!(STTModel::parse("nova-2"), Some(STTModel::Nova2));
         assert_eq!(
-            STTModel::from_str("nova-2-meeting"),
+            STTModel::parse("nova-2-meeting"),
             Some(STTModel::Nova2Meeting)
         );
-        assert_eq!(STTModel::from_str("invalid"), None);
+        assert_eq!(STTModel::parse("invalid"), None);
     }
 
     #[test]

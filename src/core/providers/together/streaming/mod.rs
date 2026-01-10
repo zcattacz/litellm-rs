@@ -54,7 +54,7 @@ impl Stream for TogetherStream {
         match Pin::new(&mut self.inner).poll_next(cx) {
             Poll::Ready(Some(Ok(chunk))) => Poll::Ready(Some(Ok(chunk))),
             Poll::Ready(Some(Err(e))) => {
-                Poll::Ready(Some(Err(ProviderError::api_error("together", 500, format!("Streaming error: {}", e.to_string())))))
+                Poll::Ready(Some(Err(ProviderError::api_error("together", 500, format!("Streaming error: {}", e)))))
             }
             Poll::Ready(None) => Poll::Ready(None),
             Poll::Pending => Poll::Pending,

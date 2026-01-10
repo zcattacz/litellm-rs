@@ -167,17 +167,17 @@ pub fn get_model_info(model_id: &str) -> Option<&'static GitHubCopilotModel> {
 
 /// Check if a model supports vision
 pub fn is_vision_model(model_id: &str) -> bool {
-    get_model_info(model_id).map_or(false, |m| m.supports_vision)
+    get_model_info(model_id).is_some_and(|m| m.supports_vision)
 }
 
 /// Check if a model supports tools
 pub fn supports_tools(model_id: &str) -> bool {
-    get_model_info(model_id).map_or(false, |m| m.supports_tools)
+    get_model_info(model_id).is_some_and(|m| m.supports_tools)
 }
 
 /// Check if a model supports reasoning/extended thinking
 pub fn supports_reasoning(model_id: &str) -> bool {
-    get_model_info(model_id).map_or(false, |m| m.supports_reasoning)
+    get_model_info(model_id).is_some_and(|m| m.supports_reasoning)
 }
 
 /// Check if a model is a Claude model (for special handling)

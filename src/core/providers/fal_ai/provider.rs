@@ -133,16 +133,11 @@ impl FalAIProvider {
                             .map(String::from),
                         revised_prompt: None,
                     })
-                } else if let Some(url) = img.as_str() {
-                    // Handle case where images is array of URL strings
-                    Some(ImageData {
+                } else { img.as_str().map(|url| ImageData {
                         url: Some(url.to_string()),
                         b64_json: None,
                         revised_prompt: None,
-                    })
-                } else {
-                    None
-                }
+                    }) }
             })
             .collect();
 

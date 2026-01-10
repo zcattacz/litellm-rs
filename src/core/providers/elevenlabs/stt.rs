@@ -184,8 +184,10 @@ pub const MAX_FILE_SIZE: usize = 100 * 1024 * 1024;
 
 /// Available STT models
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum STTModel {
     /// Scribe v1 - Main transcription model
+    #[default]
     ScribeV1,
 }
 
@@ -198,7 +200,7 @@ impl STTModel {
     }
 
     /// Parse from string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "scribe_v1" => Some(STTModel::ScribeV1),
             _ => None,
@@ -206,11 +208,6 @@ impl STTModel {
     }
 }
 
-impl Default for STTModel {
-    fn default() -> Self {
-        STTModel::ScribeV1
-    }
-}
 
 /// Build the complete STT URL
 pub fn build_stt_url(base_url: &str) -> String {
@@ -238,8 +235,8 @@ mod tests {
 
     #[test]
     fn test_stt_model_from_str() {
-        assert_eq!(STTModel::from_str("scribe_v1"), Some(STTModel::ScribeV1));
-        assert_eq!(STTModel::from_str("unknown"), None);
+        assert_eq!(STTModel::parse("scribe_v1"), Some(STTModel::ScribeV1));
+        assert_eq!(STTModel::parse("unknown"), None);
     }
 
     #[test]

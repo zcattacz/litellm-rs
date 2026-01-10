@@ -552,9 +552,8 @@ impl Provider {
             }
             Provider::Groq(p) => {
                 let stream = LLMProvider::chat_completion_stream(p, request, context)
-                    .await
-                    .map_err(UnifiedProviderError::from)?;
-                let mapped = stream.map(|result| result.map_err(UnifiedProviderError::from));
+                    .await?;
+                let mapped = stream.map(|result| result);
                 Ok(Box::pin(mapped))
             }
             _ => Err(UnifiedProviderError::not_implemented(

@@ -7,18 +7,15 @@ use serde::{Deserialize, Serialize};
 
 /// Snowflake authentication type
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum AuthType {
     /// JWT key pair authentication
+    #[default]
     KeypairJwt,
     /// Programmatic Access Token (PAT)
     ProgrammaticAccessToken,
 }
 
-impl Default for AuthType {
-    fn default() -> Self {
-        Self::KeypairJwt
-    }
-}
 
 /// Snowflake provider configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

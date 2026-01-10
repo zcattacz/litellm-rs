@@ -10,7 +10,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::core::providers::base::{
-    GlobalPoolManager, HeaderPair, HttpMethod, header, header_owned,
+    GlobalPoolManager, HeaderPair, HttpMethod, header, header_owned, streaming_client,
 };
 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 use crate::core::types::{
@@ -153,9 +153,9 @@ impl OpenAIProvider {
                     message: "API key is required".to_string(),
                 })?;
 
-        // Execute streaming request using reqwest directly for streaming
+        // Execute streaming request using the global connection pool
         let url = format!("{}/chat/completions", self.config.get_api_base());
-        let client = reqwest::Client::new();
+        let client = streaming_client();
         let mut req = client
             .post(&url)
             .header("Authorization", format!("Bearer {}", api_key))

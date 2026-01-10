@@ -109,16 +109,15 @@ impl CerebrasModelRegistry {
 
     /// Create model configuration
     fn create_config(&self, model_info: &ModelInfo) -> ModelConfig {
-        let mut config = ModelConfig::default();
-
-        // Cerebras excels at high throughput, allow more concurrent requests
-        config.max_concurrent_requests = Some(match model_info.id.as_str() {
-            "llama3.1-70b" => 10,
-            "llama3.1-8b" => 20,
-            _ => 15,
-        });
-
-        config
+        ModelConfig {
+            // Cerebras excels at high throughput, allow more concurrent requests
+            max_concurrent_requests: Some(match model_info.id.as_str() {
+                "llama3.1-70b" => 10,
+                "llama3.1-8b" => 20,
+                _ => 15,
+            }),
+            ..Default::default()
+        }
     }
 
     /// Add default Cerebras models
