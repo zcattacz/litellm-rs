@@ -15,6 +15,6 @@ mod tests;
 
 // Re-export main types for external use
 pub use config::GitHubConfig;
-pub use error::{GitHubError, GitHubErrorMapper};
+pub use error::GitHubError;
 pub use model_info::{GitHubModel, get_available_models, get_model_info};
 pub use provider::GitHubProvider;

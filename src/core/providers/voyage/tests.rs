@@ -5,7 +5,9 @@ use super::*;
 #[cfg(test)]
 mod provider_tests {
     use super::*;
-    use crate::core::types::requests::EmbeddingInput;
+    use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
+    use crate::core::types::common::{ProviderCapability, RequestContext};
+    use crate::core::types::requests::{ChatMessage, ChatRequest, EmbeddingInput, EmbeddingRequest, MessageContent, MessageRole};
 
     async fn create_test_provider() -> VoyageProvider {
         let config = VoyageConfig {
@@ -140,8 +142,6 @@ mod provider_tests {
 
     #[tokio::test]
     async fn test_chat_completion_returns_error() {
-        use crate::core::types::requests::{ChatMessage, MessageContent, MessageRole};
-
         let provider = create_test_provider().await;
 
         let request = ChatRequest {
@@ -152,39 +152,18 @@ mod provider_tests {
                 name: None,
                 tool_calls: None,
                 tool_call_id: None,
-                metadata: None,
+                ..Default::default()
             }],
-            temperature: None,
-            max_tokens: None,
-            stream: false,
-            tools: None,
-            tool_choice: None,
-            response_format: None,
-            top_p: None,
-            frequency_penalty: None,
-            presence_penalty: None,
-            stop: None,
-            n: None,
-            logprobs: None,
-            top_logprobs: None,
-            user: None,
-            metadata: None,
-            max_completion_tokens: None,
-            seed: None,
-            logit_bias: None,
-            reasoning_effort: None,
-            thinking: None,
-            parallel_tool_calls: None,
+            ..Default::default()
         };
 
         let context = RequestContext::default();
         let result = provider.chat_completion(request, context).await;
 
         assert!(result.is_err());
-        if let Err(VoyageError::InvalidRequestError(msg)) = result {
-            assert!(msg.contains("embedding-only"));
-        } else {
-            panic!("Expected InvalidRequestError");
+        // VoyageError is now a type alias to ProviderError
+        if let Err(err) = result {
+            assert!(matches!(err, crate::core::providers::unified_provider::ProviderError::NotSupported { .. }));
         }
     }
 
@@ -295,20 +274,6 @@ mod provider_tests {
         assert_eq!(embedding_response.data[0].index, 0);
         assert_eq!(embedding_response.data[1].index, 1);
     }
-
-    #[tokio::test]
-    async fn test_error_mapper() {
-        let mapper = VoyageErrorMapper;
-
-        let err = mapper.map_http_error(401, "");
-        assert!(matches!(err, VoyageError::AuthenticationError(_)));
-
-        let err = mapper.map_http_error(429, "");
-        assert!(matches!(err, VoyageError::RateLimitError(_)));
-
-        let err = mapper.map_http_error(400, "token limit exceeded");
-        assert!(matches!(err, VoyageError::TokenLimitExceeded(_)));
-    }
 }
 
 #[cfg(test)]
@@ -394,42 +359,6 @@ mod config_tests {
         assert_eq!(
             config.get_embeddings_url(),
             "https://api.voyageai.com/v1/embeddings"
-        );
-    }
-}
-
-#[cfg(test)]
-mod error_tests {
-    use super::error::*;
-    use crate::core::types::errors::ProviderErrorTrait;
-
-    #[test]
-    fn test_error_display() {
-        let err = VoyageError::ApiError("test".to_string());
-        assert_eq!(err.to_string(), "API error: test");
-    }
-
-    #[test]
-    fn test_error_is_retryable() {
-        assert!(VoyageError::RateLimitError("".to_string()).is_retryable());
-        assert!(VoyageError::ServiceUnavailableError("".to_string()).is_retryable());
-        assert!(VoyageError::NetworkError("".to_string()).is_retryable());
-        assert!(!VoyageError::AuthenticationError("".to_string()).is_retryable());
-    }
-
-    #[test]
-    fn test_error_http_status() {
-        assert_eq!(
-            VoyageError::AuthenticationError("".to_string()).http_status(),
-            401
-        );
-        assert_eq!(
-            VoyageError::RateLimitError("".to_string()).http_status(),
-            429
-        );
-        assert_eq!(
-            VoyageError::TokenLimitExceeded("".to_string()).http_status(),
-            400
         );
     }
 }

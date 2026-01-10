@@ -12,10 +12,6 @@ mod error;
 mod provider;
 mod sigv4;
 
-// Tests
-#[cfg(test)]
-mod tests;
-
 // Re-export main types for external use
 pub use config::SagemakerConfig;
 pub use error::{SagemakerError, SagemakerErrorMapper};

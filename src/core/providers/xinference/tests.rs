@@ -1,6 +1,9 @@
 //! Tests for Xinference provider
 
 use super::*;
+use super::model_info::get_model_info;
+use crate::core::traits::ProviderConfig;
+use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 
 #[test]
 fn test_config_default() {
@@ -32,9 +35,8 @@ fn test_config_validation() {
 fn test_error_conversion() {
     use crate::core::providers::unified_provider::ProviderError;
 
-    let err = XinferenceError::AuthenticationError("bad key".to_string());
-    let provider_err: ProviderError = err.into();
-    assert!(matches!(provider_err, ProviderError::Authentication { .. }));
+    let err = ProviderError::authentication("xinference", "bad key");
+    assert!(matches!(err, ProviderError::Authentication { .. }));
 }
 
 #[test]

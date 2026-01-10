@@ -51,7 +51,13 @@ impl Stream for GroqStream {
         match Pin::new(&mut self.inner).poll_next(cx) {
             Poll::Ready(Some(Ok(chunk))) => Poll::Ready(Some(Ok(chunk))),
             Poll::Ready(Some(Err(e))) => {
-                Poll::Ready(Some(Err(GroqError::StreamingError(e.to_string()))))
+                Poll::Ready(Some(Err(GroqError::streaming_error(
+                    "groq",
+                    "chat",
+                    None,
+                    None,
+                    e.to_string(),
+                ))))
             }
             Poll::Ready(None) => Poll::Ready(None),
             Poll::Pending => Poll::Pending,

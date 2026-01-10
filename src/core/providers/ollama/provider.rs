@@ -10,12 +10,14 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::OllamaConfig;
-use super::error::{OllamaError, OllamaErrorMapper};
+use super::error::OllamaError;
+use crate::core::traits::error_mapper::types::GenericErrorMapper;
+use crate::ProviderError;
 use super::model_info::{get_model_info, OllamaModelInfo, OllamaShowResponse, OllamaTagsResponse};
 use super::streaming::OllamaStream;
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::traits::{
-    error_mapper::trait_def::ErrorMapper, provider::llm_provider::trait_definition::LLMProvider,
+    provider::llm_provider::trait_definition::LLMProvider,
     ProviderConfig as _,
 };
 use crate::core::types::{
@@ -47,11 +49,11 @@ impl OllamaProvider {
     /// Create a new Ollama provider instance
     pub async fn new(config: OllamaConfig) -> Result<Self, OllamaError> {
         // Validate configuration
-        config.validate().map_err(OllamaError::ConfigurationError)?;
+        config.validate().map_err(|e| ProviderError::configuration("ollama", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            OllamaError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration("ollama", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Initialize with empty models (will be populated on first list_models call)
@@ -100,24 +102,30 @@ impl OllamaProvider {
             .map_err(|e| {
                 let error_msg = e.to_string();
                 if error_msg.contains("Connection refused") || error_msg.contains("connect error") {
-                    OllamaError::ConnectionRefusedError(format!(
-                        "Failed to connect to Ollama server at {}. Is Ollama running?",
-                        self.config.get_api_base()
-                    ))
+                    ProviderError::network(
+                        "ollama",
+                        format!(
+                            "Failed to connect to Ollama server at {}. Is Ollama running?",
+                            self.config.get_api_base()
+                        )
+                    )
                 } else if error_msg.contains("timed out") || error_msg.contains("timeout") {
-                    OllamaError::TimeoutError(error_msg)
+                    ProviderError::Timeout {
+                        provider: "ollama",
+                        message: error_msg,
+                    }
                 } else {
-                    OllamaError::NetworkError(error_msg)
+                    ProviderError::network("ollama", error_msg)
                 }
             })?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| OllamaError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("ollama", e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| OllamaError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("ollama", 500, format!("Failed to parse response: {}", e)))
     }
 
     /// List available models from Ollama server
@@ -126,7 +134,7 @@ impl OllamaProvider {
         let response = self.execute_request(&url, HttpMethod::GET, None).await?;
 
         let tags: OllamaTagsResponse = serde_json::from_value(response)
-            .map_err(|e| OllamaError::ApiError(format!("Failed to parse models list: {}", e)))?;
+            .map_err(|e| ProviderError::api_error("ollama", 500, format!("Failed to parse models list: {}", e)))?;
 
         Ok(tags.models.into_iter().map(|m| m.into()).collect())
     }
@@ -141,7 +149,7 @@ impl OllamaProvider {
             .await?;
 
         serde_json::from_value(response)
-            .map_err(|e| OllamaError::ApiError(format!("Failed to parse model info: {}", e)))
+            .map_err(|e| ProviderError::api_error("ollama", 500, format!("Failed to parse model info: {}", e)))
     }
 
     /// Build Ollama chat request from ChatRequest
@@ -320,7 +328,7 @@ impl OllamaProvider {
     ) -> Result<ChatResponse, OllamaError> {
         let message = response
             .get("message")
-            .ok_or_else(|| OllamaError::ApiError("Missing message in response".to_string()))?;
+            .ok_or_else(|| ProviderError::api_error("ollama", 500, "Missing message in response".to_string()))?;
 
         let content = message
             .get("content")
@@ -431,7 +439,7 @@ impl OllamaProvider {
 impl LLMProvider for OllamaProvider {
     type Config = OllamaConfig;
     type Error = OllamaError;
-    type ErrorMapper = OllamaErrorMapper;
+    type ErrorMapper = GenericErrorMapper;
 
     fn name(&self) -> &'static str {
         "ollama"
@@ -501,13 +509,13 @@ impl LLMProvider for OllamaProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let response: serde_json::Value = serde_json::from_slice(raw_response)
-            .map_err(|e| OllamaError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| ProviderError::api_error("ollama", 500, format!("Failed to parse response: {}", e)))?;
 
         self.parse_chat_response(response, model)
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        OllamaErrorMapper
+        GenericErrorMapper
     }
 
     async fn chat_completion(
@@ -555,14 +563,20 @@ impl LLMProvider for OllamaProvider {
             .map_err(|e| {
                 let error_msg = e.to_string();
                 if error_msg.contains("Connection refused") || error_msg.contains("connect error") {
-                    OllamaError::ConnectionRefusedError(format!(
-                        "Failed to connect to Ollama server at {}. Is Ollama running?",
-                        self.config.get_api_base()
-                    ))
+                    ProviderError::network(
+                        "ollama",
+                        format!(
+                            "Failed to connect to Ollama server at {}. Is Ollama running?",
+                            self.config.get_api_base()
+                        )
+                    )
                 } else if error_msg.contains("timed out") || error_msg.contains("timeout") {
-                    OllamaError::TimeoutError(error_msg)
+                    ProviderError::Timeout {
+                        provider: "ollama",
+                        message: error_msg,
+                    }
                 } else {
-                    OllamaError::NetworkError(error_msg)
+                    ProviderError::network("ollama", error_msg)
                 }
             })?;
 
@@ -570,8 +584,7 @@ impl LLMProvider for OllamaProvider {
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.ok();
-            let mapper = OllamaErrorMapper;
-            return Err(mapper.map_http_error(status, &body.unwrap_or_default()));
+            return Err(ProviderError::api_error("ollama", status, body.unwrap_or_default()));
         }
 
         // Create NDJSON stream
@@ -612,7 +625,7 @@ impl LLMProvider for OllamaProvider {
         let embeddings = response
             .get("embeddings")
             .and_then(|e| e.as_array())
-            .ok_or_else(|| OllamaError::ApiError("Missing embeddings in response".to_string()))?;
+            .ok_or_else(|| ProviderError::api_error("ollama", 500, "Missing embeddings in response".to_string()))?;
 
         let data: Vec<EmbeddingData> = embeddings
             .iter()
@@ -655,8 +668,6 @@ impl LLMProvider for OllamaProvider {
         // Try to list models as a health check
         match self.list_models().await {
             Ok(_) => HealthStatus::Healthy,
-            Err(OllamaError::ConnectionRefusedError(_)) => HealthStatus::Unhealthy,
-            Err(OllamaError::TimeoutError(_)) => HealthStatus::Unhealthy,
             Err(_) => HealthStatus::Unhealthy,
         }
     }

@@ -148,28 +148,28 @@ impl CohereRerankHandler {
     /// Validate rerank request
     fn validate_request(request: &RerankRequest) -> Result<(), CohereError> {
         if request.query.trim().is_empty() {
-            return Err(CohereError::cohere_invalid_request("Query cannot be empty"));
+            return Err(super::error::cohere_invalid_request("Query cannot be empty"));
         }
 
         if request.model.is_empty() {
-            return Err(CohereError::cohere_invalid_request("Model cannot be empty"));
+            return Err(super::error::cohere_invalid_request("Model cannot be empty"));
         }
 
         if request.documents.is_empty() {
-            return Err(CohereError::cohere_invalid_request(
+            return Err(super::error::cohere_invalid_request(
                 "Documents list cannot be empty",
             ));
         }
 
         if request.documents.len() > 1000 {
-            return Err(CohereError::cohere_invalid_request(
+            return Err(super::error::cohere_invalid_request(
                 "Maximum 1000 documents allowed",
             ));
         }
 
         if let Some(top_n) = request.top_n {
             if top_n == 0 || top_n > 1000 {
-                return Err(CohereError::cohere_invalid_request(
+                return Err(super::error::cohere_invalid_request(
                     "top_n must be between 1 and 1000",
                 ));
             }
@@ -177,7 +177,7 @@ impl CohereRerankHandler {
 
         // Validate query length
         if request.query.len() > 2048 {
-            return Err(CohereError::cohere_invalid_request(
+            return Err(super::error::cohere_invalid_request(
                 "Query too long. Maximum length is 2048 characters",
             ));
         }
@@ -197,7 +197,7 @@ impl CohereRerankHandler {
             .get("results")
             .and_then(|r| r.as_array())
             .ok_or_else(|| {
-                CohereError::cohere_response_parsing("Missing or invalid 'results' field")
+                super::error::cohere_response_parsing("Missing or invalid 'results' field")
             })?;
 
         let mut results = Vec::new();
@@ -205,14 +205,14 @@ impl CohereRerankHandler {
             let index = result_item
                 .get("index")
                 .and_then(|v| v.as_u64())
-                .ok_or_else(|| CohereError::cohere_response_parsing("Missing 'index' in result"))?
+                .ok_or_else(|| super::error::cohere_response_parsing("Missing 'index' in result"))?
                 as u32;
 
             let relevance_score = result_item
                 .get("relevance_score")
                 .and_then(|v| v.as_f64())
                 .ok_or_else(|| {
-                    CohereError::cohere_response_parsing("Missing 'relevance_score' in result")
+                    super::error::cohere_response_parsing("Missing 'relevance_score' in result")
                 })?;
 
             let document = result_item.get("document").and_then(|doc| {

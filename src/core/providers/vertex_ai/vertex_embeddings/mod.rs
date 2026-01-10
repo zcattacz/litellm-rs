@@ -2,7 +2,7 @@
 //!
 //! Legacy embedding models and compatibility
 
-use super::error::VertexAIError;
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 
 /// Legacy embedding types
@@ -20,7 +20,7 @@ impl VertexEmbeddingHandler {
     pub async fn handle_legacy_embedding(
         model: &str,
         _text: &str,
-    ) -> Result<Vec<f32>, VertexAIError> {
+    ) -> Result<Vec<f32>, ProviderError> {
         // Handle legacy models like textembedding-gecko
         match model {
             "textembedding-gecko" | "textembedding-gecko@003" => {
@@ -31,7 +31,7 @@ impl VertexEmbeddingHandler {
                 // TODO: Implement multilingual gecko
                 Ok(vec![0.0; 768])
             }
-            _ => Err(VertexAIError::UnsupportedModel(model.to_string())),
+            _ => Err(ProviderError::model_not_found("vertex_ai", model)),
         }
     }
 }

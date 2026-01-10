@@ -11,10 +11,9 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::VLLMConfig;
-use super::error::{VLLMError, VLLMErrorMapper};
+use super::error::VLLMError;
 use super::model_info::{VLLMModelInfo, get_or_create_model_info};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
-use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
 };
@@ -44,11 +43,11 @@ impl VLLMProvider {
     /// Create a new vLLM provider instance
     pub async fn new(config: VLLMConfig) -> Result<Self, VLLMError> {
         // Validate configuration
-        config.validate().map_err(VLLMError::ConfigurationError)?;
+        config.validate().map_err(|e| VLLMError::configuration("vllm", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            VLLMError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            VLLMError::configuration("vllm", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list - vLLM serves a specific model
@@ -88,7 +87,7 @@ impl VLLMProvider {
     fn get_api_base(&self) -> Result<String, VLLMError> {
         self.config
             .get_api_base()
-            .ok_or_else(|| VLLMError::ConfigurationError("API base URL is required".to_string()))
+            .ok_or_else(|| VLLMError::configuration("vllm", "API base URL is required"))
     }
 
     /// Execute an HTTP request
@@ -113,21 +112,29 @@ impl VLLMProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| VLLMError::NetworkError(e.to_string()))?;
+            .map_err(|e| VLLMError::network("vllm", e.to_string()))?;
 
         let status = response.status();
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| VLLMError::NetworkError(e.to_string()))?;
+            .map_err(|e| VLLMError::network("vllm", e.to_string()))?;
 
         if !status.is_success() {
             let body_str = String::from_utf8_lossy(&response_bytes);
-            return Err(VLLMErrorMapper.map_http_error(status.as_u16(), &body_str));
+            return Err(match status.as_u16() {
+                400 => VLLMError::invalid_request("vllm", body_str.to_string()),
+                401 | 403 => VLLMError::authentication("vllm", "Invalid API key or authentication failed"),
+                404 => VLLMError::model_not_found("vllm", body_str.to_string()),
+                429 => VLLMError::rate_limit("vllm", None),
+                500 => VLLMError::api_error("vllm", 500, "Internal server error"),
+                502 | 503 => VLLMError::api_error("vllm", status.as_u16(), "Service unavailable"),
+                _ => VLLMError::api_error("vllm", status.as_u16(), body_str.to_string()),
+            });
         }
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| VLLMError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| VLLMError::api_error("vllm", 500, format!("Failed to parse response: {}", e)))
     }
 
     /// Fetch available models from vLLM server
@@ -145,15 +152,15 @@ impl VLLMProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::GET, headers, None::<serde_json::Value>)
             .await
-            .map_err(|e| VLLMError::NetworkError(e.to_string()))?;
+            .map_err(|e| VLLMError::network("vllm", e.to_string()))?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| VLLMError::NetworkError(e.to_string()))?;
+            .map_err(|e| VLLMError::network("vllm", e.to_string()))?;
 
         let json: serde_json::Value = serde_json::from_slice(&response_bytes)
-            .map_err(|e| VLLMError::ApiError(format!("Failed to parse models response: {}", e)))?;
+            .map_err(|e| VLLMError::api_error("vllm", 500, format!("Failed to parse models response: {}", e)))?;
 
         let models = json["data"]
             .as_array()
@@ -241,7 +248,7 @@ fn model_info_to_gateway_model(info: &VLLMModelInfo) -> ModelInfo {
 impl LLMProvider for VLLMProvider {
     type Config = VLLMConfig;
     type Error = VLLMError;
-    type ErrorMapper = VLLMErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "vllm"
@@ -307,7 +314,7 @@ impl LLMProvider for VLLMProvider {
         request: ChatRequest,
         _context: RequestContext,
     ) -> Result<serde_json::Value, Self::Error> {
-        serde_json::to_value(&request).map_err(|e| VLLMError::InvalidRequestError(e.to_string()))
+        serde_json::to_value(&request).map_err(|e| VLLMError::invalid_request("vllm", e.to_string()))
     }
 
     async fn transform_response(
@@ -317,11 +324,11 @@ impl LLMProvider for VLLMProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         serde_json::from_slice(raw_response)
-            .map_err(|e| VLLMError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| VLLMError::api_error("vllm", 500, format!("Failed to parse response: {}", e)))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        VLLMErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -332,14 +339,14 @@ impl LLMProvider for VLLMProvider {
         debug!("vLLM chat request: model={}", request.model);
 
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| VLLMError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| VLLMError::invalid_request("vllm", e.to_string()))?;
 
         let response = self
             .execute_request("/chat/completions", request_json)
             .await?;
 
         serde_json::from_value(response)
-            .map_err(|e| VLLMError::ApiError(format!("Failed to parse chat response: {}", e)))
+            .map_err(|e| VLLMError::api_error("vllm", 500, format!("Failed to parse chat response: {}", e)))
     }
 
     async fn chat_completion_stream(
@@ -371,20 +378,21 @@ impl LLMProvider for VLLMProvider {
         let response = req
             .send()
             .await
-            .map_err(|e| VLLMError::NetworkError(e.to_string()))?;
+            .map_err(|e| VLLMError::network("vllm", e.to_string()))?;
 
         // Check status
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.ok();
             return Err(match status {
-                400 => VLLMError::InvalidRequestError(
-                    body.unwrap_or_else(|| "Bad request".to_string()),
+                400 => VLLMError::invalid_request(
+                    "vllm",
+                    &body.unwrap_or_else(|| "Bad request".to_string()),
                 ),
-                401 => VLLMError::AuthenticationError("Invalid API key".to_string()),
-                429 => VLLMError::RateLimitError("Rate limit exceeded".to_string()),
-                503 => VLLMError::ServiceUnavailableError("vLLM server unavailable".to_string()),
-                _ => VLLMError::StreamingError(format!("Stream request failed: {}", status)),
+                401 => VLLMError::authentication("vllm", "Invalid API key"),
+                429 => VLLMError::rate_limit("vllm", None),
+                503 => VLLMError::api_error("vllm", 503, "vLLM server unavailable"),
+                _ => VLLMError::api_error("vllm", status, format!("Stream request failed: {}", status)),
             });
         }
 
@@ -401,12 +409,12 @@ impl LLMProvider for VLLMProvider {
         debug!("vLLM embeddings request: model={}", request.model);
 
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| VLLMError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| VLLMError::invalid_request("vllm", e.to_string()))?;
 
         let response = self.execute_request("/embeddings", request_json).await?;
 
         serde_json::from_value(response)
-            .map_err(|e| VLLMError::ApiError(format!("Failed to parse embeddings response: {}", e)))
+            .map_err(|e| VLLMError::api_error("vllm", 500, format!("Failed to parse embeddings response: {}", e)))
     }
 
     async fn health_check(&self) -> HealthStatus {

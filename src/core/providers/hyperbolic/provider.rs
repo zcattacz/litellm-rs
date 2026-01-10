@@ -10,13 +10,12 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::HyperbolicConfig;
-use super::error::{HyperbolicError, HyperbolicErrorMapper};
+use super::error::HyperbolicError;
 use super::model_info::{get_available_models, get_model_info};
 use crate::core::providers::base::{header, GlobalPoolManager, HttpMethod};
 use crate::core::traits::{
     provider::llm_provider::trait_definition::LLMProvider, ProviderConfig as _,
 };
-use crate::core::types::errors::ProviderErrorTrait;
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
     requests::{ChatRequest, EmbeddingRequest},
@@ -44,11 +43,11 @@ impl HyperbolicProvider {
         // Validate configuration
         config
             .validate()
-            .map_err(HyperbolicError::ConfigurationError)?;
+            .map_err(|e| HyperbolicError::configuration("hyperbolic", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            HyperbolicError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            HyperbolicError::configuration("hyperbolic", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list from static configuration
@@ -118,15 +117,15 @@ impl HyperbolicProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| HyperbolicError::NetworkError(e.to_string()))?;
+            .map_err(|e| HyperbolicError::network("hyperbolic", e.to_string()))?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| HyperbolicError::NetworkError(e.to_string()))?;
+            .map_err(|e| HyperbolicError::network("hyperbolic", e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| HyperbolicError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| HyperbolicError::api_error("hyperbolic", 500, format!("Failed to parse response: {}", e)))
     }
 }
 
@@ -134,7 +133,7 @@ impl HyperbolicProvider {
 impl LLMProvider for HyperbolicProvider {
     type Config = HyperbolicConfig;
     type Error = HyperbolicError;
-    type ErrorMapper = HyperbolicErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "hyperbolic"
@@ -185,7 +184,7 @@ impl LLMProvider for HyperbolicProvider {
     ) -> Result<serde_json::Value, Self::Error> {
         // Convert to JSON value
         serde_json::to_value(&request)
-            .map_err(|e| HyperbolicError::InvalidRequestError(e.to_string()))
+            .map_err(|e| HyperbolicError::invalid_request("hyperbolic", e.to_string()))
     }
 
     async fn transform_response(
@@ -196,13 +195,13 @@ impl LLMProvider for HyperbolicProvider {
     ) -> Result<ChatResponse, Self::Error> {
         // Parse response
         let chat_response: ChatResponse = serde_json::from_slice(raw_response)
-            .map_err(|e| HyperbolicError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| HyperbolicError::api_error("hyperbolic", 500, format!("Failed to parse response: {}", e)))?;
 
         Ok(chat_response)
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        HyperbolicErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -214,14 +213,14 @@ impl LLMProvider for HyperbolicProvider {
 
         // Transform and execute
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| HyperbolicError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| HyperbolicError::invalid_request("hyperbolic", e.to_string()))?;
 
         let response = self
             .execute_request("/chat/completions", request_json)
             .await?;
 
         serde_json::from_value(response)
-            .map_err(|e| HyperbolicError::ApiError(format!("Failed to parse chat response: {}", e)))
+            .map_err(|e| HyperbolicError::api_error("hyperbolic", 500, format!("Failed to parse chat response: {}", e)))
     }
 
     async fn chat_completion_stream(
@@ -231,9 +230,7 @@ impl LLMProvider for HyperbolicProvider {
     ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error>
     {
         // Streaming would require SSE handling similar to Groq
-        Err(HyperbolicError::not_implemented(
-            "Streaming is not yet implemented for Hyperbolic provider",
-        ))
+        Err(HyperbolicError::not_supported("hyperbolic", "Streaming is not yet implemented for Hyperbolic provider"))
     }
 
     async fn embeddings(
@@ -241,9 +238,7 @@ impl LLMProvider for HyperbolicProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(HyperbolicError::InvalidRequestError(
-            "Hyperbolic does not support embeddings through this endpoint.".to_string(),
-        ))
+        Err(HyperbolicError::not_supported("hyperbolic", "Hyperbolic does not support embeddings through this endpoint."))
     }
 
     async fn health_check(&self) -> HealthStatus {
@@ -271,7 +266,7 @@ impl LLMProvider for HyperbolicProvider {
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
         let model_info = get_model_info(model).ok_or_else(|| {
-            HyperbolicError::ModelNotFoundError(format!("Unknown model: {}", model))
+            HyperbolicError::model_not_found("hyperbolic", format!("Unknown model: {}", model))
         })?;
 
         let input_cost =

@@ -10,13 +10,13 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::FireworksConfig;
-use super::error::{FireworksError, FireworksErrorMapper};
+use super::error::FireworksError;
 use super::model_info::{
     format_model_id, get_available_models, get_model_info, is_reasoning_model,
     supports_function_calling, supports_tool_choice,
 };
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
-use crate::core::traits::error_mapper::trait_def::ErrorMapper;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
 };
@@ -47,11 +47,11 @@ impl FireworksProvider {
         // Validate configuration
         config
             .validate()
-            .map_err(FireworksError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration("fireworks", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            FireworksError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration("fireworks", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list from static configuration
@@ -176,21 +176,29 @@ impl FireworksProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| FireworksError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("fireworks", e.to_string()))?;
 
         let status = response.status();
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| FireworksError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("fireworks", e.to_string()))?;
 
         if !status.is_success() {
             let body_str = String::from_utf8_lossy(&response_bytes);
-            return Err(FireworksErrorMapper.map_http_error(status.as_u16(), &body_str));
+            let status_code = status.as_u16();
+            return Err(match status_code {
+                401 => ProviderError::authentication("fireworks", "Invalid API key"),
+                404 => ProviderError::model_not_found("fireworks", body_str.to_string()),
+                429 => ProviderError::rate_limit("fireworks", None),
+                400 => ProviderError::invalid_request("fireworks", body_str.to_string()),
+                500..=599 => ProviderError::provider_unavailable("fireworks", body_str.to_string()),
+                _ => ProviderError::api_error("fireworks", status_code, body_str.to_string()),
+            });
         }
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| FireworksError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("fireworks", 500, format!("Failed to parse response: {}", e)))
     }
 }
 
@@ -198,7 +206,7 @@ impl FireworksProvider {
 impl LLMProvider for FireworksProvider {
     type Config = FireworksConfig;
     type Error = FireworksError;
-    type ErrorMapper = FireworksErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "fireworks"
@@ -349,7 +357,7 @@ impl LLMProvider for FireworksProvider {
 
         // Convert to JSON value
         serde_json::to_value(&request)
-            .map_err(|e| FireworksError::InvalidRequestError(e.to_string()))
+            .map_err(|e| ProviderError::invalid_request("fireworks", e.to_string()))
     }
 
     async fn transform_response(
@@ -359,7 +367,7 @@ impl LLMProvider for FireworksProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let mut chat_response: ChatResponse = serde_json::from_slice(raw_response)
-            .map_err(|e| FireworksError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| ProviderError::api_error("fireworks", 500, format!("Failed to parse response: {}", e)))?;
 
         // Prefix model with provider name
         chat_response.model = format!("fireworks_ai/{}", chat_response.model);
@@ -368,7 +376,7 @@ impl LLMProvider for FireworksProvider {
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        FireworksErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -389,14 +397,14 @@ impl LLMProvider for FireworksProvider {
 
         // Execute request
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| FireworksError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("fireworks", e.to_string()))?;
 
         let response = self
             .execute_request("/chat/completions", request_json)
             .await?;
 
         let mut chat_response: ChatResponse = serde_json::from_value(response)
-            .map_err(|e| FireworksError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| ProviderError::api_error("fireworks", 500, format!("Failed to parse response: {}", e)))?;
 
         // Prefix model with provider name
         chat_response.model = format!("fireworks_ai/{}", chat_response.model);
@@ -424,7 +432,7 @@ impl LLMProvider for FireworksProvider {
 
         // Get API configuration
         let api_key = self.config.get_api_key().ok_or_else(|| {
-            FireworksError::AuthenticationError("API key is required".to_string())
+            ProviderError::authentication("fireworks", "API key is required")
         })?;
 
         // Execute streaming request
@@ -437,13 +445,21 @@ impl LLMProvider for FireworksProvider {
             .json(&request)
             .send()
             .await
-            .map_err(|e| FireworksError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("fireworks", e.to_string()))?;
 
         // Check status
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.ok();
-            return Err(FireworksErrorMapper.map_http_error(status, &body.unwrap_or_default()));
+            let body_str = body.unwrap_or_default();
+            return Err(match status {
+                401 => ProviderError::authentication("fireworks", "Invalid API key"),
+                404 => ProviderError::model_not_found("fireworks", &body_str),
+                429 => ProviderError::rate_limit("fireworks", None),
+                400 => ProviderError::invalid_request("fireworks", &body_str),
+                500..=599 => ProviderError::provider_unavailable("fireworks", &body_str),
+                _ => ProviderError::api_error("fireworks", status, body_str),
+            });
         }
 
         // Create SSE stream
@@ -463,17 +479,18 @@ impl LLMProvider for FireworksProvider {
                             match serde_json::from_str::<ChatChunk>(data) {
                                 Ok(chunk) => return Some(Ok(chunk)),
                                 Err(e) => {
-                                    return Some(Err(FireworksError::StreamingError(format!(
-                                        "Failed to parse chunk: {}",
-                                        e
-                                    ))));
+                                    return Some(Err(ProviderError::api_error(
+                                        "fireworks",
+                                        500,
+                                        format!("Failed to parse chunk: {}", e),
+                                    )));
                                 }
                             }
                         }
                     }
                     None
                 }
-                Err(e) => Some(Err(FireworksError::StreamingError(e.to_string()))),
+                Err(e) => Some(Err(ProviderError::network("fireworks", e.to_string()))),
             }
         });
 
@@ -487,8 +504,9 @@ impl LLMProvider for FireworksProvider {
     ) -> Result<EmbeddingResponse, Self::Error> {
         // Fireworks AI supports embeddings through specific models
         // For now, return not supported
-        Err(FireworksError::InvalidRequestError(
-            "Fireworks AI embeddings require specific embedding models. Use nomic-embed-text-v1.5 or similar.".to_string(),
+        Err(ProviderError::not_supported(
+            "fireworks",
+            "Fireworks AI embeddings require specific embedding models. Use nomic-embed-text-v1.5 or similar.",
         ))
     }
 
@@ -516,7 +534,7 @@ impl LLMProvider for FireworksProvider {
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
         let model_info = get_model_info(model).ok_or_else(|| {
-            FireworksError::ModelNotFoundError(format!("Unknown model: {}", model))
+            ProviderError::model_not_found("fireworks", format!("Unknown model: {}", model))
         })?;
 
         let input_cost = (input_tokens as f64) * (model_info.input_cost_per_million / 1_000_000.0);
@@ -525,3 +543,4 @@ impl LLMProvider for FireworksProvider {
         Ok(input_cost + output_cost)
     }
 }
+

@@ -10,10 +10,10 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::LMStudioConfig;
-use super::error::{LMStudioError, LMStudioErrorMapper};
+use super::error::LMStudioError;
 use crate::core::providers::base::{header, GlobalPoolManager, HttpMethod};
 use crate::core::traits::{
-    error_mapper::trait_def::ErrorMapper, provider::llm_provider::trait_definition::LLMProvider,
+    provider::llm_provider::trait_definition::LLMProvider,
     ProviderConfig as _,
 };
 use crate::core::types::{
@@ -26,7 +26,7 @@ use crate::core::types::{
 };
 
 /// Static capabilities for LM Studio provider
-const LM_STUDIO_CAPABILITIES: &[ProviderCapability] = &[
+pub(crate) const LM_STUDIO_CAPABILITIES: &[ProviderCapability] = &[
     ProviderCapability::ChatCompletion,
     ProviderCapability::ChatCompletionStream,
     ProviderCapability::Embeddings,
@@ -36,7 +36,7 @@ const LM_STUDIO_CAPABILITIES: &[ProviderCapability] = &[
 /// LM Studio provider implementation
 #[derive(Debug, Clone)]
 pub struct LMStudioProvider {
-    config: LMStudioConfig,
+    pub(crate) config: LMStudioConfig,
     pool_manager: Arc<GlobalPoolManager>,
     models: Vec<ModelInfo>,
 }
@@ -47,11 +47,11 @@ impl LMStudioProvider {
         // Validate configuration
         config
             .validate()
-            .map_err(LMStudioError::ConfigurationError)?;
+            .map_err(|e| LMStudioError::configuration("lm_studio", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            LMStudioError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            LMStudioError::configuration("lm_studio", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Initialize with empty models (will be populated on first list_models call)
@@ -96,27 +96,28 @@ impl LMStudioProvider {
             .map_err(|e| {
                 let error_msg = e.to_string();
                 if error_msg.contains("Connection refused") || error_msg.contains("connect error") {
-                    LMStudioError::ConnectionRefusedError(format!(
-                        "Failed to connect to LM Studio server. Is LM Studio running?"
-                    ))
+                    LMStudioError::provider_unavailable(
+                        "lm_studio",
+                        "Failed to connect to LM Studio server. Is LM Studio running?",
+                    )
                 } else if error_msg.contains("timed out") || error_msg.contains("timeout") {
-                    LMStudioError::TimeoutError(error_msg)
+                    LMStudioError::timeout("lm_studio", error_msg)
                 } else {
-                    LMStudioError::NetworkError(error_msg)
+                    LMStudioError::network("lm_studio", error_msg)
                 }
             })?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| LMStudioError::NetworkError(e.to_string()))?;
+            .map_err(|e| LMStudioError::network("lm_studio", e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| LMStudioError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| LMStudioError::api_error("lm_studio", 500, format!("Failed to parse response: {}", e)))
     }
 
     /// Build OpenAI-compatible chat request from ChatRequest
-    fn build_chat_request(
+    pub(crate) fn build_chat_request(
         &self,
         request: &ChatRequest,
         stream: bool,
@@ -284,20 +285,20 @@ impl LMStudioProvider {
     }
 
     /// Parse OpenAI-compatible chat response into ChatResponse
-    fn parse_chat_response(
+    pub(crate) fn parse_chat_response(
         &self,
         response: serde_json::Value,
         model: &str,
     ) -> Result<ChatResponse, LMStudioError> {
         let choices = response.get("choices").and_then(|c| c.as_array()).ok_or_else(|| {
-            LMStudioError::ApiError("Missing choices in response".to_string())
+            LMStudioError::api_error("lm_studio", 500, "Missing choices in response")
         })?;
 
         let mut chat_choices = Vec::new();
 
         for (i, choice) in choices.iter().enumerate() {
             let message = choice.get("message").ok_or_else(|| {
-                LMStudioError::ApiError("Missing message in choice".to_string())
+                LMStudioError::api_error("lm_studio", 500, "Missing message in choice")
             })?;
 
             let content = message
@@ -428,7 +429,7 @@ impl LMStudioProvider {
 impl LLMProvider for LMStudioProvider {
     type Config = LMStudioConfig;
     type Error = LMStudioError;
-    type ErrorMapper = LMStudioErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "lm_studio"
@@ -484,13 +485,13 @@ impl LLMProvider for LMStudioProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let response: serde_json::Value = serde_json::from_slice(raw_response)
-            .map_err(|e| LMStudioError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| LMStudioError::api_error("lm_studio", 500, format!("Failed to parse response: {}", e)))?;
 
         self.parse_chat_response(response, model)
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        LMStudioErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -506,7 +507,7 @@ impl LLMProvider for LMStudioProvider {
         let url = self
             .config
             .get_chat_endpoint()
-            .map_err(LMStudioError::ConfigurationError)?;
+            .map_err(|e| LMStudioError::configuration("lm_studio", e))?;
         let response = self
             .execute_request(&url, HttpMethod::POST, Some(request_body))
             .await?;
@@ -528,7 +529,7 @@ impl LLMProvider for LMStudioProvider {
         let url = self
             .config
             .get_chat_endpoint()
-            .map_err(LMStudioError::ConfigurationError)?;
+            .map_err(|e| LMStudioError::configuration("lm_studio", e))?;
 
         let api_key = self.config.get_api_key();
         let mut req = reqwest::Client::new().post(&url);
@@ -546,22 +547,31 @@ impl LLMProvider for LMStudioProvider {
             .map_err(|e| {
                 let error_msg = e.to_string();
                 if error_msg.contains("Connection refused") || error_msg.contains("connect error") {
-                    LMStudioError::ConnectionRefusedError(
-                        "Failed to connect to LM Studio server. Is LM Studio running?".to_string(),
+                    LMStudioError::provider_unavailable(
+                        "lm_studio",
+                        "Failed to connect to LM Studio server. Is LM Studio running?",
                     )
                 } else if error_msg.contains("timed out") || error_msg.contains("timeout") {
-                    LMStudioError::TimeoutError(error_msg)
+                    LMStudioError::timeout("lm_studio", error_msg)
                 } else {
-                    LMStudioError::NetworkError(error_msg)
+                    LMStudioError::network("lm_studio", error_msg)
                 }
             })?;
 
         // Check status
         if !response.status().is_success() {
             let status = response.status().as_u16();
-            let body = response.text().await.ok();
-            let mapper = LMStudioErrorMapper;
-            return Err(mapper.map_http_error(status, &body.unwrap_or_default()));
+            let body = response.text().await.ok().unwrap_or_default();
+            return Err(match status {
+                400 => LMStudioError::invalid_request("lm_studio", body),
+                401 | 403 => LMStudioError::authentication("lm_studio", "Invalid API key or authentication failed"),
+                404 => LMStudioError::model_not_found("lm_studio", body),
+                429 => LMStudioError::rate_limit("lm_studio", None),
+                500 => LMStudioError::api_error("lm_studio", 500, "Internal server error"),
+                502 | 503 => LMStudioError::provider_unavailable("lm_studio", "Service unavailable"),
+                504 => LMStudioError::timeout("lm_studio", "Gateway timeout"),
+                _ => LMStudioError::api_error("lm_studio", status, body),
+            });
         }
 
         // Create SSE stream using the OpenAI streaming format
@@ -642,7 +652,7 @@ impl LLMProvider for LMStudioProvider {
                     }
                     None
                 }
-                Err(e) => Some(Err(LMStudioError::StreamingError(e.to_string()))),
+                Err(e) => Some(Err(LMStudioError::streaming_error("lm_studio", "chat", None, None, e.to_string()))),
             }
         });
 
@@ -675,14 +685,14 @@ impl LLMProvider for LMStudioProvider {
         let url = self
             .config
             .get_embeddings_endpoint()
-            .map_err(LMStudioError::ConfigurationError)?;
+            .map_err(|e| LMStudioError::configuration("lm_studio", e))?;
         let response = self
             .execute_request(&url, HttpMethod::POST, Some(body))
             .await?;
 
         // Parse OpenAI-compatible embeddings response
         let data_arr = response.get("data").and_then(|d| d.as_array()).ok_or_else(|| {
-            LMStudioError::ApiError("Missing data in embeddings response".to_string())
+            LMStudioError::api_error("lm_studio", 500, "Missing data in embeddings response")
         })?;
 
         let data: Vec<EmbeddingData> = data_arr
@@ -739,8 +749,6 @@ impl LLMProvider for LMStudioProvider {
 
         match self.execute_request(&url, HttpMethod::GET, None).await {
             Ok(_) => HealthStatus::Healthy,
-            Err(LMStudioError::ConnectionRefusedError(_)) => HealthStatus::Unhealthy,
-            Err(LMStudioError::TimeoutError(_)) => HealthStatus::Unhealthy,
             Err(_) => HealthStatus::Unhealthy,
         }
     }
@@ -774,7 +782,7 @@ impl LMStudioProvider {
         let url = self
             .config
             .get_models_endpoint()
-            .map_err(LMStudioError::ConfigurationError)?;
+            .map_err(|e| LMStudioError::configuration("lm_studio", e))?;
         let response = self.execute_request(&url, HttpMethod::GET, None).await?;
 
         let models = response

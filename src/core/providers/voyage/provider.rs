@@ -11,13 +11,11 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::VoyageConfig;
-use super::error::{VoyageError, VoyageErrorMapper};
+use super::error::VoyageError;
 use super::model_info::{get_available_models, get_model_info, supports_custom_dimensions};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
-use crate::core::traits::error_mapper::trait_def::ErrorMapper;
-use crate::core::traits::{
-    ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
-};
+use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
+use crate::core::traits::ProviderConfig as _;
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
     requests::{ChatRequest, EmbeddingInput, EmbeddingRequest},
@@ -39,11 +37,11 @@ impl VoyageProvider {
     /// Create a new Voyage AI provider instance
     pub async fn new(config: VoyageConfig) -> Result<Self, VoyageError> {
         // Validate configuration
-        config.validate().map_err(VoyageError::ConfigurationError)?;
+        config.validate().map_err(|e| VoyageError::configuration("voyage", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            VoyageError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            VoyageError::configuration("voyage", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list from static configuration
@@ -93,7 +91,7 @@ impl VoyageProvider {
     }
 
     /// Transform embedding request to Voyage AI format
-    fn transform_embedding_request(
+    pub(crate) fn transform_embedding_request(
         &self,
         request: &EmbeddingRequest,
     ) -> Result<serde_json::Value, VoyageError> {
@@ -131,7 +129,7 @@ impl VoyageProvider {
     }
 
     /// Transform Voyage AI response to standard format
-    fn transform_embedding_response(
+    pub(crate) fn transform_embedding_response(
         &self,
         response: serde_json::Value,
     ) -> Result<EmbeddingResponse, VoyageError> {
@@ -213,21 +211,21 @@ impl VoyageProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| VoyageError::NetworkError(e.to_string()))?;
+            .map_err(|e| VoyageError::network("voyage", e.to_string()))?;
 
         let status = response.status();
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| VoyageError::NetworkError(e.to_string()))?;
+            .map_err(|e| VoyageError::network("voyage", e.to_string()))?;
 
         if !status.is_success() {
             let body_str = String::from_utf8_lossy(&response_bytes);
-            return Err(VoyageErrorMapper.map_http_error(status.as_u16(), &body_str));
+            return Err(VoyageError::api_error("voyage", status.as_u16(), body_str.to_string()));
         }
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| VoyageError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| VoyageError::api_error("voyage", 500, format!("Failed to parse response: {}", e)))
     }
 }
 
@@ -235,7 +233,7 @@ impl VoyageProvider {
 impl LLMProvider for VoyageProvider {
     type Config = VoyageConfig;
     type Error = VoyageError;
-    type ErrorMapper = VoyageErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "voyage"
@@ -279,8 +277,9 @@ impl LLMProvider for VoyageProvider {
         _context: RequestContext,
     ) -> Result<serde_json::Value, Self::Error> {
         // Voyage doesn't support chat - return error
-        Err(VoyageError::InvalidRequestError(
-            "Voyage AI is an embedding-only provider. Use the embeddings endpoint.".to_string(),
+        Err(VoyageError::not_supported(
+            "voyage",
+            "Voyage AI is an embedding-only provider. Use the embeddings endpoint.",
         ))
     }
 
@@ -291,13 +290,14 @@ impl LLMProvider for VoyageProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         // Voyage doesn't support chat - return error
-        Err(VoyageError::InvalidRequestError(
-            "Voyage AI is an embedding-only provider. Use the embeddings endpoint.".to_string(),
+        Err(VoyageError::not_supported(
+            "voyage",
+            "Voyage AI is an embedding-only provider. Use the embeddings endpoint.",
         ))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        VoyageErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -305,9 +305,9 @@ impl LLMProvider for VoyageProvider {
         _request: ChatRequest,
         _context: RequestContext,
     ) -> Result<ChatResponse, Self::Error> {
-        Err(VoyageError::InvalidRequestError(
-            "Voyage AI is an embedding-only provider. Chat completion is not supported."
-                .to_string(),
+        Err(VoyageError::not_supported(
+            "voyage",
+            "Voyage AI is an embedding-only provider. Chat completion is not supported.",
         ))
     }
 
@@ -317,8 +317,9 @@ impl LLMProvider for VoyageProvider {
         _context: RequestContext,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error>
     {
-        Err(VoyageError::InvalidRequestError(
-            "Voyage AI is an embedding-only provider. Streaming is not supported.".to_string(),
+        Err(VoyageError::not_supported(
+            "voyage",
+            "Voyage AI is an embedding-only provider. Streaming is not supported.",
         ))
     }
 
@@ -381,7 +382,7 @@ impl LLMProvider for VoyageProvider {
         _output_tokens: u32,
     ) -> Result<f64, Self::Error> {
         let model_info = get_model_info(model)
-            .ok_or_else(|| VoyageError::ModelNotFoundError(format!("Unknown model: {}", model)))?;
+            .ok_or_else(|| VoyageError::model_not_found("voyage", format!("Unknown model: {}", model)))?;
 
         // Voyage only charges for input tokens (embeddings don't have output)
         let cost = (input_tokens as f64) * (model_info.cost_per_million_tokens / 1_000_000.0);

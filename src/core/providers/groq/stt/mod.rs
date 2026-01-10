@@ -125,7 +125,7 @@ pub fn create_multipart_form(
     let file_part = multipart::Part::bytes(request.file)
         .file_name("audio.mp3") // Default filename
         .mime_str("audio/mpeg")
-        .map_err(|e| GroqError::InvalidRequestError(format!("Invalid MIME type: {}", e)))?;
+        .map_err(|e| GroqError::invalid_request("groq", format!("Invalid MIME type: {}", e)))?;
     form = form.part("file", file_part);
 
     // Add model

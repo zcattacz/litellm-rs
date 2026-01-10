@@ -11,9 +11,9 @@ use tracing::debug;
 
 use super::config::SagemakerConfig;
 use super::error::{SagemakerError, SagemakerErrorMapper};
+use crate::core::providers::unified_provider::ProviderError;
 use super::sigv4::SagemakerSigV4Signer;
 use crate::core::providers::base::GlobalPoolManager;
-use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 use crate::core::traits::ProviderConfig as _;
 use crate::core::types::common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext};
@@ -41,10 +41,10 @@ impl SagemakerProvider {
     pub async fn new(config: SagemakerConfig) -> Result<Self, SagemakerError> {
         config
             .validate()
-            .map_err(SagemakerError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration("sagemaker", e))?;
 
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            SagemakerError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration("sagemaker", format!("Failed to create pool manager: {}", e))
         })?);
 
         let signer = SagemakerSigV4Signer::new(
@@ -106,6 +106,7 @@ impl LLMProvider for SagemakerProvider {
     type Error = SagemakerError;
     type ErrorMapper = SagemakerErrorMapper;
 
+
     fn name(&self) -> &'static str {
         "sagemaker"
     }
@@ -151,7 +152,7 @@ impl LLMProvider for SagemakerProvider {
         _context: RequestContext,
     ) -> Result<serde_json::Value, Self::Error> {
         serde_json::to_value(&request)
-            .map_err(|e| SagemakerError::InvalidRequestError(e.to_string()))
+            .map_err(|e| ProviderError::invalid_request("sagemaker", e.to_string()))
     }
 
     async fn transform_response(
@@ -161,7 +162,7 @@ impl LLMProvider for SagemakerProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         serde_json::from_slice(raw_response)
-            .map_err(|e| SagemakerError::ParsingError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::response_parsing("sagemaker", format!("Failed to parse response: {}", e)))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -195,7 +196,7 @@ impl LLMProvider for SagemakerProvider {
 
         // Sign the request
         let body_str = serde_json::to_string(&body)
-            .map_err(|e| SagemakerError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("sagemaker", e.to_string()))?;
 
         let headers = self
             .signer
@@ -206,7 +207,7 @@ impl LLMProvider for SagemakerProvider {
                 &body_str,
                 chrono::Utc::now(),
             )
-            .map_err(SagemakerError::SigningError)?;
+            .map_err(|e| ProviderError::authentication("sagemaker", format!("Signing error: {}", e)))?;
 
         // Execute request
         let client = reqwest::Client::new();
@@ -220,17 +221,24 @@ impl LLMProvider for SagemakerProvider {
             .body(body_str)
             .send()
             .await
-            .map_err(|e| SagemakerError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("sagemaker", e.to_string()))?;
 
         let status = response.status();
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| SagemakerError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("sagemaker", e.to_string()))?;
 
         if !status.is_success() {
             let body_str = String::from_utf8_lossy(&response_bytes);
-            return Err(SagemakerErrorMapper.map_http_error(status.as_u16(), &body_str));
+            return Err(match status.as_u16() {
+                400 => ProviderError::invalid_request("sagemaker", body_str.to_string()),
+                401 | 403 => ProviderError::authentication("sagemaker", body_str.to_string()),
+                404 | 424 => ProviderError::model_not_found("sagemaker", body_str.to_string()),
+                429 => ProviderError::rate_limit("sagemaker", None),
+                502 | 503 => ProviderError::api_error("sagemaker", status.as_u16(), body_str.to_string()),
+                _ => ProviderError::api_error("sagemaker", status.as_u16(), body_str.to_string()),
+            });
         }
 
         // Parse TGI response
@@ -243,7 +251,7 @@ impl LLMProvider for SagemakerProvider {
         _context: RequestContext,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error>
     {
-        Err(SagemakerError::InvalidRequestError(
+        Err(ProviderError::not_supported("sagemaker",
             "Streaming not yet implemented for Sagemaker".to_string(),
         ))
     }
@@ -253,7 +261,7 @@ impl LLMProvider for SagemakerProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(SagemakerError::InvalidRequestError(
+        Err(ProviderError::not_supported("sagemaker",
             "Embeddings not supported by Sagemaker provider".to_string(),
         ))
     }
@@ -317,7 +325,7 @@ fn format_messages_for_tgi(request: &ChatRequest) -> String {
 /// Parse HuggingFace TGI response
 fn parse_tgi_response(response_bytes: &[u8], model: &str) -> Result<ChatResponse, SagemakerError> {
     let json: serde_json::Value = serde_json::from_slice(response_bytes)
-        .map_err(|e| SagemakerError::ParsingError(format!("Failed to parse response: {}", e)))?;
+        .map_err(|e| ProviderError::response_parsing("sagemaker", format!("Failed to parse response: {}", e)))?;
 
     // TGI returns either a single object or an array
     let generated_text = if let Some(arr) = json.as_array() {

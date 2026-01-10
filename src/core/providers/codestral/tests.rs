@@ -22,17 +22,11 @@ fn test_model_info() {
     assert!(info.unwrap().supports_fim);
 }
 
-#[test]
-fn test_error_conversion() {
-    use crate::core::providers::unified_provider::ProviderError;
-
-    let err = CodestralError::AuthenticationError("bad key".to_string());
-    let provider_err: ProviderError = err.into();
-    assert!(matches!(provider_err, ProviderError::Authentication { .. }));
-}
+// Note: Error conversion tests removed - CodestralError is now a type alias to ProviderError
 
 #[test]
 fn test_fim_request_serialization() {
+    use super::provider::FimRequest;
     let request = FimRequest {
         model: "codestral-latest".to_string(),
         prompt: "def hello():".to_string(),

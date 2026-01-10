@@ -2,7 +2,7 @@
 //!
 //! Support for vector databases and semantic search in Vertex AI
 
-use super::error::VertexAIError;
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 
 /// Vector store configuration
@@ -94,7 +94,7 @@ impl VectorStoreHandler {
     pub async fn create_vector_store(
         &self,
         config: VectorStoreConfig,
-    ) -> Result<String, VertexAIError> {
+    ) -> Result<String, ProviderError> {
         self.validate_config(&config)?;
 
         // TODO: Implement actual vector store creation
@@ -105,13 +105,13 @@ impl VectorStoreHandler {
     }
 
     /// List vector stores
-    pub async fn list_vector_stores(&self) -> Result<Vec<VectorStoreConfig>, VertexAIError> {
+    pub async fn list_vector_stores(&self) -> Result<Vec<VectorStoreConfig>, ProviderError> {
         // TODO: Implement actual listing
         Ok(vec![])
     }
 
     /// Delete vector store
-    pub async fn delete_vector_store(&self, _store_id: &str) -> Result<(), VertexAIError> {
+    pub async fn delete_vector_store(&self, _store_id: &str) -> Result<(), ProviderError> {
         // TODO: Implement actual deletion
         Ok(())
     }
@@ -121,7 +121,7 @@ impl VectorStoreHandler {
         &self,
         _store_id: &str,
         documents: Vec<VectorDocument>,
-    ) -> Result<Vec<String>, VertexAIError> {
+    ) -> Result<Vec<String>, ProviderError> {
         self.validate_documents(&documents)?;
 
         // TODO: Implement actual document addition
@@ -133,7 +133,7 @@ impl VectorStoreHandler {
         &self,
         _store_id: &str,
         documents: Vec<VectorDocument>,
-    ) -> Result<Vec<String>, VertexAIError> {
+    ) -> Result<Vec<String>, ProviderError> {
         self.validate_documents(&documents)?;
 
         // TODO: Implement actual document updates
@@ -145,7 +145,7 @@ impl VectorStoreHandler {
         &self,
         _store_id: &str,
         _document_ids: Vec<String>,
-    ) -> Result<(), VertexAIError> {
+    ) -> Result<(), ProviderError> {
         // TODO: Implement actual document deletion
         Ok(())
     }
@@ -155,7 +155,7 @@ impl VectorStoreHandler {
         &self,
         _store_id: &str,
         request: VectorSearchRequest,
-    ) -> Result<VectorSearchResponse, VertexAIError> {
+    ) -> Result<VectorSearchResponse, ProviderError> {
         self.validate_search_request(&request)?;
 
         // TODO: Implement actual vector search
@@ -170,34 +170,34 @@ impl VectorStoreHandler {
         &self,
         _store_id: &str,
         _operations: Vec<VectorStoreOperation>,
-    ) -> Result<Vec<String>, VertexAIError> {
+    ) -> Result<Vec<String>, ProviderError> {
         // TODO: Implement batch operations
         Ok(vec![])
     }
 
     /// Validate vector store configuration
-    fn validate_config(&self, config: &VectorStoreConfig) -> Result<(), VertexAIError> {
+    fn validate_config(&self, config: &VectorStoreConfig) -> Result<(), ProviderError> {
         if config.store_id.is_empty() {
-            return Err(VertexAIError::InvalidRequest(
-                "Store ID cannot be empty".to_string(),
+            return Err(ProviderError::invalid_request("vertex_ai",
+                "Store ID cannot be empty",
             ));
         }
 
         if config.display_name.is_empty() {
-            return Err(VertexAIError::InvalidRequest(
-                "Display name cannot be empty".to_string(),
+            return Err(ProviderError::invalid_request("vertex_ai",
+                "Display name cannot be empty",
             ));
         }
 
         if config.dimensions == 0 {
-            return Err(VertexAIError::InvalidRequest(
-                "Dimensions must be greater than 0".to_string(),
+            return Err(ProviderError::invalid_request("vertex_ai",
+                "Dimensions must be greater than 0",
             ));
         }
 
         if config.dimensions > 2048 {
-            return Err(VertexAIError::InvalidRequest(
-                "Dimensions cannot exceed 2048".to_string(),
+            return Err(ProviderError::invalid_request("vertex_ai",
+                "Dimensions cannot exceed 2048",
             ));
         }
 
@@ -205,23 +205,23 @@ impl VectorStoreHandler {
     }
 
     /// Validate documents for vector store
-    fn validate_documents(&self, documents: &[VectorDocument]) -> Result<(), VertexAIError> {
+    fn validate_documents(&self, documents: &[VectorDocument]) -> Result<(), ProviderError> {
         if documents.is_empty() {
-            return Err(VertexAIError::InvalidRequest(
-                "No documents provided".to_string(),
+            return Err(ProviderError::invalid_request("vertex_ai",
+                "No documents provided",
             ));
         }
 
         for doc in documents {
             if doc.id.is_empty() {
-                return Err(VertexAIError::InvalidRequest(
-                    "Document ID cannot be empty".to_string(),
+                return Err(ProviderError::invalid_request("vertex_ai",
+                    "Document ID cannot be empty",
                 ));
             }
 
             if doc.content.is_empty() {
-                return Err(VertexAIError::InvalidRequest(
-                    "Document content cannot be empty".to_string(),
+                return Err(ProviderError::invalid_request("vertex_ai",
+                    "Document content cannot be empty",
                 ));
             }
         }
@@ -230,17 +230,17 @@ impl VectorStoreHandler {
     }
 
     /// Validate search request
-    fn validate_search_request(&self, request: &VectorSearchRequest) -> Result<(), VertexAIError> {
+    fn validate_search_request(&self, request: &VectorSearchRequest) -> Result<(), ProviderError> {
         if request.query.is_empty() {
-            return Err(VertexAIError::InvalidRequest(
-                "Search query cannot be empty".to_string(),
+            return Err(ProviderError::invalid_request("vertex_ai",
+                "Search query cannot be empty",
             ));
         }
 
         if let Some(k) = request.k {
             if k == 0 || k > 1000 {
-                return Err(VertexAIError::InvalidRequest(
-                    "k must be between 1 and 1000".to_string(),
+                return Err(ProviderError::invalid_request("vertex_ai",
+                    "k must be between 1 and 1000",
                 ));
             }
         }

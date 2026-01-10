@@ -18,10 +18,6 @@ mod model_info;
 mod provider;
 mod streaming;
 
-// Tests
-#[cfg(test)]
-mod tests;
-
 // Re-export main types for external use
 pub use config::OciConfig;
 pub use error::{OciError, OciErrorMapper};

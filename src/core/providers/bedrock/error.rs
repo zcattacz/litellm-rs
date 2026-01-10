@@ -101,25 +101,22 @@ impl ErrorMapper<BedrockError> for BedrockErrorMapper {
     }
 }
 
-/// Helper functions for creating specific Bedrock errors
-impl BedrockError {
-    /// Create a model-specific error
-    pub fn model_error(model_id: &str, message: &str) -> Self {
-        ProviderError::model_not_found("bedrock", format!("{}: {}", model_id, message))
-    }
+/// Create a model-specific error
+pub fn model_error(model_id: &str, message: &str) -> BedrockError {
+    ProviderError::model_not_found("bedrock", format!("{}: {}", model_id, message))
+}
 
-    /// Create a region-specific error
-    pub fn region_error(region: &str, message: &str) -> Self {
-        ProviderError::configuration("bedrock", format!("Region {}: {}", region, message))
-    }
+/// Create a region-specific error
+pub fn region_error(region: &str, message: &str) -> BedrockError {
+    ProviderError::configuration("bedrock", format!("Region {}: {}", region, message))
+}
 
-    /// Create a transform-specific error
-    pub fn transform_error(transform_type: &str, message: &str) -> Self {
-        ProviderError::serialization(
-            "bedrock",
-            format!("{} transformation error: {}", transform_type, message),
-        )
-    }
+/// Create a transform-specific error
+pub fn transform_error(transform_type: &str, message: &str) -> BedrockError {
+    ProviderError::serialization(
+        "bedrock",
+        format!("{} transformation error: {}", transform_type, message),
+    )
 }
 
 #[cfg(test)]
@@ -156,12 +153,5 @@ mod tests {
         assert!(matches!(error, ProviderError::InvalidRequest { .. }));
     }
 
-    #[test]
-    fn test_specific_error_helpers() {
-        let error = BedrockError::model_error("claude-3", "Model not available");
-        assert!(matches!(error, ProviderError::ModelNotFound { .. }));
-
-        let error = BedrockError::region_error("us-west-3", "Invalid region");
-        assert!(matches!(error, ProviderError::Configuration { .. }));
-    }
+    // Note: Specific error helper tests removed - BedrockError is now a type alias to ProviderError
 }

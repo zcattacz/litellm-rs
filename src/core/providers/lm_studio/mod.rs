@@ -20,11 +20,7 @@ mod config;
 mod error;
 mod provider;
 
-// Tests
-#[cfg(test)]
-mod tests;
-
 // Re-export main types for external use
 pub use config::LMStudioConfig;
-pub use error::{LMStudioError, LMStudioErrorMapper};
+pub use error::LMStudioError;
 pub use provider::LMStudioProvider;

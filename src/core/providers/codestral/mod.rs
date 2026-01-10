@@ -12,6 +12,6 @@ mod provider;
 mod tests;
 
 pub use config::CodestralConfig;
-pub use error::{CodestralError, CodestralErrorMapper};
+pub use error::CodestralError;
 pub use model_info::get_model_info;
 pub use provider::CodestralProvider;

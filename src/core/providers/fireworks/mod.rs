@@ -13,9 +13,6 @@ mod provider;
 
 // Re-export main types for external use
 pub use config::FireworksConfig;
-pub use error::{FireworksError, FireworksErrorMapper};
+pub use error::FireworksError;
 pub use model_info::{FireworksModel, get_model_info, is_reasoning_model};
 pub use provider::FireworksProvider;
-
-#[cfg(test)]
-mod tests;

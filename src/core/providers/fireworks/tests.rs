@@ -5,7 +5,8 @@ use super::*;
 #[cfg(test)]
 mod provider_tests {
     use super::*;
-    use crate::core::types::requests::{ChatMessage, MessageContent, MessageRole};
+    use crate::core::types::common::{ProviderCapability, RequestContext};
+    use crate::core::types::requests::{ChatMessage, ChatRequest, MessageContent, MessageRole};
 
     async fn create_test_provider() -> FireworksProvider {
         let config = FireworksConfig {
@@ -231,19 +232,6 @@ mod provider_tests {
         assert!(provider.supports_streaming());
     }
 
-    #[tokio::test]
-    async fn test_error_mapper() {
-        let mapper = FireworksErrorMapper;
-
-        let err = mapper.map_http_error(401, "");
-        assert!(matches!(err, FireworksError::AuthenticationError(_)));
-
-        let err = mapper.map_http_error(429, "");
-        assert!(matches!(err, FireworksError::RateLimitError(_)));
-
-        let err = mapper.map_http_error(400, "context_length_exceeded");
-        assert!(matches!(err, FireworksError::ContextLengthExceeded(_)));
-    }
 }
 
 #[cfg(test)]
@@ -342,53 +330,5 @@ mod config_tests {
             ..Default::default()
         };
         assert_eq!(config.get_api_base(), "https://custom.api.com");
-    }
-}
-
-#[cfg(test)]
-mod error_tests {
-    use super::error::*;
-    use crate::core::types::errors::ProviderErrorTrait;
-
-    #[test]
-    fn test_error_display() {
-        let err = FireworksError::ApiError("test".to_string());
-        assert_eq!(err.to_string(), "API error: test");
-    }
-
-    #[test]
-    fn test_error_is_retryable() {
-        assert!(FireworksError::RateLimitError("".to_string()).is_retryable());
-        assert!(FireworksError::ServiceUnavailableError("".to_string()).is_retryable());
-        assert!(FireworksError::NetworkError("".to_string()).is_retryable());
-        assert!(!FireworksError::AuthenticationError("".to_string()).is_retryable());
-    }
-
-    #[test]
-    fn test_error_http_status() {
-        assert_eq!(
-            FireworksError::AuthenticationError("".to_string()).http_status(),
-            401
-        );
-        assert_eq!(
-            FireworksError::RateLimitError("".to_string()).http_status(),
-            429
-        );
-        assert_eq!(
-            FireworksError::InvalidRequestError("".to_string()).http_status(),
-            400
-        );
-    }
-
-    #[test]
-    fn test_error_factory_methods() {
-        let err = FireworksError::not_supported("feature");
-        assert!(matches!(err, FireworksError::InvalidRequestError(_)));
-
-        let err = FireworksError::authentication_failed("reason");
-        assert!(matches!(err, FireworksError::AuthenticationError(_)));
-
-        let err = FireworksError::rate_limited(Some(60));
-        assert!(matches!(err, FireworksError::RateLimitError(_)));
     }
 }

@@ -5,6 +5,7 @@
 
 use super::error::OllamaError;
 use crate::core::types::requests::MessageRole;
+use crate::ProviderError;
 use crate::core::types::responses::{
     ChatChunk, ChatDelta, ChatResponse, ChatStreamChoice, Usage,
 };
@@ -122,11 +123,13 @@ where
         }
 
         let chunk: OllamaStreamChunk =
-            serde_json::from_str(line).map_err(|e| OllamaError::StreamingError(e.to_string()))?;
+            serde_json::from_str(line).map_err(|e| {
+                ProviderError::streaming_error("ollama", "chat", None, None, e.to_string())
+            })?;
 
         // Check for error
         if let Some(error) = chunk.error {
-            return Err(OllamaError::ApiError(error));
+            return Err(ProviderError::api_error("ollama", 500, error));
         }
 
         // Convert to ChatChunk
@@ -272,7 +275,9 @@ where
                     // Continue loop to check for complete lines
                 }
                 Poll::Ready(Some(Err(e))) => {
-                    return Poll::Ready(Some(Err(OllamaError::StreamingError(e.to_string()))))
+                    return Poll::Ready(Some(Err(
+                        ProviderError::streaming_error("ollama", "chat", None, None, e.to_string())
+                    )))
                 }
                 Poll::Ready(None) => {
                     // Stream ended, process any remaining data
@@ -501,8 +506,8 @@ mod tests {
 
     #[test]
     fn test_response_to_chunks() {
-        use crate::core::types::requests::MessageContent;
-        use crate::core::types::responses::{ChatChoice, ChatMessage};
+        use crate::core::types::requests::{ChatMessage, MessageContent};
+        use crate::core::types::responses::ChatChoice;
 
         let response = ChatResponse {
             id: "test-id".to_string(),
@@ -519,9 +524,9 @@ mod tests {
                     tool_calls: None,
                     function_call: None,
                     name: None,
-                    refusal: None,
+                    tool_call_id: None,
                 },
-                finish_reason: Some("stop".to_string()),
+                finish_reason: Some(crate::core::types::responses::FinishReason::Stop),
                 logprobs: None,
             }],
             usage: Some(Usage {
@@ -530,6 +535,7 @@ mod tests {
                 total_tokens: 12,
                 prompt_tokens_details: None,
                 completion_tokens_details: None,
+                thinking_usage: None,
             }),
         };
 

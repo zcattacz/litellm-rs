@@ -1,6 +1,6 @@
 //! Llama 3 Partner Model Support
 
-use crate::core::providers::vertex_ai::error::VertexAIError;
+use crate::ProviderError;
 
 /// Llama3 transformation handler
 pub struct Llama3Handler;
@@ -9,7 +9,7 @@ impl Llama3Handler {
     /// Handle Llama3 model requests
     pub async fn handle_request(
         request: serde_json::Value,
-    ) -> Result<serde_json::Value, VertexAIError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         // Transform for Llama models on Vertex AI
         let transformed = Self::transform_llama_request(request)?;
         Ok(transformed)
@@ -18,7 +18,7 @@ impl Llama3Handler {
     /// Transform request for Llama models
     fn transform_llama_request(
         request: serde_json::Value,
-    ) -> Result<serde_json::Value, VertexAIError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         // Llama models use chat template format
         Ok(serde_json::json!({
             "instances": [{

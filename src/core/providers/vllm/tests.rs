@@ -3,6 +3,7 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
+    use crate::core::traits::ProviderConfig;
     use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
     use crate::core::types::common::ProviderCapability;
 
@@ -62,7 +63,10 @@ mod tests {
         assert!(config.validate().is_ok());
 
         // Invalid config without API base (and no env var)
-        let _ = std::env::remove_var("VLLM_API_BASE");
+        // SAFETY: This is a single-threaded test
+        unsafe {
+            std::env::remove_var("VLLM_API_BASE");
+        }
         let config = VLLMConfig::default();
         assert!(config.validate().is_err());
 
@@ -171,51 +175,8 @@ mod tests {
     }
 
     // ==================== Error Tests ====================
-
-    #[test]
-    fn test_error_display() {
-        let err = VLLMError::ApiError("test error".to_string());
-        assert_eq!(err.to_string(), "API error: test error");
-
-        let err = VLLMError::ConfigurationError("config error".to_string());
-        assert_eq!(err.to_string(), "Configuration error: config error");
-
-        let err = VLLMError::BatchError("batch failed".to_string());
-        assert_eq!(err.to_string(), "Batch processing error: batch failed");
-    }
-
-    #[test]
-    fn test_error_is_retryable() {
-        use crate::core::types::errors::ProviderErrorTrait;
-
-        assert!(VLLMError::RateLimitError("".to_string()).is_retryable());
-        assert!(VLLMError::ServiceUnavailableError("".to_string()).is_retryable());
-        assert!(VLLMError::NetworkError("".to_string()).is_retryable());
-
-        assert!(!VLLMError::ApiError("".to_string()).is_retryable());
-        assert!(!VLLMError::AuthenticationError("".to_string()).is_retryable());
-        assert!(!VLLMError::InvalidRequestError("".to_string()).is_retryable());
-        assert!(!VLLMError::BatchError("".to_string()).is_retryable());
-    }
-
-    #[test]
-    fn test_error_mapper() {
-        use crate::core::traits::error_mapper::trait_def::ErrorMapper;
-
-        let mapper = VLLMErrorMapper;
-
-        let err = mapper.map_http_error(400, "bad request");
-        assert!(matches!(err, VLLMError::InvalidRequestError(_)));
-
-        let err = mapper.map_http_error(401, "");
-        assert!(matches!(err, VLLMError::AuthenticationError(_)));
-
-        let err = mapper.map_http_error(429, "");
-        assert!(matches!(err, VLLMError::RateLimitError(_)));
-
-        let err = mapper.map_http_error(503, "");
-        assert!(matches!(err, VLLMError::ServiceUnavailableError(_)));
-    }
+    // Note: VLLMError is now a type alias to ProviderError
+    // Error functionality is tested in the unified provider error tests
 
     // ==================== Model Info Tests ====================
 
@@ -356,8 +317,8 @@ mod tests {
 
     #[test]
     fn test_streaming_response_to_chunks() {
-        use crate::core::types::requests::MessageContent;
-        use crate::core::types::responses::{ChatChoice, ChatMessage, ChatResponse, Usage};
+        use crate::core::types::requests::{ChatMessage, MessageContent};
+        use crate::core::types::responses::{ChatChoice, ChatResponse, FinishReason, Usage};
 
         let response = ChatResponse {
             id: "test-id".to_string(),
@@ -373,17 +334,17 @@ mod tests {
                     name: None,
                     tool_calls: None,
                     function_call: None,
-                    refusal: None,
                     thinking: None,
+                    ..Default::default()
                 },
-                finish_reason: Some("stop".to_string()),
+                finish_reason: Some(FinishReason::Stop),
                 logprobs: None,
             }],
             usage: Some(Usage {
                 prompt_tokens: 10,
                 completion_tokens: 2,
                 total_tokens: 12,
-                reasoning_tokens: None,
+                ..Default::default()
             }),
         };
 
@@ -394,26 +355,8 @@ mod tests {
     }
 
     // ==================== Provider Error Conversion Tests ====================
-
-    #[test]
-    fn test_error_to_provider_error() {
-        use crate::core::providers::unified_provider::ProviderError;
-
-        let err: ProviderError = VLLMError::AuthenticationError("bad key".to_string()).into();
-        assert!(matches!(err, ProviderError::Authentication { .. }));
-
-        let err: ProviderError = VLLMError::RateLimitError("limit".to_string()).into();
-        assert!(matches!(err, ProviderError::RateLimit { .. }));
-
-        let err: ProviderError = VLLMError::ModelNotFoundError("model".to_string()).into();
-        assert!(matches!(err, ProviderError::ModelNotFound { .. }));
-
-        let err: ProviderError = VLLMError::NetworkError("timeout".to_string()).into();
-        assert!(matches!(err, ProviderError::Network { .. }));
-
-        let err: ProviderError = VLLMError::ConfigurationError("bad config".to_string()).into();
-        assert!(matches!(err, ProviderError::Configuration { .. }));
-    }
+    // Note: VLLMError is now a type alias to ProviderError
+    // No conversion needed - they are the same type
 
     // ==================== Model Info Conversion Tests ====================
 

@@ -50,7 +50,7 @@ impl Stream for VLLMStream {
         match Pin::new(&mut self.inner).poll_next(cx) {
             Poll::Ready(Some(Ok(chunk))) => Poll::Ready(Some(Ok(chunk))),
             Poll::Ready(Some(Err(e))) => {
-                Poll::Ready(Some(Err(VLLMError::StreamingError(e.to_string()))))
+                Poll::Ready(Some(Err(VLLMError::api_error("vllm", 500, format!("Streaming error: {}", e)))))
             }
             Poll::Ready(None) => Poll::Ready(None),
             Poll::Pending => Poll::Pending,
@@ -159,9 +159,11 @@ fn response_to_chunks(response: ChatResponse) -> Vec<ChatChunk> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::types::responses::{ChatChoice, ChatMessage, Usage};
+    use crate::core::types::responses::{ChatChoice, FinishReason, Usage};
 
     fn create_test_response() -> ChatResponse {
+        use crate::core::types::requests::ChatMessage;
+
         ChatResponse {
             id: "test-id".to_string(),
             object: "chat.completion".to_string(),
@@ -178,17 +180,17 @@ mod tests {
                     name: None,
                     tool_calls: None,
                     function_call: None,
-                    refusal: None,
                     thinking: None,
+                    ..Default::default()
                 },
-                finish_reason: Some("stop".to_string()),
+                finish_reason: Some(FinishReason::Stop),
                 logprobs: None,
             }],
             usage: Some(Usage {
                 prompt_tokens: 10,
                 completion_tokens: 7,
                 total_tokens: 17,
-                reasoning_tokens: None,
+                ..Default::default()
             }),
         }
     }
@@ -210,7 +212,7 @@ mod tests {
 
         // Last chunk should have finish_reason
         let last = chunks.last().unwrap();
-        assert_eq!(last.choices[0].finish_reason, Some("stop".to_string()));
+        assert_eq!(last.choices[0].finish_reason, Some(FinishReason::Stop));
     }
 
     #[test]

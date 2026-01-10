@@ -970,11 +970,12 @@ mod tests {
             .await;
         assert!(result.is_err());
 
-        match result.unwrap_err() {
-            ProviderError::NotSupported { provider, .. } => {
+        match result {
+            Err(ProviderError::NotSupported { provider, .. }) => {
                 assert_eq!(provider, "jina");
             }
-            _ => panic!("Expected NotSupported error"),
+            Err(_) => panic!("Expected NotSupported error"),
+            Ok(_) => panic!("Expected error, got Ok"),
         }
     }
 

@@ -5,6 +5,7 @@
 
 use super::error::TogetherError;
 use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEStream};
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::types::requests::{MessageContent, MessageRole};
 use crate::core::types::responses::{ChatChunk, ChatDelta, ChatResponse, ChatStreamChoice};
 use bytes::Bytes;
@@ -53,7 +54,7 @@ impl Stream for TogetherStream {
         match Pin::new(&mut self.inner).poll_next(cx) {
             Poll::Ready(Some(Ok(chunk))) => Poll::Ready(Some(Ok(chunk))),
             Poll::Ready(Some(Err(e))) => {
-                Poll::Ready(Some(Err(TogetherError::StreamingError(e.to_string()))))
+                Poll::Ready(Some(Err(ProviderError::api_error("together", 500, format!("Streaming error: {}", e.to_string())))))
             }
             Poll::Ready(None) => Poll::Ready(None),
             Poll::Pending => Poll::Pending,

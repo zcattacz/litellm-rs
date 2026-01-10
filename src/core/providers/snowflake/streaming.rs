@@ -53,7 +53,13 @@ impl Stream for SnowflakeStream {
         match Pin::new(&mut self.inner).poll_next(cx) {
             Poll::Ready(Some(Ok(chunk))) => Poll::Ready(Some(Ok(chunk))),
             Poll::Ready(Some(Err(e))) => {
-                Poll::Ready(Some(Err(SnowflakeError::StreamingError(e.to_string()))))
+                Poll::Ready(Some(Err(SnowflakeError::streaming_error(
+                    "snowflake",
+                    "chat",
+                    None,
+                    None,
+                    e.to_string(),
+                ))))
             }
             Poll::Ready(None) => Poll::Ready(None),
             Poll::Pending => Poll::Pending,

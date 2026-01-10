@@ -20,29 +20,6 @@ async fn test_github_config_from_env() {
 }
 
 #[test]
-fn test_github_error_conversions() {
-    // Test all error types convert correctly
-    let errors = vec![
-        GitHubError::ApiError("api error".to_string()),
-        GitHubError::AuthenticationError("auth error".to_string()),
-        GitHubError::RateLimitError("rate limit".to_string()),
-        GitHubError::InvalidRequestError("invalid".to_string()),
-        GitHubError::ModelNotFoundError("model not found".to_string()),
-        GitHubError::ServiceUnavailableError("unavailable".to_string()),
-        GitHubError::StreamingError("stream error".to_string()),
-        GitHubError::ConfigurationError("config error".to_string()),
-        GitHubError::NetworkError("network error".to_string()),
-        GitHubError::UnknownError("unknown".to_string()),
-    ];
-
-    for error in errors {
-        let provider_error: crate::core::providers::unified_provider::ProviderError = error.into();
-        // Just ensure the conversion doesn't panic
-        let _ = format!("{:?}", provider_error);
-    }
-}
-
-#[test]
 fn test_github_model_info_completeness() {
     // Ensure all models have required fields populated
     for model_id in get_available_models() {

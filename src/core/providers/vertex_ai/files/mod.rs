@@ -2,10 +2,9 @@
 //!
 //! Handles file uploads, management, and processing for Vertex AI
 
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-use super::error::VertexAIError;
 
 /// File upload request
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,7 +101,7 @@ impl FileHandler {
     pub async fn upload_file(
         &self,
         request: FileUploadRequest,
-    ) -> Result<FileMetadata, VertexAIError> {
+    ) -> Result<FileMetadata, ProviderError> {
         // Validate file
         self.validate_file_upload(&request)?;
 
@@ -128,10 +127,11 @@ impl FileHandler {
     }
 
     /// Get file metadata
-    pub async fn get_file(&self, _file_id: &str) -> Result<FileMetadata, VertexAIError> {
+    pub async fn get_file(&self, _file_id: &str) -> Result<FileMetadata, ProviderError> {
         // TODO: Implement actual file retrieval
-        Err(VertexAIError::UnsupportedFeature(
-            "File retrieval not yet implemented".to_string(),
+        Err(ProviderError::not_supported(
+            "vertex_ai",
+            "File retrieval not yet implemented",
         ))
     }
 
@@ -140,7 +140,7 @@ impl FileHandler {
         &self,
         _page_size: Option<i32>,
         _page_token: Option<String>,
-    ) -> Result<ListFilesResponse, VertexAIError> {
+    ) -> Result<ListFilesResponse, ProviderError> {
         // TODO: Implement actual file listing
         Ok(ListFilesResponse {
             files: Vec::new(),
@@ -149,28 +149,28 @@ impl FileHandler {
     }
 
     /// Delete a file
-    pub async fn delete_file(&self, _file_id: &str) -> Result<(), VertexAIError> {
+    pub async fn delete_file(&self, _file_id: &str) -> Result<(), ProviderError> {
         // TODO: Implement actual file deletion
         Ok(())
     }
 
     /// Validate file upload request
-    fn validate_file_upload(&self, request: &FileUploadRequest) -> Result<(), VertexAIError> {
+    fn validate_file_upload(&self, request: &FileUploadRequest) -> Result<(), ProviderError> {
         // Check MIME type
         if !self.is_supported_mime_type(&request.mime_type) {
-            return Err(VertexAIError::InvalidRequest(format!(
-                "Unsupported MIME type: {}",
-                request.mime_type
-            )));
+            return Err(ProviderError::invalid_request(
+                "vertex_ai",
+                format!("Unsupported MIME type: {}", request.mime_type),
+            ));
         }
 
         // Check file size
         let size = self.calculate_file_size(&request.data);
         if size > self.max_file_size(&request.mime_type) {
-            return Err(VertexAIError::InvalidRequest(format!(
-                "File size {} bytes exceeds maximum allowed",
-                size
-            )));
+            return Err(ProviderError::invalid_request(
+                "vertex_ai",
+                format!("File size {} bytes exceeds maximum allowed", size),
+            ));
         }
 
         Ok(())

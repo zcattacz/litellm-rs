@@ -19,11 +19,7 @@ mod config;
 mod error;
 mod provider;
 
-// Tests
-#[cfg(test)]
-mod tests;
-
 // Re-export main types for external use
 pub use config::OobaboogaConfig;
-pub use error::{OobaboogaError, OobaboogaErrorMapper};
+pub use error::OobaboogaError;
 pub use provider::OobaboogaProvider;

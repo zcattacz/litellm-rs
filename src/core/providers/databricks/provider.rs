@@ -688,21 +688,8 @@ mod tests {
                 function_call: None,
             }],
             temperature: Some(0.7),
-            top_p: None,
             max_tokens: Some(100),
-            stream: None,
-            stop: None,
-            presence_penalty: None,
-            frequency_penalty: None,
-            user: None,
-            tools: None,
-            tool_choice: None,
-            response_format: None,
-            seed: None,
-            logprobs: None,
-            top_logprobs: None,
-            n: None,
-            logit_bias: None,
+            ..Default::default()
         };
 
         let body = provider.transform_chat_request_to_value(&request);

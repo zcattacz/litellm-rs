@@ -4,7 +4,7 @@ pub mod ai21;
 pub mod anthropic;
 pub mod llama3;
 
-use super::error::VertexAIError;
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 
 /// Partner provider types
@@ -31,7 +31,7 @@ impl PartnerModelHandler {
     pub async fn handle_request(
         provider: PartnerProvider,
         request: serde_json::Value,
-    ) -> Result<serde_json::Value, VertexAIError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         match provider {
             PartnerProvider::AI21 => ai21::AI21Handler::handle_request(request).await,
             PartnerProvider::Anthropic => {

@@ -1,5 +1,6 @@
 //! Vertex AI Batch Processing Module
 
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -148,7 +149,7 @@ impl BatchHandler {
     pub async fn create_batch_job(
         &self,
         request: CreateBatchJobRequest,
-    ) -> Result<BatchJob, crate::core::providers::vertex_ai::error::VertexAIError> {
+    ) -> Result<BatchJob, ProviderError> {
         // TODO: Implement actual batch job creation via Vertex AI API
         Ok(BatchJob {
             id: uuid::Uuid::new_v4().to_string(),
@@ -169,13 +170,12 @@ impl BatchHandler {
     pub async fn get_batch_job(
         &self,
         _job_id: &str,
-    ) -> Result<BatchJob, crate::core::providers::vertex_ai::error::VertexAIError> {
+    ) -> Result<BatchJob, ProviderError> {
         // TODO: Implement actual job retrieval
-        Err(
-            crate::core::providers::vertex_ai::error::VertexAIError::UnsupportedFeature(
-                "Batch job retrieval not yet implemented".to_string(),
-            ),
-        )
+        Err(ProviderError::not_supported(
+            "vertex_ai",
+            "Batch job retrieval not yet implemented",
+        ))
     }
 
     /// List batch jobs
@@ -184,7 +184,7 @@ impl BatchHandler {
         _filter: Option<String>,
         _page_size: Option<i32>,
         _page_token: Option<String>,
-    ) -> Result<Vec<BatchJob>, crate::core::providers::vertex_ai::error::VertexAIError> {
+    ) -> Result<Vec<BatchJob>, ProviderError> {
         // TODO: Implement actual job listing
         Ok(Vec::new())
     }
@@ -193,7 +193,7 @@ impl BatchHandler {
     pub async fn cancel_batch_job(
         &self,
         _job_id: &str,
-    ) -> Result<(), crate::core::providers::vertex_ai::error::VertexAIError> {
+    ) -> Result<(), ProviderError> {
         // TODO: Implement actual job cancellation
         Ok(())
     }
@@ -202,7 +202,7 @@ impl BatchHandler {
     pub async fn delete_batch_job(
         &self,
         _job_id: &str,
-    ) -> Result<(), crate::core::providers::vertex_ai::error::VertexAIError> {
+    ) -> Result<(), ProviderError> {
         // TODO: Implement actual job deletion
         Ok(())
     }
@@ -212,7 +212,7 @@ impl BatchHandler {
 pub fn transform_batch_request(
     requests: Vec<ChatRequest>,
     model: &str,
-) -> Result<Vec<Value>, crate::core::providers::vertex_ai::error::VertexAIError> {
+) -> Result<Vec<Value>, ProviderError> {
     let mut batch_instances = Vec::new();
 
     for request in requests {
@@ -232,7 +232,7 @@ pub fn transform_batch_request(
 /// Transform single request to Gemini batch format
 fn transform_gemini_batch_instance(
     request: ChatRequest,
-) -> Result<Value, crate::core::providers::vertex_ai::error::VertexAIError> {
+) -> Result<Value, ProviderError> {
     use crate::core::providers::vertex_ai::parse_vertex_model;
     use crate::core::providers::vertex_ai::transformers::GeminiTransformer;
 
@@ -245,7 +245,7 @@ fn transform_gemini_batch_instance(
 /// Transform single request to default batch format
 fn transform_default_batch_instance(
     request: ChatRequest,
-) -> Result<Value, crate::core::providers::vertex_ai::error::VertexAIError> {
+) -> Result<Value, ProviderError> {
     Ok(serde_json::json!({
         "messages": request.messages.iter().map(|msg| {
             serde_json::json!({
@@ -265,10 +265,11 @@ fn transform_default_batch_instance(
 pub fn parse_batch_response(
     response: Value,
     model: &str,
-) -> Result<Vec<ChatResponse>, crate::core::providers::vertex_ai::error::VertexAIError> {
+) -> Result<Vec<ChatResponse>, ProviderError> {
     let predictions = response["predictions"].as_array().ok_or_else(|| {
-        crate::core::providers::vertex_ai::error::VertexAIError::ResponseParsing(
-            "Missing predictions in batch response".to_string(),
+        ProviderError::response_parsing(
+            "vertex_ai",
+            "Missing predictions in batch response",
         )
     })?;
 
@@ -291,7 +292,7 @@ pub fn parse_batch_response(
 fn parse_gemini_batch_response(
     response: Value,
     model: &str,
-) -> Result<ChatResponse, crate::core::providers::vertex_ai::error::VertexAIError> {
+) -> Result<ChatResponse, ProviderError> {
     use crate::core::providers::vertex_ai::parse_vertex_model;
     use crate::core::providers::vertex_ai::transformers::GeminiTransformer;
 
@@ -305,7 +306,7 @@ fn parse_gemini_batch_response(
 fn parse_default_batch_response(
     response: Value,
     model: &str,
-) -> Result<ChatResponse, crate::core::providers::vertex_ai::error::VertexAIError> {
+) -> Result<ChatResponse, ProviderError> {
     use crate::core::types::requests::ChatMessage;
     use crate::core::types::responses::ChatChoice;
 

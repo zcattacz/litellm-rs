@@ -17,24 +17,7 @@ async fn test_github_copilot_config_from_env() {
     unsafe { std::env::remove_var("GITHUB_COPILOT_TOKEN_DIR") };
 }
 
-#[test]
-fn test_github_copilot_error_conversions() {
-    let errors = vec![
-        GitHubCopilotError::ApiError("api error".to_string()),
-        GitHubCopilotError::AuthenticationError("auth error".to_string()),
-        GitHubCopilotError::RateLimitError("rate limit".to_string()),
-        GitHubCopilotError::DeviceCodeError("device error".to_string()),
-        GitHubCopilotError::AccessTokenError("token error".to_string()),
-        GitHubCopilotError::ApiKeyExpiredError("expired".to_string()),
-        GitHubCopilotError::RefreshApiKeyError("refresh error".to_string()),
-    ];
-
-    for error in errors {
-        let provider_error: crate::core::providers::unified_provider::ProviderError = error.into();
-        // Just ensure the conversion doesn't panic
-        let _ = format!("{:?}", provider_error);
-    }
-}
+// Note: Error conversion tests removed - GitHubCopilotError is now a type alias to ProviderError
 
 #[test]
 fn test_github_copilot_model_info_completeness() {

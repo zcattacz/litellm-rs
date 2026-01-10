@@ -228,7 +228,7 @@ impl CohereEmbeddingHandler {
     ) -> Result<EmbeddingResponse, CohereError> {
         let embeddings = response_json
             .get("embeddings")
-            .ok_or_else(|| CohereError::cohere_response_parsing("Missing embeddings in response"))?;
+            .ok_or_else(|| super::error::cohere_response_parsing("Missing embeddings in response"))?;
 
         // Get the first available embedding type
         let embedding_vectors = Self::extract_embeddings(embeddings)?;
@@ -269,7 +269,7 @@ impl CohereEmbeddingHandler {
                                     .collect()
                             })
                             .ok_or_else(|| {
-                                CohereError::cohere_response_parsing("Invalid embedding format")
+                                super::error::cohere_response_parsing("Invalid embedding format")
                             })
                     })
                     .collect();
@@ -290,7 +290,7 @@ impl CohereEmbeddingHandler {
                                         .collect()
                                 })
                                 .ok_or_else(|| {
-                                    CohereError::cohere_response_parsing("Invalid embedding format")
+                                    super::error::cohere_response_parsing("Invalid embedding format")
                                 })
                         })
                         .collect();
@@ -298,7 +298,7 @@ impl CohereEmbeddingHandler {
             }
         }
 
-        Err(CohereError::cohere_response_parsing(
+        Err(super::error::cohere_response_parsing(
             "No valid embeddings found in response",
         ))
     }

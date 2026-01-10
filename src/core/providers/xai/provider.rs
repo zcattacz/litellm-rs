@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tracing::{debug, info};
 
 use super::config::XAIConfig;
-use super::error::{XAIError, XAIErrorMapper};
+use super::error::XAIError;
 use super::model_info::{calculate_cost_with_reasoning, get_available_models, get_model_info};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::traits::{
@@ -41,11 +41,11 @@ impl XAIProvider {
     /// Create a new xAI provider instance
     pub async fn new(config: XAIConfig) -> Result<Self, XAIError> {
         // Validate configuration
-        config.validate().map_err(XAIError::ConfigurationError)?;
+        config.validate().map_err(|e| XAIError::configuration("xai", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            XAIError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            XAIError::configuration("xai", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list from static configuration
@@ -115,15 +115,15 @@ impl XAIProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| XAIError::NetworkError(e.to_string()))?;
+            .map_err(|e| XAIError::network("xai", e.to_string()))?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| XAIError::NetworkError(e.to_string()))?;
+            .map_err(|e| XAIError::network("xai", e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| XAIError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| XAIError::api_error("xai", 500, format!("Failed to parse response: {}", e)))
     }
 
     /// Add web search parameter to request JSON
@@ -150,7 +150,7 @@ impl XAIProvider {
 impl LLMProvider for XAIProvider {
     type Config = XAIConfig;
     type Error = XAIError;
-    type ErrorMapper = XAIErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "xai"
@@ -229,7 +229,7 @@ impl LLMProvider for XAIProvider {
     ) -> Result<serde_json::Value, Self::Error> {
         // Convert to JSON value
         let mut request_json = serde_json::to_value(&request)
-            .map_err(|e| XAIError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| XAIError::invalid_request("xai", e.to_string()))?;
 
         // Add web search if enabled
         self.add_web_search_to_json(&mut request_json);
@@ -244,14 +244,14 @@ impl LLMProvider for XAIProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let response_json: serde_json::Value = serde_json::from_slice(raw_response)
-            .map_err(|e| XAIError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| XAIError::api_error("xai", 500, format!("Failed to parse response: {}", e)))?;
 
         // Extract reasoning tokens if present
         let reasoning_tokens = self.extract_reasoning_tokens(&response_json);
 
         // Parse standard response
         let mut chat_response: ChatResponse = serde_json::from_value(response_json.clone())
-            .map_err(|e| XAIError::ApiError(format!("Failed to parse chat response: {}", e)))?;
+            .map_err(|e| XAIError::api_error("xai", 500, format!("Failed to parse chat response: {}", e)))?;
 
         // If we have reasoning tokens, update the usage
         if let Some(reasoning_tokens) = reasoning_tokens {
@@ -286,7 +286,7 @@ impl LLMProvider for XAIProvider {
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        XAIErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -298,7 +298,7 @@ impl LLMProvider for XAIProvider {
 
         // Transform and execute
         let mut request_json = serde_json::to_value(&request)
-            .map_err(|e| XAIError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| XAIError::invalid_request("xai", e.to_string()))?;
 
         // Add web search parameter at the top level if enabled
         if self.config.enable_web_search {
@@ -316,7 +316,7 @@ impl LLMProvider for XAIProvider {
 
         // Parse response
         let mut chat_response: ChatResponse = serde_json::from_value(response.clone())
-            .map_err(|e| XAIError::ApiError(format!("Failed to parse chat response: {}", e)))?;
+            .map_err(|e| XAIError::api_error("xai", 500, format!("Failed to parse chat response: {}", e)))?;
 
         // Handle reasoning tokens in usage
         if let Some(reasoning_tokens) = reasoning_tokens {
@@ -351,7 +351,7 @@ impl LLMProvider for XAIProvider {
         let api_key = self
             .config
             .get_api_key()
-            .ok_or_else(|| XAIError::AuthenticationError("API key is required".to_string()))?;
+            .ok_or_else(|| XAIError::authentication("xai", "API key is required"))?;
 
         // We'll add web search to JSON request body below
 
@@ -360,7 +360,7 @@ impl LLMProvider for XAIProvider {
         let client = reqwest::Client::new();
 
         let mut request_json = serde_json::to_value(&request)
-            .map_err(|e| XAIError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| XAIError::invalid_request("xai", e.to_string()))?;
 
         // Add web search at top level
         if self.config.enable_web_search {
@@ -376,7 +376,7 @@ impl LLMProvider for XAIProvider {
             .json(&request_json)
             .send()
             .await
-            .map_err(|e| XAIError::NetworkError(e.to_string()))?;
+            .map_err(|e| XAIError::network("xai", e.to_string()))?;
 
         // Check status
         if !response.status().is_success() {
@@ -384,19 +384,17 @@ impl LLMProvider for XAIProvider {
             let body = response.text().await.ok();
             return Err(match status {
                 400 => {
-                    XAIError::InvalidRequestError(body.unwrap_or_else(|| "Bad request".to_string()))
+                    XAIError::invalid_request("xai", body.unwrap_or_else(|| "Bad request".to_string()))
                 }
-                401 => XAIError::AuthenticationError("Invalid API key".to_string()),
-                429 => XAIError::RateLimitError("Rate limit exceeded".to_string()),
-                _ => XAIError::ApiError(format!("Stream request failed: {}", status)),
+                401 => XAIError::authentication("xai", "Invalid API key"),
+                429 => XAIError::rate_limit("xai", None),
+                _ => XAIError::api_error("xai", status, format!("Stream request failed: {}", status)),
             });
         }
 
         // TODO: Implement proper SSE streaming for xAI
         // For now, return an error as streaming implementation needs more work
-        Err(XAIError::InvalidRequestError(
-            "Streaming is not yet fully implemented for xAI provider".to_string(),
-        ))
+        Err(XAIError::not_supported("xai", "Streaming is not yet fully implemented for xAI provider"))
     }
 
     async fn embeddings(
@@ -404,9 +402,7 @@ impl LLMProvider for XAIProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(XAIError::InvalidRequestError(
-            "xAI does not currently support embeddings. Use chat models instead.".to_string(),
-        ))
+        Err(XAIError::not_supported("xai", "xAI does not currently support embeddings. Use chat models instead."))
     }
 
     async fn health_check(&self) -> HealthStatus {
@@ -436,7 +432,7 @@ impl LLMProvider for XAIProvider {
         // For now, calculate without reasoning tokens
         // In production, reasoning tokens would be extracted from the actual response
         calculate_cost_with_reasoning(model, input_tokens, output_tokens, None)
-            .ok_or_else(|| XAIError::ModelNotFoundError(format!("Unknown model: {}", model)))
+            .ok_or_else(|| XAIError::model_not_found("xai", format!("Unknown model: {}", model)))
     }
 }
 
@@ -470,7 +466,7 @@ mod tests {
         let provider = XAIProvider::new(config).await;
         assert!(provider.is_err());
         if let Err(e) = provider {
-            assert!(matches!(e, XAIError::ConfigurationError(_)));
+            assert!(matches!(e, XAIError::Configuration { .. }));
         }
     }
 

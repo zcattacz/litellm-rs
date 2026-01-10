@@ -2,7 +2,7 @@
 //!
 //! Support for third-party models in Vertex AI Model Garden
 
-use super::error::VertexAIError;
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -50,7 +50,7 @@ impl ModelGardenHandler {
     }
 
     /// List available models in Model Garden
-    pub async fn list_models(&self) -> Result<Vec<ModelGardenModel>, VertexAIError> {
+    pub async fn list_models(&self) -> Result<Vec<ModelGardenModel>, ProviderError> {
         // TODO: Implement actual model listing
         Ok(vec![ModelGardenModel {
             model_id: "codey-completion".to_string(),
@@ -69,7 +69,7 @@ impl ModelGardenHandler {
         &self,
         _model_id: &str,
         _endpoint_display_name: &str,
-    ) -> Result<String, VertexAIError> {
+    ) -> Result<String, ProviderError> {
         // TODO: Implement model deployment
         Ok(format!(
             "projects/{}/locations/{}/endpoints/{}",
@@ -84,7 +84,7 @@ impl ModelGardenHandler {
         &self,
         _endpoint_id: &str,
         request: ModelGardenRequest,
-    ) -> Result<ModelGardenResponse, VertexAIError> {
+    ) -> Result<ModelGardenResponse, ProviderError> {
         // TODO: Implement prediction
         Ok(ModelGardenResponse {
             predictions: vec![request.inputs],
@@ -114,7 +114,7 @@ impl ModelGardenHandler {
         &self,
         model: &str,
         input: serde_json::Value,
-    ) -> Result<ModelGardenRequest, VertexAIError> {
+    ) -> Result<ModelGardenRequest, ProviderError> {
         match model {
             "code-bison" | "code-gecko" => Ok(ModelGardenRequest {
                 model: model.to_string(),
@@ -164,7 +164,7 @@ impl ModelGardenHandler {
                     ),
                 ])),
             }),
-            _ => Err(VertexAIError::UnsupportedModel(model.to_string())),
+            _ => Err(ProviderError::model_not_found("vertex_ai", model)),
         }
     }
 }

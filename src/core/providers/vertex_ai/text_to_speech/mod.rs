@@ -2,7 +2,7 @@
 //!
 //! Support for converting text to speech using Google Cloud Text-to-Speech API
 
-use super::error::VertexAIError;
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 
 /// Text-to-speech request
@@ -91,7 +91,7 @@ impl TextToSpeechHandler {
     pub async fn synthesize_speech(
         &self,
         request: TextToSpeechRequest,
-    ) -> Result<TextToSpeechResponse, VertexAIError> {
+    ) -> Result<TextToSpeechResponse, ProviderError> {
         self.validate_request(&request)?;
 
         // TODO: Implement actual Google Cloud Text-to-Speech API call
@@ -104,7 +104,7 @@ impl TextToSpeechHandler {
     pub async fn list_voices(
         &self,
         _language_code: Option<&str>,
-    ) -> Result<Vec<Voice>, VertexAIError> {
+    ) -> Result<Vec<Voice>, ProviderError> {
         // TODO: Implement actual voice listing
         Ok(vec![
             Voice {
@@ -123,19 +123,21 @@ impl TextToSpeechHandler {
     }
 
     /// Validate text-to-speech request
-    fn validate_request(&self, request: &TextToSpeechRequest) -> Result<(), VertexAIError> {
+    fn validate_request(&self, request: &TextToSpeechRequest) -> Result<(), ProviderError> {
         // Check that either text or SSML is provided
         if request.input.text.is_none() && request.input.ssml.is_none() {
-            return Err(VertexAIError::InvalidRequest(
-                "Either text or SSML input is required".to_string(),
+            return Err(ProviderError::invalid_request(
+                "vertex_ai",
+                "Either text or SSML input is required",
             ));
         }
 
         // Validate text length
         if let Some(text) = &request.input.text {
             if text.len() > 5000 {
-                return Err(VertexAIError::InvalidRequest(
-                    "Text input too long (max 5000 characters)".to_string(),
+                return Err(ProviderError::invalid_request(
+                    "vertex_ai",
+                    "Text input too long (max 5000 characters)",
                 ));
             }
         }
@@ -143,8 +145,9 @@ impl TextToSpeechHandler {
         // Validate SSML length
         if let Some(ssml) = &request.input.ssml {
             if ssml.len() > 5000 {
-                return Err(VertexAIError::InvalidRequest(
-                    "SSML input too long (max 5000 characters)".to_string(),
+                return Err(ProviderError::invalid_request(
+                    "vertex_ai",
+                    "SSML input too long (max 5000 characters)",
                 ));
             }
         }
@@ -152,8 +155,9 @@ impl TextToSpeechHandler {
         // Validate speaking rate
         if let Some(rate) = request.audio_config.speaking_rate {
             if !(0.25..=4.0).contains(&rate) {
-                return Err(VertexAIError::InvalidRequest(
-                    "Speaking rate must be between 0.25 and 4.0".to_string(),
+                return Err(ProviderError::invalid_request(
+                    "vertex_ai",
+                    "Speaking rate must be between 0.25 and 4.0",
                 ));
             }
         }
@@ -161,8 +165,9 @@ impl TextToSpeechHandler {
         // Validate pitch
         if let Some(pitch) = request.audio_config.pitch {
             if !(-20.0..=20.0).contains(&pitch) {
-                return Err(VertexAIError::InvalidRequest(
-                    "Pitch must be between -20.0 and 20.0".to_string(),
+                return Err(ProviderError::invalid_request(
+                    "vertex_ai",
+                    "Pitch must be between -20.0 and 20.0",
                 ));
             }
         }
@@ -170,8 +175,9 @@ impl TextToSpeechHandler {
         // Validate volume gain
         if let Some(volume) = request.audio_config.volume_gain_db {
             if !(-96.0..=16.0).contains(&volume) {
-                return Err(VertexAIError::InvalidRequest(
-                    "Volume gain must be between -96.0 and 16.0 dB".to_string(),
+                return Err(ProviderError::invalid_request(
+                    "vertex_ai",
+                    "Volume gain must be between -96.0 and 16.0 dB",
                 ));
             }
         }

@@ -9,6 +9,7 @@ use crate::core::types::{
     requests::ChatRequest,
     responses::{ChatChunk, ChatResponse},
 };
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -47,7 +48,7 @@ impl OpenRouterRequestTransformer {
     ) -> Result<openai_models::OpenAIChatRequest, OpenRouterError> {
         // Transform to OpenAI request
         let openai_request = OpenAIRequestTransformer::transform(request)
-            .map_err(|e| OpenRouterError::InvalidRequest(e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("openrouter", e.to_string()))?;
 
         // If there are OpenRouter specific params, add to extra_body
         if let Some(extra) = extra_params {
@@ -93,7 +94,7 @@ impl OpenRouterResponseTransformer {
     ) -> Result<ChatResponse, OpenRouterError> {
         // Delegate to OpenAI transformer
         crate::core::providers::openai::transformer::OpenAIResponseTransformer::transform(response)
-            .map_err(|e| OpenRouterError::Transformation(e.to_string()))
+            .map_err(|e| ProviderError::transformation_error("openrouter", "openai", "openrouter", e.to_string()))
     }
 
     /// Transform stream chunk
@@ -110,7 +111,7 @@ impl OpenRouterResponseTransformer {
 
         // Delegate to OpenAI transformer
         crate::core::providers::openai::transformer::OpenAIResponseTransformer::transform_stream_chunk(chunk)
-            .map_err(|e| OpenRouterError::Transformation(e.to_string()))
+            .map_err(|e| ProviderError::transformation_error("openrouter", "openai", "openrouter", e.to_string()))
     }
 
     /// Check error in chunk
@@ -129,20 +130,14 @@ impl OpenRouterResponseTransformer {
             );
 
             match error_model.code {
-                401 => OpenRouterError::Authentication(message),
-                429 => OpenRouterError::RateLimit(message),
-                400 => OpenRouterError::InvalidRequest(message),
-                404 => OpenRouterError::ModelNotFound(error_model.message),
-                _ => OpenRouterError::ApiError {
-                    message,
-                    status_code,
-                },
+                401 => ProviderError::authentication("openrouter", message),
+                429 => ProviderError::rate_limit_simple("openrouter", message),
+                400 => ProviderError::invalid_request("openrouter", message),
+                404 => ProviderError::model_not_found("openrouter", error_model.message),
+                _ => ProviderError::api_error("openrouter", status_code, message),
             }
         } else {
-            OpenRouterError::ApiError {
-                message: error_body.to_string(),
-                status_code,
-            }
+            ProviderError::api_error("openrouter", status_code, error_body.to_string())
         }
     }
 }
@@ -294,28 +289,28 @@ mod tests {
     fn test_parse_error_with_valid_json() {
         let error_body = r#"{"message": "Rate limit exceeded", "code": 429}"#;
         let error = OpenRouterResponseTransformer::parse_error(error_body, 429);
-        assert!(matches!(error, OpenRouterError::RateLimit(_)));
+        assert!(matches!(error, OpenRouterError::RateLimit { .. }));
     }
 
     #[test]
     fn test_parse_error_auth() {
         let error_body = r#"{"message": "Invalid API key", "code": 401}"#;
         let error = OpenRouterResponseTransformer::parse_error(error_body, 401);
-        assert!(matches!(error, OpenRouterError::Authentication(_)));
+        assert!(matches!(error, OpenRouterError::Authentication { .. }));
     }
 
     #[test]
     fn test_parse_error_invalid_request() {
         let error_body = r#"{"message": "Invalid parameters", "code": 400}"#;
         let error = OpenRouterResponseTransformer::parse_error(error_body, 400);
-        assert!(matches!(error, OpenRouterError::InvalidRequest(_)));
+        assert!(matches!(error, OpenRouterError::InvalidRequest { .. }));
     }
 
     #[test]
     fn test_parse_error_model_not_found() {
         let error_body = r#"{"message": "Model gpt-5 not found", "code": 404}"#;
         let error = OpenRouterResponseTransformer::parse_error(error_body, 404);
-        assert!(matches!(error, OpenRouterError::ModelNotFound(_)));
+        assert!(matches!(error, OpenRouterError::ModelNotFound { .. }));
     }
 
     #[test]

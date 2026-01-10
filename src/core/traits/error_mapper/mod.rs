@@ -16,3 +16,6 @@ pub mod types;
 
 #[cfg(test)]
 mod tests;
+
+// Re-export DefaultErrorMapper for convenience
+pub use types::GenericErrorMapper as DefaultErrorMapper;

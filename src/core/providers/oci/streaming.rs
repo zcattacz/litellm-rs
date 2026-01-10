@@ -213,6 +213,7 @@ where
 mod tests {
     use super::*;
     use futures::stream;
+    use futures::StreamExt;
 
     #[tokio::test]
     async fn test_oci_stream_basic() {
@@ -255,7 +256,7 @@ mod tests {
 
         // Role chunk
         let chunk1 = oci_stream.next().await.unwrap().unwrap();
-        assert_eq!(chunk1.choices[0].delta.role, Some("assistant".to_string()));
+        assert_eq!(chunk1.choices[0].delta.role, Some(MessageRole::Assistant));
 
         // Content chunks
         let chunk2 = oci_stream.next().await.unwrap().unwrap();

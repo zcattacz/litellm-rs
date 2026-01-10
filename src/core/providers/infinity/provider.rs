@@ -12,12 +12,11 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::InfinityConfig;
-use super::error::{InfinityError, InfinityErrorMapper};
+use super::error::InfinityError;
 use crate::core::providers::base::{header, GlobalPoolManager, HttpMethod};
 use crate::core::traits::{
     provider::llm_provider::trait_definition::LLMProvider, ProviderConfig as _,
 };
-use crate::core::types::errors::ProviderErrorTrait;
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
     requests::{ChatRequest, EmbeddingRequest},
@@ -107,11 +106,11 @@ impl InfinityProvider {
         // Validate configuration
         config
             .validate()
-            .map_err(InfinityError::ConfigurationError)?;
+            .map_err(|e| InfinityError::configuration("infinity", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            InfinityError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            InfinityError::configuration("infinity", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Infinity doesn't have a fixed model list - models are configured on the server
@@ -167,17 +166,17 @@ impl InfinityProvider {
             .pool_manager
             .execute_request(url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| InfinityError::NetworkError(e.to_string()))?;
+            .map_err(|e| InfinityError::network("infinity", e.to_string()))?;
 
         let status = response.status();
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| InfinityError::NetworkError(e.to_string()))?;
+            .map_err(|e| InfinityError::network("infinity", e.to_string()))?;
 
         if !status.is_success() {
             let body_text = String::from_utf8_lossy(&response_bytes);
-            return Err(InfinityError::ApiError(format!(
+            return Err(InfinityError::api_error("infinity", status.as_u16(), format!(
                 "HTTP {}: {}",
                 status.as_u16(),
                 body_text
@@ -185,7 +184,7 @@ impl InfinityProvider {
         }
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| InfinityError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| InfinityError::api_error("infinity", 500, format!("Failed to parse response: {}", e)))
     }
 
     /// Perform reranking
@@ -194,18 +193,18 @@ impl InfinityProvider {
         request: InfinityRerankRequest,
     ) -> Result<InfinityRerankResponse, InfinityError> {
         let url = self.config.get_rerank_url().ok_or_else(|| {
-            InfinityError::ConfigurationError("API base not configured".to_string())
+            InfinityError::configuration("infinity", "API base not configured")
         })?;
 
         debug!("Infinity rerank request: model={}", request.model);
 
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| InfinityError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| InfinityError::invalid_request("infinity", e.to_string()))?;
 
         let response = self.execute_post_request(&url, request_json).await?;
 
         serde_json::from_value(response)
-            .map_err(|e| InfinityError::ApiError(format!("Failed to parse rerank response: {}", e)))
+            .map_err(|e| InfinityError::api_error("infinity", 500, format!("Failed to parse rerank response: {}", e)))
     }
 }
 
@@ -213,7 +212,7 @@ impl InfinityProvider {
 impl LLMProvider for InfinityProvider {
     type Config = InfinityConfig;
     type Error = InfinityError;
-    type ErrorMapper = InfinityErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "infinity"
@@ -249,7 +248,7 @@ impl LLMProvider for InfinityProvider {
         _context: RequestContext,
     ) -> Result<serde_json::Value, Self::Error> {
         // Infinity doesn't support chat completion
-        Err(InfinityError::not_supported("chat completion"))
+        Err(InfinityError::not_supported("infinity", "chat completion"))
     }
 
     async fn transform_response(
@@ -259,11 +258,11 @@ impl LLMProvider for InfinityProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         // Infinity doesn't support chat completion
-        Err(InfinityError::not_supported("chat completion"))
+        Err(InfinityError::not_supported("infinity", "chat completion"))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        InfinityErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -271,11 +270,7 @@ impl LLMProvider for InfinityProvider {
         _request: ChatRequest,
         _context: RequestContext,
     ) -> Result<ChatResponse, Self::Error> {
-        Err(InfinityError::InvalidRequestError(
-            "Infinity is an embedding and reranking server. Chat completion is not supported. \
-             Use the embeddings() or rerank() methods instead."
-                .to_string(),
-        ))
+        Err(InfinityError::not_supported("infinity", "Infinity is an embedding and reranking server. Chat completion is not supported. Use the embeddings() or rerank() methods instead."))
     }
 
     async fn chat_completion_stream(
@@ -284,9 +279,7 @@ impl LLMProvider for InfinityProvider {
         _context: RequestContext,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error>
     {
-        Err(InfinityError::InvalidRequestError(
-            "Infinity does not support chat completion or streaming.".to_string(),
-        ))
+        Err(InfinityError::not_supported("infinity", "Infinity does not support chat completion or streaming."))
     }
 
     async fn embeddings(
@@ -295,7 +288,7 @@ impl LLMProvider for InfinityProvider {
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
         let url = self.config.get_embeddings_url().ok_or_else(|| {
-            InfinityError::ConfigurationError("API base not configured".to_string())
+            InfinityError::configuration("infinity", "API base not configured")
         })?;
 
         debug!("Infinity embeddings request: model={}", request.model);
@@ -316,13 +309,13 @@ impl LLMProvider for InfinityProvider {
         };
 
         let request_json = serde_json::to_value(&infinity_request)
-            .map_err(|e| InfinityError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| InfinityError::invalid_request("infinity", e.to_string()))?;
 
         let response = self.execute_post_request(&url, request_json).await?;
 
         let infinity_response: InfinityEmbeddingResponse = serde_json::from_value(response)
             .map_err(|e| {
-                InfinityError::ApiError(format!("Failed to parse embeddings response: {}", e))
+                InfinityError::api_error("infinity", 500, format!("Failed to parse embeddings response: {}", e))
             })?;
 
         // Convert to standard EmbeddingResponse

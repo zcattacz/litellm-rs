@@ -18,6 +18,7 @@ use crate::core::{
 };
 use std::collections::HashMap;
 
+use crate::ProviderError;
 use super::{
     VertexAIProviderConfig,
     auth::VertexAuth,
@@ -35,17 +36,15 @@ pub struct VertexAIErrorMapper;
 impl ErrorMapper<VertexAIError> for VertexAIErrorMapper {
     fn map_http_error(&self, status_code: u16, response_body: &str) -> VertexAIError {
         match status_code {
-            400 => VertexAIError::ResponseParsing(format!("Bad request: {}", response_body)),
-            401 => VertexAIError::Authentication("Invalid credentials or API key".to_string()),
-            403 => VertexAIError::Configuration(
-                "Access forbidden: insufficient permissions".to_string(),
-            ),
-            404 => VertexAIError::UnsupportedModel("Model not found".to_string()),
-            429 => VertexAIError::Network("Rate limit exceeded".to_string()),
-            500 => VertexAIError::Network("Internal server error".to_string()),
-            502 => VertexAIError::Network("Bad gateway".to_string()),
-            503 => VertexAIError::Network("Service unavailable".to_string()),
-            _ => VertexAIError::Network(format!("HTTP error {}: {}", status_code, response_body)),
+            400 => ProviderError::response_parsing("vertex_ai", format!("Bad request: {}", response_body)),
+            401 => ProviderError::authentication("vertex_ai", "Invalid credentials or API key"),
+            403 => ProviderError::configuration("vertex_ai", "Access forbidden: insufficient permissions"),
+            404 => ProviderError::model_not_found("vertex_ai", "Model not found"),
+            429 => ProviderError::rate_limit("vertex_ai", None),
+            500 => ProviderError::network("vertex_ai", "Internal server error"),
+            502 => ProviderError::network("vertex_ai", "Bad gateway"),
+            503 => ProviderError::network("vertex_ai", "Service unavailable"),
+            _ => ProviderError::network("vertex_ai", format!("HTTP error {}: {}", status_code, response_body)),
         }
     }
 
@@ -62,29 +61,21 @@ impl ErrorMapper<VertexAIError> for VertexAIErrorMapper {
                 .unwrap_or("UNKNOWN");
 
             match status {
-                "INVALID_ARGUMENT" => VertexAIError::ResponseParsing(error_message.to_string()),
-                "UNAUTHENTICATED" => {
-                    VertexAIError::Authentication("Authentication failed".to_string())
-                }
-                "PERMISSION_DENIED" => {
-                    VertexAIError::Configuration("Permission denied".to_string())
-                }
-                "NOT_FOUND" => VertexAIError::UnsupportedModel(error_message.to_string()),
-                "RESOURCE_EXHAUSTED" => {
-                    VertexAIError::Network("Rate limit or quota exceeded".to_string())
-                }
-                "INTERNAL" | "UNAVAILABLE" => VertexAIError::Network(error_message.to_string()),
-                _ => {
-                    VertexAIError::Network(format!("API Error ({}): {}", error_code, error_message))
-                }
+                "INVALID_ARGUMENT" => ProviderError::response_parsing("vertex_ai", error_message),
+                "UNAUTHENTICATED" => ProviderError::authentication("vertex_ai", "Authentication failed"),
+                "PERMISSION_DENIED" => ProviderError::configuration("vertex_ai", "Permission denied"),
+                "NOT_FOUND" => ProviderError::model_not_found("vertex_ai", error_message),
+                "RESOURCE_EXHAUSTED" => ProviderError::rate_limit("vertex_ai", None),
+                "INTERNAL" | "UNAVAILABLE" => ProviderError::network("vertex_ai", error_message),
+                _ => ProviderError::network("vertex_ai", format!("API Error ({}): {}", error_code, error_message)),
             }
         } else {
-            VertexAIError::ResponseParsing("Unknown error response format".to_string())
+            ProviderError::response_parsing("vertex_ai", "Unknown error response format")
         }
     }
 
     fn map_network_error(&self, error: &dyn std::error::Error) -> VertexAIError {
-        VertexAIError::Network(format!("Network error: {}", error))
+        ProviderError::network("vertex_ai", format!("Network error: {}", error))
     }
 }
 
@@ -108,7 +99,7 @@ impl VertexAIProvider {
         let http_client = Client::builder()
             .timeout(Duration::from_secs(config.timeout_seconds))
             .build()
-            .map_err(|e| VertexAIError::Configuration(e.to_string()))?;
+            .map_err(|e| ProviderError::configuration("vertex_ai", e.to_string()))?;
 
         // Cost calculation integrated in provider implementation
         let health_status = Arc::new(RwLock::new(HealthStatus::Healthy));
@@ -195,7 +186,7 @@ impl VertexAIProvider {
             .auth
             .get_access_token()
             .await
-            .map_err(|e| VertexAIError::Authentication(e.to_string()))?;
+            .map_err(|e| ProviderError::authentication("vertex_ai", e.to_string()))?;
 
         debug!("Making request to Vertex AI: {}", url);
 
@@ -207,16 +198,13 @@ impl VertexAIProvider {
             .json(&body)
             .send()
             .await
-            .map_err(|e| VertexAIError::Network(e.to_string()))?;
+            .map_err(|e| ProviderError::network("vertex_ai", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
 
-            return Err(VertexAIError::ApiError {
-                status_code: status.as_u16(),
-                message: error_text,
-            });
+            return Err(ProviderError::api_error("vertex_ai", status.as_u16(), error_text));
         }
 
         Ok(response)
@@ -250,7 +238,7 @@ impl VertexAIProvider {
                 .transform_chat_request(&request, &model)?;
             (endpoint, body)
         } else {
-            return Err(VertexAIError::UnsupportedModel(request.model.clone()));
+            return Err(ProviderError::model_not_found("vertex_ai", &request.model));
         };
 
         let url = self.build_url(&model, endpoint, request.stream);
@@ -260,7 +248,7 @@ impl VertexAIProvider {
         let response_body: Value = response
             .json()
             .await
-            .map_err(|e| VertexAIError::ResponseParsing(e.to_string()))?;
+            .map_err(|e| ProviderError::response_parsing("vertex_ai", e.to_string()))?;
 
         // Transform response back to standard format
         if model.is_gemini() {
@@ -315,12 +303,12 @@ impl VertexAIProvider {
         let response_body: Value = response
             .json()
             .await
-            .map_err(|e| VertexAIError::ResponseParsing(e.to_string()))?;
+            .map_err(|e| ProviderError::response_parsing("vertex_ai", e.to_string()))?;
 
         // Parse embeddings from response
         let predictions = response_body["predictions"]
             .as_array()
-            .ok_or_else(|| VertexAIError::ResponseParsing("Missing predictions".to_string()))?;
+            .ok_or_else(|| ProviderError::response_parsing("vertex_ai", "Missing predictions"))?;
 
         let embeddings = predictions
             .iter()
@@ -329,7 +317,7 @@ impl VertexAIProvider {
                 let values = pred["embeddings"]["values"]
                     .as_array()
                     .ok_or_else(|| {
-                        VertexAIError::ResponseParsing("Missing embedding values".to_string())
+                        ProviderError::response_parsing("vertex_ai", "Missing embedding values")
                     })?
                     .iter()
                     .map(|v| v.as_f64().unwrap_or(0.0) as f32)
@@ -371,12 +359,12 @@ impl VertexAIProvider {
         let response_body: Value = response
             .json()
             .await
-            .map_err(|e| VertexAIError::ResponseParsing(e.to_string()))?;
+            .map_err(|e| ProviderError::response_parsing("vertex_ai", e.to_string()))?;
 
         response_body["totalTokens"]
             .as_u64()
             .map(|v| v as usize)
-            .ok_or_else(|| VertexAIError::ResponseParsing("Missing token count".to_string()))
+            .ok_or_else(|| ProviderError::response_parsing("vertex_ai", "Missing token count"))
     }
 }
 
@@ -498,11 +486,11 @@ impl LLMProvider for VertexAIProvider {
         let response_body: Value = response
             .json()
             .await
-            .map_err(|e| VertexAIError::ResponseParsing(e.to_string()))?;
+            .map_err(|e| ProviderError::response_parsing("vertex_ai", e.to_string()))?;
 
         let predictions = response_body["predictions"]
             .as_array()
-            .ok_or_else(|| VertexAIError::ResponseParsing("Missing predictions".to_string()))?;
+            .ok_or_else(|| ProviderError::response_parsing("vertex_ai", "Missing predictions"))?;
 
         let image_data = predictions
             .iter()
@@ -627,8 +615,8 @@ impl LLMProvider for VertexAIProvider {
                     generation_config.insert("stopSequences".to_string(), stop.clone());
                 }
                 _ => {
-                    return Err(VertexAIError::InvalidRequest(
-                        "stop must be string or array".to_string(),
+                    return Err(ProviderError::invalid_request("vertex_ai",
+                        "stop must be string or array",
                     ));
                 }
             }
@@ -734,10 +722,10 @@ impl LLMProvider for VertexAIProvider {
         _request_id: &str,
     ) -> std::result::Result<ChatResponse, Self::Error> {
         let response_str = std::str::from_utf8(raw_response)
-            .map_err(|e| VertexAIError::ResponseParsing(format!("Invalid UTF-8: {}", e)))?;
+            .map_err(|e| ProviderError::response_parsing("vertex_ai", format!("Invalid UTF-8: {}", e)))?;
 
         let response_json: Value = serde_json::from_str(response_str)
-            .map_err(|e| VertexAIError::ResponseParsing(format!("JSON parsing error: {}", e)))?;
+            .map_err(|e| ProviderError::response_parsing("vertex_ai", format!("JSON parsing error: {}", e)))?;
 
         // Error
         if let Some(_error) = response_json.get("error") {
@@ -750,12 +738,12 @@ impl LLMProvider for VertexAIProvider {
             .get("candidates")
             .and_then(|c| c.as_array())
             .ok_or_else(|| {
-                VertexAIError::ResponseParsing("Missing candidates in response".to_string())
+                ProviderError::response_parsing("vertex_ai", "Missing candidates in response")
             })?;
 
         if candidates.is_empty() {
-            return Err(VertexAIError::ResponseParsing(
-                "No candidates in response".to_string(),
+            return Err(ProviderError::response_parsing("vertex_ai",
+                "No candidates in response",
             ));
         }
 
@@ -861,63 +849,63 @@ mod tests {
     fn test_error_mapper_http_400() {
         let mapper = VertexAIErrorMapper;
         let error = mapper.map_http_error(400, "Invalid request body");
-        assert!(matches!(error, VertexAIError::ResponseParsing(_)));
+        assert!(matches!(error, ProviderError::ResponseParsing { .. }));
     }
 
     #[test]
     fn test_error_mapper_http_401() {
         let mapper = VertexAIErrorMapper;
         let error = mapper.map_http_error(401, "Unauthorized");
-        assert!(matches!(error, VertexAIError::Authentication(_)));
+        assert!(matches!(error, ProviderError::Authentication { .. }));
     }
 
     #[test]
     fn test_error_mapper_http_403() {
         let mapper = VertexAIErrorMapper;
         let error = mapper.map_http_error(403, "Forbidden");
-        assert!(matches!(error, VertexAIError::Configuration(_)));
+        assert!(matches!(error, ProviderError::Configuration { .. }));
     }
 
     #[test]
     fn test_error_mapper_http_404() {
         let mapper = VertexAIErrorMapper;
         let error = mapper.map_http_error(404, "Not found");
-        assert!(matches!(error, VertexAIError::UnsupportedModel(_)));
+        assert!(matches!(error, ProviderError::ModelNotFound { .. }));
     }
 
     #[test]
     fn test_error_mapper_http_429() {
         let mapper = VertexAIErrorMapper;
         let error = mapper.map_http_error(429, "Rate limit");
-        assert!(matches!(error, VertexAIError::Network(_)));
+        assert!(matches!(error, ProviderError::Network { .. } | ProviderError::RateLimit { .. }));
     }
 
     #[test]
     fn test_error_mapper_http_500() {
         let mapper = VertexAIErrorMapper;
         let error = mapper.map_http_error(500, "Internal error");
-        assert!(matches!(error, VertexAIError::Network(_)));
+        assert!(matches!(error, ProviderError::Network { .. } | ProviderError::RateLimit { .. }));
     }
 
     #[test]
     fn test_error_mapper_http_502() {
         let mapper = VertexAIErrorMapper;
         let error = mapper.map_http_error(502, "Bad gateway");
-        assert!(matches!(error, VertexAIError::Network(_)));
+        assert!(matches!(error, ProviderError::Network { .. } | ProviderError::RateLimit { .. }));
     }
 
     #[test]
     fn test_error_mapper_http_503() {
         let mapper = VertexAIErrorMapper;
         let error = mapper.map_http_error(503, "Unavailable");
-        assert!(matches!(error, VertexAIError::Network(_)));
+        assert!(matches!(error, ProviderError::Network { .. } | ProviderError::RateLimit { .. }));
     }
 
     #[test]
     fn test_error_mapper_http_unknown() {
         let mapper = VertexAIErrorMapper;
         let error = mapper.map_http_error(418, "I'm a teapot");
-        assert!(matches!(error, VertexAIError::Network(_)));
+        assert!(matches!(error, ProviderError::Network { .. } | ProviderError::RateLimit { .. }));
     }
 
     #[test]
@@ -931,7 +919,7 @@ mod tests {
             }
         });
         let error = mapper.map_json_error(&response);
-        assert!(matches!(error, VertexAIError::ResponseParsing(_)));
+        assert!(matches!(error, ProviderError::ResponseParsing { .. }));
     }
 
     #[test]
@@ -945,7 +933,7 @@ mod tests {
             }
         });
         let error = mapper.map_json_error(&response);
-        assert!(matches!(error, VertexAIError::Authentication(_)));
+        assert!(matches!(error, ProviderError::Authentication { .. }));
     }
 
     #[test]
@@ -959,7 +947,7 @@ mod tests {
             }
         });
         let error = mapper.map_json_error(&response);
-        assert!(matches!(error, VertexAIError::Configuration(_)));
+        assert!(matches!(error, ProviderError::Configuration { .. }));
     }
 
     #[test]
@@ -973,7 +961,7 @@ mod tests {
             }
         });
         let error = mapper.map_json_error(&response);
-        assert!(matches!(error, VertexAIError::UnsupportedModel(_)));
+        assert!(matches!(error, ProviderError::ModelNotFound { .. }));
     }
 
     #[test]
@@ -987,7 +975,7 @@ mod tests {
             }
         });
         let error = mapper.map_json_error(&response);
-        assert!(matches!(error, VertexAIError::Network(_)));
+        assert!(matches!(error, ProviderError::Network { .. } | ProviderError::RateLimit { .. }));
     }
 
     #[test]
@@ -1001,7 +989,7 @@ mod tests {
             }
         });
         let error = mapper.map_json_error(&response);
-        assert!(matches!(error, VertexAIError::Network(_)));
+        assert!(matches!(error, ProviderError::Network { .. } | ProviderError::RateLimit { .. }));
     }
 
     #[test]
@@ -1015,7 +1003,7 @@ mod tests {
             }
         });
         let error = mapper.map_json_error(&response);
-        assert!(matches!(error, VertexAIError::Network(_)));
+        assert!(matches!(error, ProviderError::Network { .. } | ProviderError::RateLimit { .. }));
     }
 
     #[test]
@@ -1029,7 +1017,7 @@ mod tests {
             }
         });
         let error = mapper.map_json_error(&response);
-        assert!(matches!(error, VertexAIError::Network(_)));
+        assert!(matches!(error, ProviderError::Network { .. } | ProviderError::RateLimit { .. }));
     }
 
     #[test]
@@ -1039,7 +1027,7 @@ mod tests {
             "result": "something"
         });
         let error = mapper.map_json_error(&response);
-        assert!(matches!(error, VertexAIError::ResponseParsing(_)));
+        assert!(matches!(error, ProviderError::ResponseParsing { .. }));
     }
 
     #[test]
@@ -1049,7 +1037,7 @@ mod tests {
             "error": {}
         });
         let error = mapper.map_json_error(&response);
-        assert!(matches!(error, VertexAIError::Network(_)));
+        assert!(matches!(error, ProviderError::Network { .. } | ProviderError::RateLimit { .. }));
     }
 
     #[test]
@@ -1058,7 +1046,7 @@ mod tests {
         let io_error =
             std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
         let error = mapper.map_network_error(&io_error);
-        assert!(matches!(error, VertexAIError::Network(_)));
+        assert!(matches!(error, ProviderError::Network { .. } | ProviderError::RateLimit { .. }));
     }
 
     // ==================== LLMProvider Trait Tests ====================
@@ -1349,51 +1337,51 @@ mod tests {
         );
     }
 
-    // ==================== VertexAIError Tests ====================
+    // ==================== ProviderError Tests ====================
 
     #[test]
     fn test_vertex_ai_error_authentication() {
-        let error = VertexAIError::Authentication("Invalid credentials".to_string());
+        let error = ProviderError::authentication("vertex_ai", "Invalid credentials");
         assert!(format!("{:?}", error).contains("Authentication"));
     }
 
     #[test]
     fn test_vertex_ai_error_configuration() {
-        let error = VertexAIError::Configuration("Missing project ID".to_string());
+        let error = ProviderError::configuration("vertex_ai", "Missing project ID");
         assert!(format!("{:?}", error).contains("Configuration"));
     }
 
     #[test]
     fn test_vertex_ai_error_network() {
-        let error = VertexAIError::Network("Connection timeout".to_string());
+        let error = ProviderError::network("vertex_ai", "Connection timeout");
         assert!(format!("{:?}", error).contains("Network"));
     }
 
     #[test]
     fn test_vertex_ai_error_unsupported_model() {
-        let error = VertexAIError::UnsupportedModel("unknown-model".to_string());
-        assert!(format!("{:?}", error).contains("UnsupportedModel"));
+        let error = ProviderError::model_not_found("vertex_ai", "unknown-model");
+        assert!(format!("{:?}", error).contains("ModelNotFound"));
     }
 
     #[test]
     fn test_vertex_ai_error_response_parsing() {
-        let error = VertexAIError::ResponseParsing("Invalid JSON".to_string());
+        let error = ProviderError::response_parsing("vertex_ai", "Invalid JSON");
         assert!(format!("{:?}", error).contains("ResponseParsing"));
     }
 
     #[test]
     fn test_vertex_ai_error_api_error() {
-        let error = VertexAIError::ApiError {
-            status_code: 500,
-            message: "Internal server error".to_string(),
-        };
-        if let VertexAIError::ApiError {
-            status_code,
-            message,
+        let error = ProviderError::api_error("vertex_ai", 500, "Internal server error");
+        if let ProviderError::ApiError {
+            provider,
+            status,
+            ..
         } = error
         {
-            assert_eq!(status_code, 500);
-            assert_eq!(message, "Internal server error");
+            assert_eq!(provider, "vertex_ai");
+            assert_eq!(status, 500);
+        } else {
+            panic!("Expected ApiError variant");
         }
     }
 }

@@ -16,5 +16,5 @@ mod tests;
 
 // Re-export main types for external use
 pub use config::InfinityConfig;
-pub use error::{InfinityError, InfinityErrorMapper};
+pub use error::InfinityError;
 pub use provider::InfinityProvider;

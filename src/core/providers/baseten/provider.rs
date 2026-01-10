@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::BasetenConfig;
-use super::error::{BasetenError, BasetenErrorMapper};
+use super::error::BasetenError;
 use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEStream};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::traits::{
@@ -61,11 +61,11 @@ impl BasetenProvider {
         // Validate configuration
         config
             .validate()
-            .map_err(BasetenError::ConfigurationError)?;
+            .map_err(|e| BasetenError::configuration("baseten", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            BasetenError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            BasetenError::configuration("baseten", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build default model list - Baseten supports custom deployments
@@ -135,15 +135,15 @@ impl BasetenProvider {
             .pool_manager
             .execute_request(url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| BasetenError::NetworkError(e.to_string()))?;
+            .map_err(|e| BasetenError::network("baseten", e.to_string()))?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| BasetenError::NetworkError(e.to_string()))?;
+            .map_err(|e| BasetenError::network("baseten", e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| BasetenError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| BasetenError::api_error("baseten", 500, format!("Failed to parse response: {}", e)))
     }
 }
 
@@ -151,7 +151,7 @@ impl BasetenProvider {
 impl LLMProvider for BasetenProvider {
     type Config = BasetenConfig;
     type Error = BasetenError;
-    type ErrorMapper = BasetenErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "baseten"
@@ -186,7 +186,7 @@ impl LLMProvider for BasetenProvider {
         request: ChatRequest,
         _context: RequestContext,
     ) -> Result<serde_json::Value, Self::Error> {
-        serde_json::to_value(&request).map_err(|e| BasetenError::InvalidRequestError(e.to_string()))
+        serde_json::to_value(&request).map_err(|e| BasetenError::invalid_request("baseten", e.to_string()))
     }
 
     async fn transform_response(
@@ -196,11 +196,11 @@ impl LLMProvider for BasetenProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         serde_json::from_slice(raw_response)
-            .map_err(|e| BasetenError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| BasetenError::api_error("baseten", 500, format!("Failed to parse response: {}", e)))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        BasetenErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -214,12 +214,12 @@ impl LLMProvider for BasetenProvider {
         let url = format!("{}/chat/completions", api_base);
 
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| BasetenError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| BasetenError::invalid_request("baseten", e.to_string()))?;
 
         let response = self.execute_request(&url, request_json).await?;
 
         serde_json::from_value(response)
-            .map_err(|e| BasetenError::ApiError(format!("Failed to parse chat response: {}", e)))
+            .map_err(|e| BasetenError::api_error("baseten", 500, format!("Failed to parse chat response: {}", e)))
     }
 
     async fn chat_completion_stream(
@@ -235,7 +235,7 @@ impl LLMProvider for BasetenProvider {
         let api_key = self
             .config
             .get_api_key()
-            .ok_or_else(|| BasetenError::AuthenticationError("API key is required".to_string()))?;
+            .ok_or_else(|| BasetenError::authentication("baseten", "API key is required"))?;
 
         let api_base = self.get_api_base_for_request(&request.model);
         let url = format!("{}/chat/completions", api_base);
@@ -248,18 +248,19 @@ impl LLMProvider for BasetenProvider {
             .json(&request)
             .send()
             .await
-            .map_err(|e| BasetenError::NetworkError(e.to_string()))?;
+            .map_err(|e| BasetenError::network("baseten", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.ok();
             return Err(match status {
-                400 => BasetenError::InvalidRequestError(
+                400 => BasetenError::invalid_request(
+                    "baseten",
                     body.unwrap_or_else(|| "Bad request".to_string()),
                 ),
-                401 => BasetenError::AuthenticationError("Invalid API key".to_string()),
-                429 => BasetenError::RateLimitError("Rate limit exceeded".to_string()),
-                _ => BasetenError::StreamingError(format!("Stream request failed: {}", status)),
+                401 => BasetenError::authentication("baseten", "Invalid API key"),
+                429 => BasetenError::rate_limit("baseten", None),
+                _ => BasetenError::api_error("baseten", status, format!("Stream request failed: {}", status)),
             });
         }
 
@@ -267,12 +268,12 @@ impl LLMProvider for BasetenProvider {
         let transformer = OpenAICompatibleTransformer::new("baseten");
         let inner_stream = UnifiedSSEStream::new(Box::pin(response.bytes_stream()), transformer);
 
-        // Wrap to convert ProviderError to BasetenError
+        // Wrap to convert BasetenError to BasetenError
         let mapped_stream = futures::stream::unfold(inner_stream, |mut stream| async move {
             use futures::StreamExt;
             match stream.next().await {
                 Some(Ok(chunk)) => Some((Ok(chunk), stream)),
-                Some(Err(e)) => Some((Err(BasetenError::StreamingError(e.to_string())), stream)),
+                Some(Err(e)) => Some((Err(e), stream)),
                 None => None,
             }
         });
@@ -285,10 +286,10 @@ impl LLMProvider for BasetenProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(BasetenError::InvalidRequestError(
+        Err(BasetenError::not_supported(
+            "baseten",
             "Baseten embeddings require a specific embedding model deployment. \
              Please specify the model ID of your embedding deployment."
-                .to_string(),
         ))
     }
 

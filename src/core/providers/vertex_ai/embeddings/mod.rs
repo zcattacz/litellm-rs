@@ -1,5 +1,6 @@
 //! Vertex AI Embeddings Module
 
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -196,7 +197,7 @@ impl EmbeddingHandler {
     pub fn transform_request(
         &self,
         request: &EmbeddingRequest,
-    ) -> Result<Value, crate::core::providers::vertex_ai::error::VertexAIError> {
+    ) -> Result<Value, ProviderError> {
         // Convert EmbeddingInput to Vec<String>
         let input_strings = match &request.input {
             EmbeddingInput::Text(text) => vec![text.clone()],
@@ -231,7 +232,7 @@ impl EmbeddingHandler {
         &self,
         inputs: &[String],
         task_type: Option<&str>,
-    ) -> Result<Vec<Value>, crate::core::providers::vertex_ai::error::VertexAIError> {
+    ) -> Result<Vec<Value>, ProviderError> {
         let task = task_type
             .and_then(|t| self.parse_task_type(t))
             .unwrap_or_default();
@@ -255,7 +256,7 @@ impl EmbeddingHandler {
     fn create_multimodal_instances(
         &self,
         inputs: &[String],
-    ) -> Result<Vec<Value>, crate::core::providers::vertex_ai::error::VertexAIError> {
+    ) -> Result<Vec<Value>, ProviderError> {
         let instances = inputs
             .iter()
             .map(|content| {
@@ -346,10 +347,11 @@ impl EmbeddingHandler {
     pub fn transform_response(
         &self,
         response: Value,
-    ) -> Result<EmbeddingResponse, crate::core::providers::vertex_ai::error::VertexAIError> {
+    ) -> Result<EmbeddingResponse, ProviderError> {
         let predictions = response["predictions"].as_array().ok_or_else(|| {
-            crate::core::providers::vertex_ai::error::VertexAIError::ResponseParsing(
-                "Missing predictions in embedding response".to_string(),
+            ProviderError::response_parsing(
+                "vertex_ai",
+                "Missing predictions in embedding response",
             )
         })?;
 
@@ -371,8 +373,9 @@ impl EmbeddingHandler {
                         .collect()
                 } else {
                     return Err(
-                        crate::core::providers::vertex_ai::error::VertexAIError::ResponseParsing(
-                            "Missing embedding values".to_string(),
+                        ProviderError::response_parsing(
+                            "vertex_ai",
+                            "Missing embedding values",
                         ),
                     );
                 };
@@ -417,10 +420,11 @@ impl BatchEmbeddingHandler {
         &self,
         inputs: Vec<String>,
         _task_type: Option<String>,
-    ) -> Result<Vec<Vec<f32>>, crate::core::providers::vertex_ai::error::VertexAIError> {
+    ) -> Result<Vec<Vec<f32>>, ProviderError> {
         if !self.model.supports_batch() {
             return Err(
-                crate::core::providers::vertex_ai::error::VertexAIError::UnsupportedFeature(
+                ProviderError::not_supported(
+                    "vertex_ai",
                     format!(
                         "Model {} does not support batch processing",
                         self.model.model_id()

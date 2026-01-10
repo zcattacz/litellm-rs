@@ -11,6 +11,6 @@ mod provider;
 
 // Re-export main types for external use
 pub use config::XAIConfig;
-pub use error::{XAIError, XAIErrorMapper};
+pub use error::XAIError;
 pub use model_info::{XAIModel, get_model_info};
 pub use provider::XAIProvider;

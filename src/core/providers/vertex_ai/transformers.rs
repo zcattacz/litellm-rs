@@ -1,5 +1,6 @@
 //! Request/Response transformers for Vertex AI models
 
+use crate::ProviderError;
 use crate::core::types::FinishReason;
 use crate::core::types::{
     requests::{ChatMessage, ChatRequest, MessageContent, MessageRole},
@@ -9,7 +10,6 @@ use serde_json::{Value, json};
 
 use super::{
     common_utils::{Content, FunctionDeclaration, GenerationConfig, Part, Tool, convert_role},
-    error::VertexAIError,
     models::VertexAIModel,
 };
 
@@ -27,7 +27,7 @@ impl GeminiTransformer {
         &self,
         request: &ChatRequest,
         _model: &VertexAIModel,
-    ) -> Result<Value, VertexAIError> {
+    ) -> Result<Value, ProviderError> {
         let mut contents = Vec::new();
         let mut system_instruction = None;
 
@@ -113,7 +113,7 @@ impl GeminiTransformer {
     fn message_content_to_parts(
         &self,
         content: &MessageContent,
-    ) -> Result<Vec<Part>, VertexAIError> {
+    ) -> Result<Vec<Part>, ProviderError> {
         match content {
             MessageContent::Text(text) => Ok(vec![Part::Text { text: text.clone() }]),
             MessageContent::Parts(parts) => {
@@ -136,7 +136,7 @@ impl GeminiTransformer {
                                             }
                                         })
                                     } else {
-                                        Err(VertexAIError::InvalidRequest("Invalid base64 image".to_string()))
+                                        Err(ProviderError::invalid_request("vertex_ai", "Invalid base64 image"))
                                     }
                                 } else {
                                     // File URL
@@ -148,7 +148,7 @@ impl GeminiTransformer {
                                     })
                                 }
                             } else {
-                                Err(VertexAIError::InvalidRequest("Missing image URL".to_string()))
+                                Err(ProviderError::invalid_request("vertex_ai", "Missing image URL"))
                             }
                         }
                         crate::core::types::requests::ContentPart::ImageUrl { image_url } => {
@@ -164,25 +164,25 @@ impl GeminiTransformer {
                                         },
                                     })
                                 } else {
-                                    Err(VertexAIError::InvalidRequest("Invalid base64 format".to_string()))
+                                    Err(ProviderError::invalid_request("vertex_ai", "Invalid base64 format"))
                                 }
                             } else {
-                                Err(VertexAIError::InvalidRequest("Only base64 images supported".to_string()))
+                                Err(ProviderError::invalid_request("vertex_ai", "Only base64 images supported"))
                             }
                         }
                         crate::core::types::requests::ContentPart::Audio { audio: _audio } => {
                             // Vertex AI doesn't directly support audio in chat completions
                             // This would need to be handled via separate audio APIs
-                            Err(VertexAIError::InvalidRequest("Audio content not supported in chat completions".to_string()))
+                            Err(ProviderError::invalid_request("vertex_ai", "Audio content not supported in chat completions"))
                         }
                         crate::core::types::requests::ContentPart::Document { .. } => {
-                            Err(VertexAIError::InvalidRequest("Document content not supported".to_string()))
+                            Err(ProviderError::invalid_request("vertex_ai", "Document content not supported"))
                         }
                         crate::core::types::requests::ContentPart::ToolResult { .. } => {
-                            Err(VertexAIError::InvalidRequest("ToolResult should be handled separately".to_string()))
+                            Err(ProviderError::invalid_request("vertex_ai", "ToolResult should be handled separately"))
                         }
                         crate::core::types::requests::ContentPart::ToolUse { .. } => {
-                            Err(VertexAIError::InvalidRequest("ToolUse should be handled separately".to_string()))
+                            Err(ProviderError::invalid_request("vertex_ai", "ToolUse should be handled separately"))
                         }
                     }
                 }).collect()
@@ -195,14 +195,14 @@ impl GeminiTransformer {
         &self,
         response: Value,
         model: &VertexAIModel,
-    ) -> Result<ChatResponse, VertexAIError> {
+    ) -> Result<ChatResponse, ProviderError> {
         let candidates = response["candidates"]
             .as_array()
-            .ok_or_else(|| VertexAIError::ResponseParsing("Missing candidates".to_string()))?;
+            .ok_or_else(|| ProviderError::response_parsing("vertex_ai", "Missing candidates"))?;
 
         if candidates.is_empty() {
-            return Err(VertexAIError::ResponseParsing(
-                "No candidates in response".to_string(),
+            return Err(ProviderError::response_parsing("vertex_ai",
+                "No candidates in response",
             ));
         }
 
@@ -285,7 +285,7 @@ impl PartnerModelTransformer {
         &self,
         request: &ChatRequest,
         model: &VertexAIModel,
-    ) -> Result<Value, VertexAIError> {
+    ) -> Result<Value, ProviderError> {
         // Partner models use different formats based on the provider
         if model.model_id().contains("claude") {
             self.transform_claude_request(request)
@@ -300,7 +300,7 @@ impl PartnerModelTransformer {
     }
 
     /// Transform request for Claude models
-    fn transform_claude_request(&self, request: &ChatRequest) -> Result<Value, VertexAIError> {
+    fn transform_claude_request(&self, request: &ChatRequest) -> Result<Value, ProviderError> {
         let mut messages = Vec::new();
         let mut system_message = None;
 
@@ -349,7 +349,7 @@ impl PartnerModelTransformer {
     }
 
     /// Transform request for Llama models
-    fn transform_llama_request(&self, request: &ChatRequest) -> Result<Value, VertexAIError> {
+    fn transform_llama_request(&self, request: &ChatRequest) -> Result<Value, ProviderError> {
         let prompt = self.messages_to_llama_prompt(&request.messages);
 
         Ok(json!({
@@ -365,7 +365,7 @@ impl PartnerModelTransformer {
     }
 
     /// Transform request for Jamba models
-    fn transform_jamba_request(&self, request: &ChatRequest) -> Result<Value, VertexAIError> {
+    fn transform_jamba_request(&self, request: &ChatRequest) -> Result<Value, ProviderError> {
         let messages: Vec<Value> = request
             .messages
             .iter()
@@ -393,7 +393,7 @@ impl PartnerModelTransformer {
     fn transform_default_partner_request(
         &self,
         request: &ChatRequest,
-    ) -> Result<Value, VertexAIError> {
+    ) -> Result<Value, ProviderError> {
         let messages: Vec<Value> = request
             .messages
             .iter()
@@ -449,14 +449,14 @@ impl PartnerModelTransformer {
         &self,
         response: Value,
         model: &VertexAIModel,
-    ) -> Result<ChatResponse, VertexAIError> {
+    ) -> Result<ChatResponse, ProviderError> {
         let predictions = response["predictions"]
             .as_array()
-            .ok_or_else(|| VertexAIError::ResponseParsing("Missing predictions".to_string()))?;
+            .ok_or_else(|| ProviderError::response_parsing("vertex_ai", "Missing predictions"))?;
 
         if predictions.is_empty() {
-            return Err(VertexAIError::ResponseParsing(
-                "No predictions in response".to_string(),
+            return Err(ProviderError::response_parsing("vertex_ai",
+                "No predictions in response",
             ));
         }
 

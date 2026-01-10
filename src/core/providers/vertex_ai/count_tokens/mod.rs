@@ -1,9 +1,9 @@
 //! Vertex AI Count Tokens Module
 
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::error::VertexAIError;
 use crate::core::types::requests::ChatMessage;
 
 /// Count tokens request
@@ -68,7 +68,7 @@ pub struct TokenCountHandler;
 
 impl TokenCountHandler {
     /// Create count tokens request from chat messages
-    pub fn create_request(messages: &[ChatMessage]) -> Result<CountTokensRequest, VertexAIError> {
+    pub fn create_request(messages: &[ChatMessage]) -> Result<CountTokensRequest, ProviderError> {
         let contents = messages
             .iter()
             .map(|msg| {
@@ -101,13 +101,13 @@ impl TokenCountHandler {
     }
 
     /// Parse response to get token count
-    pub fn parse_response(response: Value) -> Result<usize, VertexAIError> {
+    pub fn parse_response(response: Value) -> Result<usize, ProviderError> {
         response["totalTokens"]
             .as_i64()
             .or_else(|| response["total_tokens"].as_i64())
             .map(|v| v as usize)
             .ok_or_else(|| {
-                VertexAIError::ResponseParsing("Missing token count in response".to_string())
+                ProviderError::response_parsing("vertex_ai", "Missing token count in response")
             })
     }
 

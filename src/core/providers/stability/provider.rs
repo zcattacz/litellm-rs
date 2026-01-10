@@ -544,22 +544,7 @@ mod tests {
         let request = ChatRequest {
             model: "sd3".to_string(),
             messages: vec![],
-            temperature: None,
-            top_p: None,
-            max_tokens: None,
-            stream: None,
-            stop: None,
-            presence_penalty: None,
-            frequency_penalty: None,
-            user: None,
-            tools: None,
-            tool_choice: None,
-            response_format: None,
-            seed: None,
-            logprobs: None,
-            top_logprobs: None,
-            n: None,
-            logit_bias: None,
+            ..Default::default()
         };
 
         let context = RequestContext::default();

@@ -24,7 +24,7 @@ use crate::core::types::{
 };
 
 /// Static capabilities for Llamafile provider
-const LLAMAFILE_CAPABILITIES: &[ProviderCapability] = &[
+pub(crate) const LLAMAFILE_CAPABILITIES: &[ProviderCapability] = &[
     ProviderCapability::ChatCompletion,
     ProviderCapability::ChatCompletionStream,
 ];
@@ -32,7 +32,7 @@ const LLAMAFILE_CAPABILITIES: &[ProviderCapability] = &[
 /// Llamafile provider implementation
 #[derive(Debug, Clone)]
 pub struct LlamafileProvider {
-    config: LlamafileConfig,
+    pub(crate) config: LlamafileConfig,
     pool_manager: Arc<GlobalPoolManager>,
     models: Vec<ModelInfo>,
 }
@@ -117,7 +117,7 @@ impl LlamafileProvider {
     }
 
     /// Build OpenAI-compatible chat request from ChatRequest
-    fn build_chat_request(
+    pub(crate) fn build_chat_request(
         &self,
         request: &ChatRequest,
         stream: bool,
@@ -250,7 +250,7 @@ impl LlamafileProvider {
     }
 
     /// Parse OpenAI-compatible chat response into ChatResponse
-    fn parse_chat_response(
+    pub(crate) fn parse_chat_response(
         &self,
         response: serde_json::Value,
         model: &str,

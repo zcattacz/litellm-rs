@@ -2,7 +2,7 @@
 //!
 //! Support for caching contexts to reduce costs and improve performance
 
-use super::error::VertexAIError;
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 
 /// Context cache entry
@@ -51,10 +51,11 @@ impl ContextCachingHandler {
         &self,
         model: &str,
         content: serde_json::Value,
-    ) -> Result<String, VertexAIError> {
+    ) -> Result<String, ProviderError> {
         if !self.config.enabled {
-            return Err(VertexAIError::FeatureDisabled(
-                "context_caching".to_string(),
+            return Err(ProviderError::feature_disabled(
+                "vertex_ai",
+                "context_caching",
             ));
         }
 
@@ -75,7 +76,7 @@ impl ContextCachingHandler {
     pub async fn get_cached_context(
         &self,
         _cache_id: &str,
-    ) -> Result<Option<ContextCacheEntry>, VertexAIError> {
+    ) -> Result<Option<ContextCacheEntry>, ProviderError> {
         // TODO: Implement cache retrieval
         Ok(None)
     }
@@ -96,7 +97,7 @@ impl ContextCachingHandler {
         &self,
         request: serde_json::Value,
         cache_id: &str,
-    ) -> Result<serde_json::Value, VertexAIError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let mut transformed = request;
 
         // Add cache reference to request
@@ -113,7 +114,7 @@ impl ContextCachingHandler {
     }
 
     /// Clean expired cache entries
-    pub async fn cleanup_expired_cache(&self) -> Result<usize, VertexAIError> {
+    pub async fn cleanup_expired_cache(&self) -> Result<usize, ProviderError> {
         // TODO: Implement cache cleanup
         Ok(0)
     }

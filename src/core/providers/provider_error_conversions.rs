@@ -85,31 +85,7 @@ impl From<crate::core::providers::meta_llama::common_utils::LlamaError> for Prov
     }
 }
 
-impl From<crate::core::providers::openrouter::OpenRouterError> for ProviderError {
-    fn from(err: crate::core::providers::openrouter::OpenRouterError) -> Self {
-        use crate::core::providers::openrouter::OpenRouterError;
-        match err {
-            OpenRouterError::Authentication(msg) => Self::authentication("openrouter", msg),
-            OpenRouterError::RateLimit(_msg) => Self::rate_limit("openrouter", None),
-            OpenRouterError::ModelNotFound(model) => Self::model_not_found("openrouter", model),
-            OpenRouterError::UnsupportedModel(model) => Self::model_not_found("openrouter", model),
-            OpenRouterError::InvalidRequest(msg) => Self::invalid_request("openrouter", msg),
-            OpenRouterError::Network(msg) => Self::network("openrouter", msg),
-            OpenRouterError::Parsing(msg) => Self::serialization("openrouter", msg),
-            OpenRouterError::Timeout(msg) => Self::timeout("openrouter", msg),
-            OpenRouterError::Configuration(msg) => Self::invalid_request("openrouter", msg),
-            OpenRouterError::UnsupportedFeature(feature) => {
-                Self::not_implemented("openrouter", feature)
-            }
-            OpenRouterError::Transformation(msg) => Self::serialization("openrouter", msg),
-            OpenRouterError::ApiError {
-                status_code,
-                message,
-            } => Self::api_error("openrouter", status_code, message),
-            OpenRouterError::Other(msg) => Self::api_error("openrouter", 500, msg),
-        }
-    }
-}
+// OpenRouterError is now a type alias for ProviderError, no conversion needed
 
 impl From<crate::core::providers::deepinfra::DeepInfraError> for ProviderError {
     fn from(err: crate::core::providers::deepinfra::DeepInfraError) -> Self {
@@ -152,51 +128,7 @@ impl From<crate::core::cost::types::CostError> for ProviderError {
     }
 }
 
-impl From<crate::core::providers::vertex_ai::VertexAIError> for ProviderError {
-    fn from(err: crate::core::providers::vertex_ai::VertexAIError) -> Self {
-        use crate::core::providers::vertex_ai::VertexAIError;
-        match err {
-            VertexAIError::Authentication(msg) => Self::authentication("vertex_ai", msg),
-            VertexAIError::Configuration(msg) => Self::invalid_request("vertex_ai", msg),
-            VertexAIError::Network(msg) => Self::network("vertex_ai", msg),
-            VertexAIError::ResponseParsing(msg) => Self::serialization("vertex_ai", msg),
-            VertexAIError::UnsupportedModel(model) => Self::model_not_found("vertex_ai", model),
-            VertexAIError::UnsupportedFeature(feature) => {
-                Self::not_implemented("vertex_ai", feature)
-            }
-            VertexAIError::InvalidRequest(msg) => Self::invalid_request("vertex_ai", msg),
-            VertexAIError::RateLimitExceeded => Self::rate_limit("vertex_ai", None),
-            VertexAIError::QuotaExceeded(model) => {
-                Self::quota_exceeded("vertex_ai", format!("Quota exceeded for model: {}", model))
-            }
-            VertexAIError::TokenLimitExceeded(msg) => Self::invalid_request("vertex_ai", msg),
-            VertexAIError::ContextLengthExceeded { max, actual } => Self::invalid_request(
-                "vertex_ai",
-                format!("Context length exceeded: max {}, got {}", max, actual),
-            ),
-            VertexAIError::ContentFiltered => Self::content_filtered(
-                "vertex_ai",
-                "Content was blocked by safety filters".to_string(),
-                None,
-                None,
-            ),
-            VertexAIError::ServiceUnavailable => Self::provider_unavailable(
-                "vertex_ai",
-                "Service temporarily unavailable".to_string(),
-            ),
-            VertexAIError::Timeout(seconds) => Self::timeout(
-                "vertex_ai",
-                format!("Request timed out after {} seconds", seconds),
-            ),
-            VertexAIError::FeatureDisabled(feature) => Self::not_implemented("vertex_ai", feature),
-            VertexAIError::ApiError {
-                status_code,
-                message,
-            } => Self::api_error("vertex_ai", status_code, message),
-            VertexAIError::Other(msg) => Self::api_error("vertex_ai", 500, msg),
-        }
-    }
-}
+// VertexAIError is now a type alias for ProviderError, no conversion needed
 
 impl From<crate::core::providers::v0::V0Error> for ProviderError {
     fn from(err: crate::core::providers::v0::V0Error) -> Self {

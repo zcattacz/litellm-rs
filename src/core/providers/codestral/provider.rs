@@ -9,7 +9,8 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::CodestralConfig;
-use super::error::{CodestralError, CodestralErrorMapper};
+use super::error::CodestralError;
+use crate::ProviderError;
 use super::model_info::{get_available_models, get_model_info};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, HeaderPair, header};
 use crate::core::traits::{
@@ -69,10 +70,10 @@ impl CodestralProvider {
     pub async fn new(config: CodestralConfig) -> Result<Self, CodestralError> {
         config
             .validate()
-            .map_err(CodestralError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration("codestral", e))?;
 
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            CodestralError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration("codestral", format!("Failed to create pool manager: {}", e))
         })?);
 
         let models = get_available_models()
@@ -136,15 +137,15 @@ impl CodestralProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| CodestralError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("codestral", e.to_string()))?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| CodestralError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("codestral", e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| CodestralError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("codestral", 500, format!("Failed to parse response: {}", e)))
     }
 
     /// Fill-in-the-middle completion (code infilling)
@@ -152,12 +153,12 @@ impl CodestralProvider {
         debug!("Codestral FIM request: model={}", request.model);
 
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| CodestralError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("codestral", e.to_string()))?;
 
         let response = self.execute_request("/fim/completions", request_json).await?;
 
         serde_json::from_value(response)
-            .map_err(|e| CodestralError::ApiError(format!("Failed to parse FIM response: {}", e)))
+            .map_err(|e| ProviderError::api_error("codestral", 500, format!("Failed to parse FIM response: {}", e)))
     }
 }
 
@@ -165,7 +166,7 @@ impl CodestralProvider {
 impl LLMProvider for CodestralProvider {
     type Config = CodestralConfig;
     type Error = CodestralError;
-    type ErrorMapper = CodestralErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::types::GenericErrorMapper;
 
     fn name(&self) -> &'static str {
         "codestral"
@@ -204,7 +205,7 @@ impl LLMProvider for CodestralProvider {
         _context: RequestContext,
     ) -> Result<serde_json::Value, Self::Error> {
         serde_json::to_value(&request)
-            .map_err(|e| CodestralError::InvalidRequestError(e.to_string()))
+            .map_err(|e| ProviderError::invalid_request("codestral", e.to_string()))
     }
 
     async fn transform_response(
@@ -214,11 +215,11 @@ impl LLMProvider for CodestralProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         serde_json::from_slice(raw_response)
-            .map_err(|e| CodestralError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("codestral", 500, format!("Failed to parse response: {}", e)))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        CodestralErrorMapper
+        crate::core::traits::error_mapper::types::GenericErrorMapper
     }
 
     async fn chat_completion(
@@ -229,14 +230,14 @@ impl LLMProvider for CodestralProvider {
         debug!("Codestral chat request: model={}", request.model);
 
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| CodestralError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("codestral", e.to_string()))?;
 
         let response = self
             .execute_request("/chat/completions", request_json)
             .await?;
 
         serde_json::from_value(response)
-            .map_err(|e| CodestralError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("codestral", 500, format!("Failed to parse response: {}", e)))
     }
 
     async fn chat_completion_stream(
@@ -252,7 +253,7 @@ impl LLMProvider for CodestralProvider {
         let api_key = self
             .config
             .get_api_key()
-            .ok_or_else(|| CodestralError::AuthenticationError("API key required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("codestral", "API key required"))?;
 
         let url = format!("{}/chat/completions", self.config.get_api_base());
         let client = reqwest::Client::new();
@@ -264,14 +265,15 @@ impl LLMProvider for CodestralProvider {
             .json(&request)
             .send()
             .await
-            .map_err(|e| CodestralError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("codestral", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
-            return Err(CodestralError::StreamingError(format!(
-                "Stream request failed: {}",
-                status
-            )));
+            return Err(ProviderError::api_error(
+                "codestral",
+                status,
+                format!("Stream request failed: {}", status),
+            ));
         }
 
         // Parse SSE stream using shared infrastructure
@@ -291,9 +293,9 @@ impl LLMProvider for CodestralProvider {
                             *buffer = chunks;
                             Some(Ok(buffer.clone()))
                         }
-                        Err(e) => Some(Err(CodestralError::StreamingError(e.to_string()))),
+                        Err(e) => Some(Err(ProviderError::api_error("codestral", 500, e.to_string()))),
                     },
-                    Err(e) => Some(Err(CodestralError::StreamingError(e.to_string()))),
+                    Err(e) => Some(Err(ProviderError::network("codestral", e.to_string()))),
                 })
             })
             .map(|result: Result<Vec<_>, CodestralError>| match result {
@@ -313,8 +315,9 @@ impl LLMProvider for CodestralProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(CodestralError::InvalidRequestError(
-            "Codestral does not support embeddings".to_string(),
+        Err(ProviderError::not_supported(
+            "codestral",
+            "Codestral does not support embeddings",
         ))
     }
 
@@ -339,7 +342,7 @@ impl LLMProvider for CodestralProvider {
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
         let model_info = get_model_info(model)
-            .ok_or_else(|| CodestralError::ModelNotFoundError(format!("Unknown model: {}", model)))?;
+            .ok_or_else(|| ProviderError::model_not_found("codestral", model))?;
 
         let input_cost = (input_tokens as f64) * (model_info.input_cost_per_million / 1_000_000.0);
         let output_cost = (output_tokens as f64) * (model_info.output_cost_per_million / 1_000_000.0);

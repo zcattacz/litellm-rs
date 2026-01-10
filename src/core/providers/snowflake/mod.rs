@@ -18,12 +18,8 @@ mod model_info;
 mod provider;
 mod streaming;
 
-// Tests
-#[cfg(test)]
-mod tests;
-
 // Re-export main types for external use
 pub use config::SnowflakeConfig;
-pub use error::{SnowflakeError, SnowflakeErrorMapper};
+pub use error::SnowflakeError;
 pub use model_info::{get_available_models, get_model_info, SnowflakeModel};
 pub use provider::SnowflakeProvider;

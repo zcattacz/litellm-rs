@@ -2,7 +2,7 @@
 //!
 //! Handle text, image, and video embeddings
 
-use super::error::VertexAIError;
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 
 /// Multimodal embedding request
@@ -41,7 +41,7 @@ impl MultimodalEmbeddingHandler {
     /// Create embedding for multimodal content
     pub async fn embed_multimodal(
         _request: MultimodalEmbeddingRequest,
-    ) -> Result<Vec<f32>, VertexAIError> {
+    ) -> Result<Vec<f32>, ProviderError> {
         // TODO: Implement multimodal embedding
         Ok(vec![0.0; 1408]) // Multimodal embedding dimension
     }

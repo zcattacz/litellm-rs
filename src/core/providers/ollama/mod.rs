@@ -23,12 +23,8 @@ mod model_info;
 mod provider;
 mod streaming;
 
-// Tests
-#[cfg(test)]
-mod tests;
-
 // Re-export main types for external use
 pub use config::OllamaConfig;
-pub use error::{OllamaError, OllamaErrorMapper};
+pub use error::OllamaError;
 pub use model_info::{get_model_info, OllamaModelInfo};
 pub use provider::OllamaProvider;

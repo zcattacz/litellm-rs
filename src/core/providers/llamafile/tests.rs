@@ -1,6 +1,9 @@
 //! Unit tests for Llamafile provider
 
 use super::*;
+use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
+use crate::core::traits::ProviderConfig;
+use crate::core::types::common::ProviderCapability;
 use crate::core::types::requests::{ChatMessage, ChatRequest, MessageContent, MessageRole};
 
 #[test]
@@ -228,7 +231,7 @@ async fn test_llamafile_build_chat_request() {
                 tool_calls: None,
                 function_call: None,
                 name: None,
-                refusal: None,
+                tool_call_id: None,
             },
             ChatMessage {
                 role: MessageRole::User,
@@ -237,7 +240,7 @@ async fn test_llamafile_build_chat_request() {
                 tool_calls: None,
                 function_call: None,
                 name: None,
-                refusal: None,
+                tool_call_id: None,
             },
         ],
         temperature: Some(0.7),

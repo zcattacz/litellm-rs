@@ -22,6 +22,6 @@ mod tests;
 // Re-export main types for external use
 pub use authenticator::CopilotAuthenticator;
 pub use config::GitHubCopilotConfig;
-pub use error::{GitHubCopilotError, GitHubCopilotErrorMapper};
+pub use error::GitHubCopilotError;
 pub use model_info::{GitHubCopilotModel, get_available_models, get_model_info};
 pub use provider::GitHubCopilotProvider;

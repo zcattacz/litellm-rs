@@ -17,6 +17,6 @@ mod tests;
 
 // Re-export main types for external use
 pub use config::HyperbolicConfig;
-pub use error::{HyperbolicError, HyperbolicErrorMapper};
+pub use error::HyperbolicError;
 pub use model_info::{get_available_models, get_model_info};
 pub use provider::HyperbolicProvider;

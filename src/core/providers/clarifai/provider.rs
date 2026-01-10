@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::ClarifaiConfig;
-use super::error::{ClarifaiError, ClarifaiErrorMapper};
+use super::error::ClarifaiError;
 use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEStream};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::traits::{
@@ -58,11 +58,11 @@ impl ClarifaiProvider {
         // Validate configuration
         config
             .validate()
-            .map_err(ClarifaiError::ConfigurationError)?;
+            .map_err(|e| ClarifaiError::configuration("clarifai", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ClarifaiError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ClarifaiError::configuration("clarifai", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build default model list - Clarifai hosts various models
@@ -133,15 +133,15 @@ impl ClarifaiProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| ClarifaiError::NetworkError(e.to_string()))?;
+            .map_err(|e| ClarifaiError::network("clarifai", e.to_string()))?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| ClarifaiError::NetworkError(e.to_string()))?;
+            .map_err(|e| ClarifaiError::network("clarifai", e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| ClarifaiError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ClarifaiError::api_error("clarifai", 500, format!("Failed to parse response: {}", e)))
     }
 }
 
@@ -149,7 +149,7 @@ impl ClarifaiProvider {
 impl LLMProvider for ClarifaiProvider {
     type Config = ClarifaiConfig;
     type Error = ClarifaiError;
-    type ErrorMapper = ClarifaiErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "clarifai"
@@ -185,7 +185,7 @@ impl LLMProvider for ClarifaiProvider {
         request.model = self.transform_model(&request.model);
 
         serde_json::to_value(&request)
-            .map_err(|e| ClarifaiError::InvalidRequestError(e.to_string()))
+            .map_err(|e| ClarifaiError::invalid_request("clarifai", e.to_string()))
     }
 
     async fn transform_response(
@@ -195,7 +195,7 @@ impl LLMProvider for ClarifaiProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let mut response: ChatResponse = serde_json::from_slice(raw_response)
-            .map_err(|e| ClarifaiError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| ClarifaiError::api_error("clarifai", 500, format!("Failed to parse response: {}", e)))?;
 
         // Prefix the model with clarifai/ in the response
         if !response.model.starts_with("clarifai/") {
@@ -206,7 +206,7 @@ impl LLMProvider for ClarifaiProvider {
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        ClarifaiErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -222,14 +222,14 @@ impl LLMProvider for ClarifaiProvider {
         request.model = self.transform_model(&request.model);
 
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| ClarifaiError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| ClarifaiError::invalid_request("clarifai", e.to_string()))?;
 
         let response = self
             .execute_request("/chat/completions", request_json)
             .await?;
 
         let mut chat_response: ChatResponse = serde_json::from_value(response).map_err(|e| {
-            ClarifaiError::ApiError(format!("Failed to parse chat response: {}", e))
+            ClarifaiError::api_error("clarifai", 500, format!("Failed to parse chat response: {}", e))
         })?;
 
         // Prefix model name with clarifai/
@@ -256,7 +256,7 @@ impl LLMProvider for ClarifaiProvider {
         let api_key = self
             .config
             .get_api_key()
-            .ok_or_else(|| ClarifaiError::AuthenticationError("API key is required".to_string()))?;
+            .ok_or_else(|| ClarifaiError::authentication("clarifai", "API key is required"))?;
 
         let url = format!("{}/chat/completions", self.config.get_api_base());
 
@@ -268,18 +268,19 @@ impl LLMProvider for ClarifaiProvider {
             .json(&request)
             .send()
             .await
-            .map_err(|e| ClarifaiError::NetworkError(e.to_string()))?;
+            .map_err(|e| ClarifaiError::network("clarifai", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.ok();
             return Err(match status {
-                400 => ClarifaiError::InvalidRequestError(
+                400 => ClarifaiError::invalid_request(
+                    "clarifai",
                     body.unwrap_or_else(|| "Bad request".to_string()),
                 ),
-                401 => ClarifaiError::AuthenticationError("Invalid API key".to_string()),
-                429 => ClarifaiError::RateLimitError("Rate limit exceeded".to_string()),
-                _ => ClarifaiError::StreamingError(format!("Stream request failed: {}", status)),
+                401 => ClarifaiError::authentication("clarifai", "Invalid API key"),
+                429 => ClarifaiError::rate_limit("clarifai", None),
+                _ => ClarifaiError::api_error("clarifai", status, format!("Stream request failed: {}", status)),
             });
         }
 
@@ -287,12 +288,12 @@ impl LLMProvider for ClarifaiProvider {
         let transformer = OpenAICompatibleTransformer::new("clarifai");
         let inner_stream = UnifiedSSEStream::new(Box::pin(response.bytes_stream()), transformer);
 
-        // Wrap to convert ProviderError to ClarifaiError
+        // Wrap to convert ClarifaiError to ClarifaiError
         let mapped_stream = futures::stream::unfold(inner_stream, |mut stream| async move {
             use futures::StreamExt;
             match stream.next().await {
                 Some(Ok(chunk)) => Some((Ok(chunk), stream)),
-                Some(Err(e)) => Some((Err(ClarifaiError::StreamingError(e.to_string())), stream)),
+                Some(Err(e)) => Some((Err(e), stream)),
                 None => None,
             }
         });
@@ -305,10 +306,10 @@ impl LLMProvider for ClarifaiProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(ClarifaiError::InvalidRequestError(
+        Err(ClarifaiError::not_supported(
+            "clarifai",
             "Clarifai embeddings require a specific embedding model. \
              Please specify the model in user.app.model format."
-                .to_string(),
         ))
     }
 

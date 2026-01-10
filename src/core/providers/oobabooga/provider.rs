@@ -10,10 +10,12 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::OobaboogaConfig;
-use super::error::{OobaboogaError, OobaboogaErrorMapper};
+use super::error::OobaboogaError;
+use crate::core::traits::error_mapper::types::GenericErrorMapper;
+use crate::ProviderError;
 use crate::core::providers::base::{header_owned, GlobalPoolManager, HttpMethod};
 use crate::core::traits::{
-    error_mapper::trait_def::ErrorMapper, provider::llm_provider::trait_definition::LLMProvider,
+    provider::llm_provider::trait_definition::LLMProvider,
     ProviderConfig as _,
 };
 use crate::core::types::{
@@ -46,11 +48,11 @@ impl OobaboogaProvider {
         // Validate configuration
         config
             .validate()
-            .map_err(OobaboogaError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration("oobabooga", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            OobaboogaError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration("oobabooga", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Initialize with empty models
@@ -92,24 +94,27 @@ impl OobaboogaProvider {
             .map_err(|e| {
                 let error_msg = e.to_string();
                 if error_msg.contains("Connection refused") || error_msg.contains("connect error") {
-                    OobaboogaError::ConnectionRefusedError(
-                        "Failed to connect to text-generation-webui server. Is it running?"
-                            .to_string(),
+                    ProviderError::network(
+                        "oobabooga",
+                        "Failed to connect to text-generation-webui server. Is it running?".to_string()
                     )
                 } else if error_msg.contains("timed out") || error_msg.contains("timeout") {
-                    OobaboogaError::TimeoutError(error_msg)
+                    ProviderError::Timeout {
+                        provider: "oobabooga",
+                        message: error_msg,
+                    }
                 } else {
-                    OobaboogaError::NetworkError(error_msg)
+                    ProviderError::network("oobabooga", error_msg)
                 }
             })?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| OobaboogaError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("oobabooga", e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| OobaboogaError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("oobabooga", 500, format!("Failed to parse response: {}", e)))
     }
 
     /// Build OpenAI-compatible chat request from ChatRequest
@@ -253,20 +258,20 @@ impl OobaboogaProvider {
         // Check for error in response
         if let Some(error) = response.get("error") {
             let error_msg = error.as_str().unwrap_or("Unknown error");
-            return Err(OobaboogaError::ApiError(error_msg.to_string()));
+            return Err(ProviderError::api_error("oobabooga", 500, error_msg.to_string()));
         }
 
         let choices = response
             .get("choices")
             .and_then(|c| c.as_array())
-            .ok_or_else(|| OobaboogaError::ApiError("Missing choices in response".to_string()))?;
+            .ok_or_else(|| ProviderError::api_error("oobabooga", 500, "Missing choices in response".to_string()))?;
 
         let mut chat_choices = Vec::new();
 
         for (i, choice) in choices.iter().enumerate() {
             let message = choice
                 .get("message")
-                .ok_or_else(|| OobaboogaError::ApiError("Missing message in choice".to_string()))?;
+                .ok_or_else(|| ProviderError::api_error("oobabooga", 500, "Missing message in choice".to_string()))?;
 
             let content = message
                 .get("content")
@@ -396,7 +401,7 @@ impl OobaboogaProvider {
 impl LLMProvider for OobaboogaProvider {
     type Config = OobaboogaConfig;
     type Error = OobaboogaError;
-    type ErrorMapper = OobaboogaErrorMapper;
+    type ErrorMapper = GenericErrorMapper;
 
     fn name(&self) -> &'static str {
         "oobabooga"
@@ -449,13 +454,13 @@ impl LLMProvider for OobaboogaProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let response: serde_json::Value = serde_json::from_slice(raw_response)
-            .map_err(|e| OobaboogaError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| ProviderError::api_error("oobabooga", 500, format!("Failed to parse response: {}", e)))?;
 
         self.parse_chat_response(response, model)
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        OobaboogaErrorMapper
+        GenericErrorMapper
     }
 
     async fn chat_completion(
@@ -471,7 +476,7 @@ impl LLMProvider for OobaboogaProvider {
         let url = self
             .config
             .get_chat_endpoint()
-            .map_err(OobaboogaError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration("oobabooga", e))?;
         let response = self
             .execute_request(&url, HttpMethod::POST, Some(request_body))
             .await?;
@@ -493,7 +498,7 @@ impl LLMProvider for OobaboogaProvider {
         let url = self
             .config
             .get_chat_endpoint()
-            .map_err(OobaboogaError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration("oobabooga", e))?;
 
         let mut req = reqwest::Client::new().post(&url);
 
@@ -505,22 +510,25 @@ impl LLMProvider for OobaboogaProvider {
         let response = req.json(&request_body).send().await.map_err(|e| {
             let error_msg = e.to_string();
             if error_msg.contains("Connection refused") || error_msg.contains("connect error") {
-                OobaboogaError::ConnectionRefusedError(
-                    "Failed to connect to text-generation-webui server. Is it running?".to_string(),
+                ProviderError::network(
+                    "oobabooga",
+                    "Failed to connect to text-generation-webui server. Is it running?".to_string()
                 )
             } else if error_msg.contains("timed out") || error_msg.contains("timeout") {
-                OobaboogaError::TimeoutError(error_msg)
+                ProviderError::Timeout {
+                    provider: "oobabooga",
+                    message: error_msg,
+                }
             } else {
-                OobaboogaError::NetworkError(error_msg)
+                ProviderError::network("oobabooga", error_msg)
             }
         })?;
 
         // Check status
         if !response.status().is_success() {
             let status = response.status().as_u16();
-            let body = response.text().await.ok();
-            let mapper = OobaboogaErrorMapper;
-            return Err(mapper.map_http_error(status, &body.unwrap_or_default()));
+            let body = response.text().await.unwrap_or_default();
+            return Err(ProviderError::api_error("oobabooga", status, body));
         }
 
         // Create SSE stream using the OpenAI streaming format
@@ -599,7 +607,9 @@ impl LLMProvider for OobaboogaProvider {
                     }
                     None
                 }
-                Err(e) => Some(Err(OobaboogaError::StreamingError(e.to_string()))),
+                Err(e) => Some(Err(
+                    ProviderError::streaming_error("oobabooga", "chat", None, None, e.to_string())
+                )),
             }
         });
 
@@ -631,7 +641,7 @@ impl LLMProvider for OobaboogaProvider {
         let url = self
             .config
             .get_embeddings_endpoint()
-            .map_err(OobaboogaError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration("oobabooga", e))?;
         let response = self
             .execute_request(&url, HttpMethod::POST, Some(body))
             .await?;
@@ -639,7 +649,7 @@ impl LLMProvider for OobaboogaProvider {
         // Check for error in response
         if let Some(error) = response.get("error") {
             let error_msg = error.as_str().unwrap_or("Unknown error");
-            return Err(OobaboogaError::ApiError(error_msg.to_string()));
+            return Err(ProviderError::api_error("oobabooga", 500, error_msg.to_string()));
         }
 
         // Parse OpenAI-compatible embeddings response
@@ -647,7 +657,7 @@ impl LLMProvider for OobaboogaProvider {
             .get("data")
             .and_then(|d| d.as_array())
             .ok_or_else(|| {
-                OobaboogaError::ApiError("Missing data in embeddings response".to_string())
+                ProviderError::api_error("oobabooga", 500, "Missing data in embeddings response".to_string())
             })?;
 
         let data: Vec<EmbeddingData> = data_arr
@@ -700,8 +710,6 @@ impl LLMProvider for OobaboogaProvider {
 
         match self.execute_request(&url, HttpMethod::GET, None).await {
             Ok(_) => HealthStatus::Healthy,
-            Err(OobaboogaError::ConnectionRefusedError(_)) => HealthStatus::Unhealthy,
-            Err(OobaboogaError::TimeoutError(_)) => HealthStatus::Unhealthy,
             Err(_) => HealthStatus::Unhealthy,
         }
     }
@@ -735,7 +743,7 @@ impl OobaboogaProvider {
         let url = self
             .config
             .get_models_endpoint()
-            .map_err(OobaboogaError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration("oobabooga", e))?;
         let response = self.execute_request(&url, HttpMethod::GET, None).await?;
 
         let models = response

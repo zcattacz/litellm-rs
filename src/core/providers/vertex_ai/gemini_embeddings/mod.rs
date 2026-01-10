@@ -2,11 +2,11 @@
 //!
 //! Specialized embeddings using Gemini models
 
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::embeddings::{TaskType, VertexEmbeddingModel};
-use super::error::VertexAIError;
 
 /// Gemini embedding request
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,7 +93,7 @@ impl GeminiEmbeddingHandler {
     pub async fn embed_content(
         &self,
         request: GeminiEmbeddingRequest,
-    ) -> Result<ContentEmbedding, VertexAIError> {
+    ) -> Result<ContentEmbedding, ProviderError> {
         // Transform to Vertex AI format
         let instances =
             vec![self.transform_content_to_instance(&request.content, &request.task_type)?];
@@ -117,10 +117,11 @@ impl GeminiEmbeddingHandler {
     pub async fn batch_embed_content(
         &self,
         request: BatchEmbedContentRequest,
-    ) -> Result<BatchEmbedContentResponse, VertexAIError> {
+    ) -> Result<BatchEmbedContentResponse, ProviderError> {
         if request.requests.len() > 100 {
-            return Err(VertexAIError::InvalidRequest(
-                "Batch size cannot exceed 100 requests".to_string(),
+            return Err(ProviderError::invalid_request(
+                "vertex_ai",
+                "Batch size cannot exceed 100 requests",
             ));
         }
 
@@ -155,7 +156,7 @@ impl GeminiEmbeddingHandler {
         &self,
         content: &ContentInput,
         task_type: &Option<TaskType>,
-    ) -> Result<Value, VertexAIError> {
+    ) -> Result<Value, ProviderError> {
         let instance = match content {
             ContentInput::Text(text) => {
                 serde_json::json!({
@@ -182,7 +183,7 @@ impl GeminiEmbeddingHandler {
     }
 
     /// Transform content part to Vertex AI format
-    fn transform_content_part(&self, part: &ContentPart) -> Result<Value, VertexAIError> {
+    fn transform_content_part(&self, part: &ContentPart) -> Result<Value, ProviderError> {
         match part {
             ContentPart::Text { text } => Ok(serde_json::json!({
                 "text": text
@@ -232,15 +233,15 @@ impl GeminiEmbeddingHandler {
     }
 
     /// Validate embedding request
-    fn validate_request(&self, request: &GeminiEmbeddingRequest) -> Result<(), VertexAIError> {
+    fn validate_request(&self, request: &GeminiEmbeddingRequest) -> Result<(), ProviderError> {
         // Check content length
         match &request.content {
             ContentInput::Text(text) => {
                 if text.len() > self.model.max_input_length() * 4 {
-                    return Err(VertexAIError::InvalidRequest(format!(
-                        "Text too long for model {}",
-                        self.model.model_id()
-                    )));
+                    return Err(ProviderError::invalid_request(
+                        "vertex_ai",
+                        format!("Text too long for model {}", self.model.model_id()),
+                    ));
                 }
             }
             ContentInput::Structured { parts } => {
@@ -253,8 +254,9 @@ impl GeminiEmbeddingHandler {
                     .sum();
 
                 if total_text_length > self.model.max_input_length() * 4 {
-                    return Err(VertexAIError::InvalidRequest(
-                        "Combined text in parts too long".to_string(),
+                    return Err(ProviderError::invalid_request(
+                        "vertex_ai",
+                        "Combined text in parts too long",
                     ));
                 }
             }
@@ -263,10 +265,10 @@ impl GeminiEmbeddingHandler {
         // Check output dimensionality
         if let Some(dims) = request.output_dimensionality {
             if dims <= 0 || dims > self.model.dimensions() as i32 {
-                return Err(VertexAIError::InvalidRequest(format!(
-                    "Invalid output dimensionality: {}",
-                    dims
-                )));
+                return Err(ProviderError::invalid_request(
+                    "vertex_ai",
+                    format!("Invalid output dimensionality: {}", dims),
+                ));
             }
         }
 
@@ -299,7 +301,7 @@ impl BatchGeminiEmbeddingHandler {
         &self,
         texts: Vec<String>,
         task_type: Option<TaskType>,
-    ) -> Result<Vec<ContentEmbedding>, VertexAIError> {
+    ) -> Result<Vec<ContentEmbedding>, ProviderError> {
         let mut all_embeddings = Vec::new();
 
         for chunk in texts.chunks(self.batch_size) {

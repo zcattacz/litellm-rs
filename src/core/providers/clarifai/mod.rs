@@ -11,5 +11,5 @@ mod provider;
 mod tests;
 
 pub use config::ClarifaiConfig;
-pub use error::{ClarifaiError, ClarifaiErrorMapper};
+pub use error::ClarifaiError;
 pub use provider::ClarifaiProvider;

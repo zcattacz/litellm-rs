@@ -2,7 +2,7 @@
 //!
 //! Support for generating images using Vertex AI models
 
-use super::error::VertexAIError;
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 
 /// Image generation request
@@ -102,7 +102,7 @@ impl ImageGenerationHandler {
         &self,
         model: &ImageGenerationModel,
         request: ImageGenerationRequest,
-    ) -> Result<ImageGenerationResponse, VertexAIError> {
+    ) -> Result<ImageGenerationResponse, ProviderError> {
         self.validate_request(model, &request)?;
 
         // Transform request for Vertex AI format
@@ -124,10 +124,10 @@ impl ImageGenerationHandler {
         &self,
         model: &ImageGenerationModel,
         request: &ImageGenerationRequest,
-    ) -> Result<(), VertexAIError> {
+    ) -> Result<(), ProviderError> {
         // Validate prompt
         if request.prompt.trim().is_empty() {
-            return Err(VertexAIError::InvalidRequest("Empty prompt".to_string()));
+            return Err(ProviderError::invalid_request("vertex_ai", "Empty prompt"));
         }
 
         // Validate aspect ratio
@@ -135,10 +135,10 @@ impl ImageGenerationHandler {
             if model.supports_aspect_ratio() {
                 let supported = model.supported_aspect_ratios();
                 if !supported.contains(&aspect_ratio.as_str()) {
-                    return Err(VertexAIError::InvalidRequest(format!(
-                        "Unsupported aspect ratio: {}",
-                        aspect_ratio
-                    )));
+                    return Err(ProviderError::invalid_request(
+                        "vertex_ai",
+                        format!("Unsupported aspect ratio: {}", aspect_ratio),
+                    ));
                 }
             }
         }
@@ -146,8 +146,9 @@ impl ImageGenerationHandler {
         // Validate number of images
         if let Some(count) = request.number_of_images {
             if !(1..=4).contains(&count) {
-                return Err(VertexAIError::InvalidRequest(
-                    "Number of images must be between 1 and 4".to_string(),
+                return Err(ProviderError::invalid_request(
+                    "vertex_ai",
+                    "Number of images must be between 1 and 4",
                 ));
             }
         }
@@ -160,7 +161,7 @@ impl ImageGenerationHandler {
         &self,
         _model: &ImageGenerationModel,
         request: ImageGenerationRequest,
-    ) -> Result<serde_json::Value, VertexAIError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let mut instances = serde_json::json!([{
             "prompt": request.prompt
         }]);

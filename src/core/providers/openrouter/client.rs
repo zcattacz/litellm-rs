@@ -8,90 +8,25 @@ use std::time::Duration;
 use tracing::{debug, error, warn};
 
 use crate::core::traits::{
-    ProviderConfig, error_mapper::trait_def::ErrorMapper,
+    ProviderConfig,
     provider::llm_provider::trait_definition::LLMProvider,
+    error_mapper::types::GenericErrorMapper,
 };
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
     requests::{ChatRequest, EmbeddingRequest, ImageGenerationRequest},
     responses::{ChatChunk, ChatResponse, EmbeddingResponse, ImageGenerationResponse},
 };
+use crate::ProviderError;
 
 use super::config::OpenRouterConfig;
 use super::error::OpenRouterError;
 use super::models::get_openrouter_registry;
-
-use serde_json::Value;
-use std::collections::HashMap;
-
-/// OpenRouter-specific error mapper implementation
-#[derive(Debug)]
-pub struct OpenRouterErrorMapper;
-
-impl ErrorMapper<OpenRouterError> for OpenRouterErrorMapper {
-    fn map_http_error(&self, status_code: u16, response_body: &str) -> OpenRouterError {
-        match status_code {
-            400 => OpenRouterError::InvalidRequest(format!("Bad request: {}", response_body)),
-            401 => OpenRouterError::Authentication("Invalid API key".to_string()),
-            403 => {
-                OpenRouterError::Authentication("Forbidden: insufficient permissions".to_string())
-            }
-            404 => OpenRouterError::UnsupportedModel("Model not found".to_string()),
-            429 => OpenRouterError::RateLimit("Rate limit exceeded".to_string()),
-            500 => OpenRouterError::ApiError {
-                status_code: 500,
-                message: "Internal server error".to_string(),
-            },
-            502 => OpenRouterError::Network("Bad gateway".to_string()),
-            503 => OpenRouterError::Network("Service unavailable".to_string()),
-            _ => OpenRouterError::ApiError {
-                status_code,
-                message: format!("HTTP error {}: {}", status_code, response_body),
-            },
-        }
-    }
-
-    fn map_json_error(&self, error_response: &Value) -> OpenRouterError {
-        if let Some(error) = error_response.get("error") {
-            let error_code = error.get("code").and_then(|c| c.as_i64()).unwrap_or(0);
-            let error_message = error
-                .get("message")
-                .and_then(|m| m.as_str())
-                .unwrap_or("Unknown error");
-            let error_type = error
-                .get("type")
-                .and_then(|t| t.as_str())
-                .unwrap_or("unknown");
-
-            match error_type {
-                "invalid_request_error" => {
-                    OpenRouterError::InvalidRequest(error_message.to_string())
-                }
-                "authentication_error" => {
-                    OpenRouterError::Authentication("Authentication failed".to_string())
-                }
-                "permission_error" => {
-                    OpenRouterError::Authentication("Permission denied".to_string())
-                }
-                "rate_limit_error" => OpenRouterError::RateLimit("Rate limit exceeded".to_string()),
-                "api_error" => OpenRouterError::ApiError {
-                    status_code: error_code as u16,
-                    message: error_message.to_string(),
-                },
-                _ => OpenRouterError::Other(format!("{}: {}", error_type, error_message)),
-            }
-        } else {
-            OpenRouterError::Parsing("Unknown error response format".to_string())
-        }
-    }
-
-    fn map_network_error(&self, error: &dyn std::error::Error) -> OpenRouterError {
-        OpenRouterError::Network(format!("Network error: {}", error))
-    }
-}
 use super::transformer::{
-    OpenRouterRequestTransformer, OpenRouterResponseTransformer, create_openrouter_headers,
+    create_openrouter_headers, OpenRouterRequestTransformer, OpenRouterResponseTransformer,
 };
+
+use std::collections::HashMap;
 
 /// OpenRouter Provider implementation
 #[derive(Debug, Clone)]
@@ -110,12 +45,12 @@ impl OpenRouterProvider {
     /// Create
     pub async fn new(config: OpenRouterConfig) -> Result<Self, OpenRouterError> {
         // Configuration
-        config.validate().map_err(OpenRouterError::Configuration)?;
+        config.validate().map_err(|e| ProviderError::configuration("openrouter", e))?;
 
         // Get
         let api_key = if config.api_key.is_empty() {
             std::env::var("OPENROUTER_API_KEY").map_err(|_| {
-                OpenRouterError::Configuration("OpenRouter API key not found".to_string())
+                ProviderError::configuration("openrouter", "OpenRouter API key not found")
             })?
         } else {
             config.api_key.clone()
@@ -134,7 +69,7 @@ impl OpenRouterProvider {
         for (key, value) in &headers {
             let header_name =
                 reqwest::header::HeaderName::from_bytes(key.as_bytes()).map_err(|e| {
-                    OpenRouterError::Configuration(format!("Invalid header key '{}': {}", key, e))
+                    ProviderError::configuration("openrouter", format!("Invalid header key '{}': {}", key, e))
                 })?;
 
             // Ensure header value has no illegal characters
@@ -148,7 +83,7 @@ impl OpenRouterProvider {
                         error = %e,
                         "Failed to parse HTTP header value"
                     );
-                    OpenRouterError::Configuration(format!(
+                    ProviderError::configuration("openrouter", format!(
                         "Invalid header value for '{}': {}",
                         key, e
                     ))
@@ -162,13 +97,13 @@ impl OpenRouterProvider {
         for (key, value) in &config.headers {
             let header_name =
                 reqwest::header::HeaderName::from_bytes(key.as_bytes()).map_err(|e| {
-                    OpenRouterError::Configuration(format!(
+                    ProviderError::configuration("openrouter", format!(
                         "Invalid custom header key '{}': {}",
                         key, e
                     ))
                 })?;
             let header_value = reqwest::header::HeaderValue::from_str(value).map_err(|e| {
-                OpenRouterError::Configuration(format!(
+                ProviderError::configuration("openrouter", format!(
                     "Invalid custom header value for '{}': {}",
                     key, e
                 ))
@@ -182,7 +117,7 @@ impl OpenRouterProvider {
             .default_headers(header_map)
             .build()
             .map_err(|e| {
-                OpenRouterError::Network(format!("Failed to create HTTP client: {}", e))
+                ProviderError::network("openrouter", format!("Failed to create HTTP client: {}", e))
             })?;
 
         let base_url = config.base_url.clone();
@@ -223,11 +158,14 @@ impl OpenRouterProvider {
             .await
             .map_err(|e| {
                 if e.is_timeout() {
-                    OpenRouterError::Timeout(format!("Request to {} timed out", url))
+                    ProviderError::Timeout {
+                        provider: "openrouter",
+                        message: format!("Request to {} timed out", url),
+                    }
                 } else if e.is_connect() {
-                    OpenRouterError::Network(format!("Connection failed to {}: {}", url, e))
+                    ProviderError::network("openrouter", format!("Connection failed to {}: {}", url, e))
                 } else {
-                    OpenRouterError::Network(format!("Request failed: {}", e))
+                    ProviderError::network("openrouter", format!("Request failed: {}", e))
                 }
             })?;
 
@@ -243,7 +181,7 @@ impl OpenRouterProvider {
         let response_text = response
             .text()
             .await
-            .map_err(|e| OpenRouterError::Network(format!("Failed to read response: {}", e)))?;
+            .map_err(|e| ProviderError::network("openrouter", format!("Failed to read response: {}", e)))?;
 
         debug!(
             provider = "openrouter",
@@ -252,7 +190,7 @@ impl OpenRouterProvider {
         );
 
         serde_json::from_str(&response_text)
-            .map_err(|e| OpenRouterError::Parsing(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("openrouter", 500, format!("Failed to parse response: {}", e)))
     }
 }
 
@@ -260,7 +198,7 @@ impl OpenRouterProvider {
 impl LLMProvider for OpenRouterProvider {
     type Config = OpenRouterConfig;
     type Error = OpenRouterError;
-    type ErrorMapper = OpenRouterErrorMapper;
+    type ErrorMapper = GenericErrorMapper;
 
     fn name(&self) -> &'static str {
         "openrouter"
@@ -329,8 +267,9 @@ impl LLMProvider for OpenRouterProvider {
     {
         // Response
         // Handle
-        Err(OpenRouterError::UnsupportedFeature(
-            "Streaming not yet implemented".to_string(),
+        Err(ProviderError::not_supported(
+            "openrouter",
+            "Streaming not yet implemented",
         ))
     }
 
@@ -340,8 +279,9 @@ impl LLMProvider for OpenRouterProvider {
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
         // OpenRouter may not support embeddings for all models
-        Err(OpenRouterError::UnsupportedFeature(
-            "Embeddings not supported via OpenRouter".to_string(),
+        Err(ProviderError::not_supported(
+            "openrouter",
+            "Embeddings not supported via OpenRouter",
         ))
     }
 
@@ -351,8 +291,9 @@ impl LLMProvider for OpenRouterProvider {
         _context: RequestContext,
     ) -> Result<ImageGenerationResponse, Self::Error> {
         // OpenRouter may support some image generation models
-        Err(OpenRouterError::UnsupportedFeature(
-            "Image generation not yet implemented".to_string(),
+        Err(ProviderError::not_supported(
+            "openrouter",
+            "Image generation not yet implemented",
         ))
     }
 
@@ -446,7 +387,7 @@ impl LLMProvider for OpenRouterProvider {
 
         // Serialize to JSON value
         serde_json::to_value(openai_request)
-            .map_err(|e| OpenRouterError::Parsing(format!("Failed to serialize request: {}", e)))
+            .map_err(|e| ProviderError::api_error("openrouter", 500, format!("Failed to serialize request: {}", e)))
     }
 
     async fn transform_response(
@@ -457,11 +398,11 @@ impl LLMProvider for OpenRouterProvider {
     ) -> Result<ChatResponse, Self::Error> {
         // Response
         let response_text = std::str::from_utf8(raw_response)
-            .map_err(|e| OpenRouterError::Parsing(format!("Invalid UTF-8 response: {}", e)))?;
+            .map_err(|e| ProviderError::api_error("openrouter", 500, format!("Invalid UTF-8 response: {}", e)))?;
 
         let openai_response: crate::core::providers::openai::models::OpenAIChatResponse =
             serde_json::from_str(response_text).map_err(|e| {
-                OpenRouterError::Parsing(format!("Failed to parse response: {}", e))
+                ProviderError::api_error("openrouter", 500, format!("Failed to parse response: {}", e))
             })?;
 
         // Response
@@ -469,7 +410,7 @@ impl LLMProvider for OpenRouterProvider {
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        OpenRouterErrorMapper
+        GenericErrorMapper
     }
 }
 
@@ -480,190 +421,72 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    // ==================== OpenRouterErrorMapper Tests ====================
+    // ==================== ProviderError Tests ====================
 
     #[test]
-    fn test_error_mapper_http_400() {
-        let mapper = OpenRouterErrorMapper;
-        let error = mapper.map_http_error(400, "Bad request body");
-        assert!(matches!(error, OpenRouterError::InvalidRequest(_)));
-        assert!(error.to_string().contains("Bad request"));
+    fn test_provider_error_authentication() {
+        let error = ProviderError::authentication("openrouter", "Invalid API key");
+        assert!(error.to_string().contains("Authentication failed"));
+        assert!(error.to_string().contains("openrouter"));
+        assert_eq!(error.http_status(), 401);
     }
 
     #[test]
-    fn test_error_mapper_http_401() {
-        let mapper = OpenRouterErrorMapper;
-        let error = mapper.map_http_error(401, "Unauthorized");
-        assert!(matches!(error, OpenRouterError::Authentication(_)));
-        assert!(error.to_string().contains("Invalid API key"));
+    fn test_provider_error_rate_limit() {
+        let error = ProviderError::rate_limit("openrouter", Some(60));
+        assert!(error.to_string().contains("Rate limit"));
+        assert_eq!(error.http_status(), 429);
     }
 
     #[test]
-    fn test_error_mapper_http_403() {
-        let mapper = OpenRouterErrorMapper;
-        let error = mapper.map_http_error(403, "Forbidden");
-        assert!(matches!(error, OpenRouterError::Authentication(_)));
-        assert!(error.to_string().contains("Forbidden"));
+    fn test_provider_error_invalid_request() {
+        let error = ProviderError::invalid_request("openrouter", "Bad request body");
+        assert!(error.to_string().contains("Invalid request"));
+        assert_eq!(error.http_status(), 400);
     }
 
     #[test]
-    fn test_error_mapper_http_404() {
-        let mapper = OpenRouterErrorMapper;
-        let error = mapper.map_http_error(404, "Not found");
-        assert!(matches!(error, OpenRouterError::UnsupportedModel(_)));
+    fn test_provider_error_model_not_found() {
+        let error = ProviderError::model_not_found("openrouter", "gpt-5");
+        assert!(error.to_string().contains("not found"));
+        assert_eq!(error.http_status(), 404);
     }
 
     #[test]
-    fn test_error_mapper_http_429() {
-        let mapper = OpenRouterErrorMapper;
-        let error = mapper.map_http_error(429, "Rate limit");
-        assert!(matches!(error, OpenRouterError::RateLimit(_)));
-    }
-
-    #[test]
-    fn test_error_mapper_http_500() {
-        let mapper = OpenRouterErrorMapper;
-        let error = mapper.map_http_error(500, "Internal error");
-        assert!(matches!(
-            error,
-            OpenRouterError::ApiError {
-                status_code: 500,
-                ..
-            }
-        ));
-    }
-
-    #[test]
-    fn test_error_mapper_http_502() {
-        let mapper = OpenRouterErrorMapper;
-        let error = mapper.map_http_error(502, "Bad gateway");
-        assert!(matches!(error, OpenRouterError::Network(_)));
-        assert!(error.to_string().contains("Bad gateway"));
-    }
-
-    #[test]
-    fn test_error_mapper_http_503() {
-        let mapper = OpenRouterErrorMapper;
-        let error = mapper.map_http_error(503, "Service unavailable");
-        assert!(matches!(error, OpenRouterError::Network(_)));
-        assert!(error.to_string().contains("Service unavailable"));
-    }
-
-    #[test]
-    fn test_error_mapper_http_unknown() {
-        let mapper = OpenRouterErrorMapper;
-        let error = mapper.map_http_error(418, "I'm a teapot");
-        assert!(matches!(
-            error,
-            OpenRouterError::ApiError {
-                status_code: 418,
-                ..
-            }
-        ));
-    }
-
-    #[test]
-    fn test_error_mapper_json_invalid_request() {
-        let mapper = OpenRouterErrorMapper;
-        let response = json!({
-            "error": {
-                "code": 400,
-                "message": "Invalid model specified",
-                "type": "invalid_request_error"
-            }
-        });
-        let error = mapper.map_json_error(&response);
-        assert!(matches!(error, OpenRouterError::InvalidRequest(_)));
-    }
-
-    #[test]
-    fn test_error_mapper_json_authentication() {
-        let mapper = OpenRouterErrorMapper;
-        let response = json!({
-            "error": {
-                "code": 401,
-                "message": "Invalid API key",
-                "type": "authentication_error"
-            }
-        });
-        let error = mapper.map_json_error(&response);
-        assert!(matches!(error, OpenRouterError::Authentication(_)));
-    }
-
-    #[test]
-    fn test_error_mapper_json_permission() {
-        let mapper = OpenRouterErrorMapper;
-        let response = json!({
-            "error": {
-                "code": 403,
-                "message": "Permission denied",
-                "type": "permission_error"
-            }
-        });
-        let error = mapper.map_json_error(&response);
-        assert!(matches!(error, OpenRouterError::Authentication(_)));
-    }
-
-    #[test]
-    fn test_error_mapper_json_rate_limit() {
-        let mapper = OpenRouterErrorMapper;
-        let response = json!({
-            "error": {
-                "code": 429,
-                "message": "Too many requests",
-                "type": "rate_limit_error"
-            }
-        });
-        let error = mapper.map_json_error(&response);
-        assert!(matches!(error, OpenRouterError::RateLimit(_)));
-    }
-
-    #[test]
-    fn test_error_mapper_json_api_error() {
-        let mapper = OpenRouterErrorMapper;
-        let response = json!({
-            "error": {
-                "code": 500,
-                "message": "Internal server error",
-                "type": "api_error"
-            }
-        });
-        let error = mapper.map_json_error(&response);
-        assert!(matches!(error, OpenRouterError::ApiError { .. }));
-    }
-
-    #[test]
-    fn test_error_mapper_json_unknown_type() {
-        let mapper = OpenRouterErrorMapper;
-        let response = json!({
-            "error": {
-                "code": 999,
-                "message": "Unknown error",
-                "type": "custom_error_type"
-            }
-        });
-        let error = mapper.map_json_error(&response);
-        assert!(matches!(error, OpenRouterError::Other(_)));
-    }
-
-    #[test]
-    fn test_error_mapper_json_no_error_field() {
-        let mapper = OpenRouterErrorMapper;
-        let response = json!({
-            "message": "Something went wrong"
-        });
-        let error = mapper.map_json_error(&response);
-        assert!(matches!(error, OpenRouterError::Parsing(_)));
-    }
-
-    #[test]
-    fn test_error_mapper_network_error() {
-        let mapper = OpenRouterErrorMapper;
-        let io_error =
-            std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "Connection refused");
-        let error = mapper.map_network_error(&io_error);
-        assert!(matches!(error, OpenRouterError::Network(_)));
+    fn test_provider_error_network() {
+        let error = ProviderError::network("openrouter", "Connection refused");
         assert!(error.to_string().contains("Network error"));
+        assert_eq!(error.http_status(), 503);
+    }
+
+    #[test]
+    fn test_provider_error_api_error() {
+        let error = ProviderError::api_error("openrouter", 500, "Internal server error");
+        assert!(error.to_string().contains("API error"));
+        assert_eq!(error.http_status(), 500);
+    }
+
+    #[test]
+    fn test_provider_error_timeout() {
+        let error = ProviderError::timeout("openrouter", "Request timed out");
+        assert!(error.to_string().contains("Timeout"));
+        assert_eq!(error.http_status(), 503);
+    }
+
+    #[test]
+    fn test_provider_error_not_supported() {
+        let error = ProviderError::not_supported("openrouter", "Embeddings");
+        assert!(error.to_string().contains("not supported"));
+        assert_eq!(error.http_status(), 405);
+    }
+
+    #[test]
+    fn test_provider_error_is_retryable() {
+        assert!(ProviderError::network("openrouter", "Connection refused").is_retryable());
+        assert!(ProviderError::timeout("openrouter", "Timeout").is_retryable());
+        assert!(ProviderError::rate_limit("openrouter", Some(60)).is_retryable());
+        assert!(!ProviderError::authentication("openrouter", "Invalid key").is_retryable());
+        assert!(!ProviderError::invalid_request("openrouter", "Bad request").is_retryable());
     }
 
     // ==================== OpenRouterProvider Tests ====================
@@ -731,12 +554,5 @@ mod tests {
         let total = input_cost + output_cost;
 
         assert!((total - 0.002).abs() < 0.0001);
-    }
-
-    #[test]
-    fn test_error_mapper_debug() {
-        let mapper = OpenRouterErrorMapper;
-        let debug = format!("{:?}", mapper);
-        assert!(debug.contains("OpenRouterErrorMapper"));
     }
 }

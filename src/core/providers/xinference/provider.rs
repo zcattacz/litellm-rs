@@ -9,6 +9,7 @@ use tracing::debug;
 
 use super::config::XinferenceConfig;
 use super::error::{XinferenceError, XinferenceErrorMapper};
+use crate::core::providers::unified_provider::ProviderError;
 use super::model_info::{get_available_models, get_model_info};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, HeaderPair, header};
 use crate::core::traits::{
@@ -39,10 +40,10 @@ impl XinferenceProvider {
     pub async fn new(config: XinferenceConfig) -> Result<Self, XinferenceError> {
         config
             .validate()
-            .map_err(XinferenceError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration("xinference", e))?;
 
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            XinferenceError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration("xinference", format!("Failed to create pool manager: {}", e))
         })?);
 
         let models = get_available_models()
@@ -116,15 +117,15 @@ impl XinferenceProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| XinferenceError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("xinference", e.to_string()))?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| XinferenceError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("xinference", e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| XinferenceError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("xinference", 500, format!("Failed to parse response: {}", e)))
     }
 }
 
@@ -175,7 +176,7 @@ impl LLMProvider for XinferenceProvider {
         _context: RequestContext,
     ) -> Result<serde_json::Value, Self::Error> {
         serde_json::to_value(&request)
-            .map_err(|e| XinferenceError::InvalidRequestError(e.to_string()))
+            .map_err(|e| ProviderError::invalid_request("xinference", e.to_string()))
     }
 
     async fn transform_response(
@@ -185,7 +186,7 @@ impl LLMProvider for XinferenceProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         serde_json::from_slice(raw_response)
-            .map_err(|e| XinferenceError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("xinference", 500, format!("Failed to parse response: {}", e)))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -200,14 +201,14 @@ impl LLMProvider for XinferenceProvider {
         debug!("Xinference chat request: model={}", request.model);
 
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| XinferenceError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("xinference", e.to_string()))?;
 
         let response = self
             .execute_request("/chat/completions", request_json)
             .await?;
 
         serde_json::from_value(response)
-            .map_err(|e| XinferenceError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("xinference", 500, format!("Failed to parse response: {}", e)))
     }
 
     async fn chat_completion_stream(
@@ -233,12 +234,12 @@ impl LLMProvider for XinferenceProvider {
             .json(&request)
             .send()
             .await
-            .map_err(|e| XinferenceError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("xinference", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.ok();
-            return Err(XinferenceError::StreamingError(format!(
+            return Err(ProviderError::api_error("xinference", status, format!(
                 "Stream request failed: {} - {:?}",
                 status, body
             )));
@@ -250,7 +251,7 @@ impl LLMProvider for XinferenceProvider {
 
         use futures::StreamExt;
         let mapped_stream = stream.map(|result| {
-            result.map_err(|e| XinferenceError::StreamingError(e.to_string()))
+            result.map_err(|e| ProviderError::api_error("xinference", 500, e.to_string()))
         });
 
         Ok(Box::pin(mapped_stream))
@@ -264,12 +265,12 @@ impl LLMProvider for XinferenceProvider {
         debug!("Xinference embeddings request: model={}", request.model);
 
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| XinferenceError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("xinference", e.to_string()))?;
 
         let response = self.execute_request("/embeddings", request_json).await?;
 
         serde_json::from_value(response)
-            .map_err(|e| XinferenceError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("xinference", 500, format!("Failed to parse response: {}", e)))
     }
 
     async fn health_check(&self) -> HealthStatus {

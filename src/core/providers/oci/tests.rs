@@ -3,6 +3,10 @@
 //! Unit tests for OCI provider.
 
 use super::*;
+use crate::core::types::common::{HealthStatus, ProviderCapability, RequestContext};
+use crate::core::types::requests::EmbeddingRequest;
+use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
+use super::streaming;
 
 mod config_tests {
     use super::*;
@@ -235,6 +239,7 @@ mod provider_tests {
 mod streaming_tests {
     use super::*;
     use bytes::Bytes;
+    use crate::core::types::requests::MessageRole;
     use futures::StreamExt;
 
     #[tokio::test]
@@ -261,6 +266,9 @@ mod streaming_tests {
     async fn test_stream_multiple_chunks() {
         let test_data = vec![
             Ok(Bytes::from(
+                "data: {\"id\":\"test-1\",\"model\":\"cohere.command-r-plus\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\"}}]}\n\n",
+            )),
+            Ok(Bytes::from(
                 "data: {\"id\":\"test-1\",\"model\":\"cohere.command-r-plus\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"}}]}\n\n",
             )),
             Ok(Bytes::from(
@@ -272,11 +280,16 @@ mod streaming_tests {
         let mock_stream = futures::stream::iter(test_data);
         let mut oci_stream = streaming::OciStream::new(mock_stream);
 
+        // Role chunk
         let chunk1 = oci_stream.next().await.unwrap().unwrap();
-        assert_eq!(chunk1.choices[0].delta.content.as_ref().unwrap(), "Hello");
+        assert_eq!(chunk1.choices[0].delta.role, Some(MessageRole::Assistant));
 
+        // Content chunks
         let chunk2 = oci_stream.next().await.unwrap().unwrap();
-        assert_eq!(chunk2.choices[0].delta.content.as_ref().unwrap(), " World");
+        assert_eq!(chunk2.choices[0].delta.content.as_ref().unwrap(), "Hello");
+
+        let chunk3 = oci_stream.next().await.unwrap().unwrap();
+        assert_eq!(chunk3.choices[0].delta.content.as_ref().unwrap(), " World");
 
         assert!(oci_stream.next().await.is_none());
     }

@@ -10,12 +10,11 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::SnowflakeConfig;
-use super::error::{SnowflakeError, SnowflakeErrorMapper};
+use super::error::SnowflakeError;
 use super::model_info::get_available_models;
-use crate::core::traits::error_mapper::trait_def::ErrorMapper;
-use crate::core::providers::base::GlobalPoolManager;
 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 use crate::core::traits::ProviderConfig as _;
+use crate::core::providers::base::GlobalPoolManager;
 use crate::core::types::common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext};
 use crate::core::types::requests::{ChatRequest, EmbeddingRequest};
 use crate::core::types::responses::{ChatChunk, ChatResponse, EmbeddingResponse};
@@ -41,10 +40,10 @@ impl SnowflakeProvider {
     pub async fn new(config: SnowflakeConfig) -> Result<Self, SnowflakeError> {
         config
             .validate()
-            .map_err(SnowflakeError::ConfigurationError)?;
+            .map_err(|e| SnowflakeError::configuration("snowflake", e))?;
 
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            SnowflakeError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            SnowflakeError::configuration("snowflake", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list from static configuration
@@ -128,7 +127,7 @@ impl SnowflakeProvider {
 impl LLMProvider for SnowflakeProvider {
     type Config = SnowflakeConfig;
     type Error = SnowflakeError;
-    type ErrorMapper = SnowflakeErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "snowflake"
@@ -174,7 +173,7 @@ impl LLMProvider for SnowflakeProvider {
         _context: RequestContext,
     ) -> Result<serde_json::Value, Self::Error> {
         serde_json::to_value(&request)
-            .map_err(|e| SnowflakeError::InvalidRequestError(e.to_string()))
+            .map_err(|e| SnowflakeError::invalid_request("snowflake", e.to_string()))
     }
 
     async fn transform_response(
@@ -184,11 +183,11 @@ impl LLMProvider for SnowflakeProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         serde_json::from_slice(raw_response)
-            .map_err(|e| SnowflakeError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| SnowflakeError::api_error("snowflake", 500, format!("Failed to parse response: {}", e)))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        SnowflakeErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -199,7 +198,7 @@ impl LLMProvider for SnowflakeProvider {
         debug!("Snowflake chat request: model={}", request.model);
 
         let api_key = self.get_api_key().ok_or_else(|| {
-            SnowflakeError::AuthenticationError("API key is required".to_string())
+            SnowflakeError::authentication("snowflake", "API key is required")
         })?;
 
         // Build the URL for Cortex LLM REST API
@@ -227,22 +226,22 @@ impl LLMProvider for SnowflakeProvider {
             .json(&body)
             .send()
             .await
-            .map_err(|e| SnowflakeError::NetworkError(e.to_string()))?;
+            .map_err(|e| SnowflakeError::network("snowflake", e.to_string()))?;
 
         let status = response.status();
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| SnowflakeError::NetworkError(e.to_string()))?;
+            .map_err(|e| SnowflakeError::network("snowflake", e.to_string()))?;
 
         if !status.is_success() {
             let body_str = String::from_utf8_lossy(&response_bytes);
-            return Err(SnowflakeErrorMapper.map_http_error(status.as_u16(), &body_str));
+            return Err(SnowflakeError::api_error("snowflake", status.as_u16(), body_str.to_string()));
         }
 
         // Parse response
         let json: serde_json::Value = serde_json::from_slice(&response_bytes)
-            .map_err(|e| SnowflakeError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| SnowflakeError::api_error("snowflake", 500, format!("Failed to parse response: {}", e)))?;
 
         // Transform Snowflake response to OpenAI format
         let content = json
@@ -284,8 +283,9 @@ impl LLMProvider for SnowflakeProvider {
         _context: RequestContext,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error>
     {
-        Err(SnowflakeError::InvalidRequestError(
-            "Streaming not yet implemented for Snowflake".to_string(),
+        Err(SnowflakeError::not_supported(
+            "snowflake",
+            "Streaming not yet implemented for Snowflake",
         ))
     }
 
@@ -294,8 +294,9 @@ impl LLMProvider for SnowflakeProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(SnowflakeError::InvalidRequestError(
-            "Embeddings not supported by Snowflake Cortex provider".to_string(),
+        Err(SnowflakeError::not_supported(
+            "snowflake",
+            "Embeddings not supported by Snowflake Cortex provider",
         ))
     }
 

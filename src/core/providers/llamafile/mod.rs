@@ -26,3 +26,7 @@ mod tests;
 pub use config::LlamafileConfig;
 pub use error::{LlamafileError, LlamafileErrorMapper};
 pub use provider::LlamafileProvider;
+
+// Re-export for tests
+#[cfg(test)]
+pub(crate) use provider::LLAMAFILE_CAPABILITIES;

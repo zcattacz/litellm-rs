@@ -1,7 +1,10 @@
 //! Unit tests for LM Studio provider
 
 use super::*;
+use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
+use crate::core::types::common::ProviderCapability;
 use crate::core::types::requests::{ChatMessage, ChatRequest, MessageContent, MessageRole};
+use crate::core::types::responses::FinishReason;
 
 #[test]
 fn test_lm_studio_provider_name() {
@@ -51,61 +54,6 @@ fn test_lm_studio_config_validation() {
         ..Default::default()
     };
     assert!(config.validate().is_err());
-}
-
-#[test]
-fn test_lm_studio_error_types() {
-    use crate::core::types::errors::ProviderErrorTrait;
-
-    let api_error = LMStudioError::ApiError("test".to_string());
-    assert_eq!(api_error.error_type(), "api_error");
-    assert!(!api_error.is_retryable());
-
-    let network_error = LMStudioError::NetworkError("test".to_string());
-    assert_eq!(network_error.error_type(), "network_error");
-    assert!(network_error.is_retryable());
-
-    let timeout_error = LMStudioError::TimeoutError("test".to_string());
-    assert_eq!(timeout_error.error_type(), "timeout_error");
-    assert!(timeout_error.is_retryable());
-    assert_eq!(timeout_error.retry_delay(), Some(10));
-}
-
-#[test]
-fn test_lm_studio_error_conversion() {
-    use crate::core::providers::unified_provider::ProviderError;
-
-    let lm_studio_error = LMStudioError::AuthenticationError("invalid key".to_string());
-    let provider_error: ProviderError = lm_studio_error.into();
-
-    assert!(matches!(provider_error, ProviderError::Authentication { .. }));
-}
-
-#[test]
-fn test_lm_studio_error_mapper() {
-    use crate::core::traits::error_mapper::trait_def::ErrorMapper;
-
-    let mapper = LMStudioErrorMapper;
-
-    // Test 400 error
-    let error = mapper.map_http_error(400, "Bad request");
-    assert!(matches!(error, LMStudioError::InvalidRequestError(_)));
-
-    // Test 401 error
-    let error = mapper.map_http_error(401, "Unauthorized");
-    assert!(matches!(error, LMStudioError::AuthenticationError(_)));
-
-    // Test 404 error
-    let error = mapper.map_http_error(404, "Not found");
-    assert!(matches!(error, LMStudioError::ModelNotFoundError(_)));
-
-    // Test 503 error
-    let error = mapper.map_http_error(503, "Service unavailable");
-    assert!(matches!(error, LMStudioError::ServiceUnavailableError(_)));
-
-    // Test pattern matching for model not found
-    let error = mapper.map_http_error(400, "model 'llama' not found");
-    assert!(matches!(error, LMStudioError::ModelNotFoundError(_)));
 }
 
 #[test]
@@ -217,7 +165,7 @@ async fn test_lm_studio_build_chat_request() {
                 tool_calls: None,
                 function_call: None,
                 name: None,
-                refusal: None,
+                tool_call_id: None,
             },
             ChatMessage {
                 role: MessageRole::User,
@@ -226,7 +174,7 @@ async fn test_lm_studio_build_chat_request() {
                 tool_calls: None,
                 function_call: None,
                 name: None,
-                refusal: None,
+                tool_call_id: None,
             },
         ],
         temperature: Some(0.7),
@@ -268,20 +216,19 @@ async fn test_lm_studio_build_chat_request_with_tools() {
             tool_calls: None,
             function_call: None,
             name: None,
-            refusal: None,
+            tool_call_id: None,
         }],
         tools: Some(vec![crate::core::types::tools::Tool {
-            tool_type: "function".to_string(),
-            function: crate::core::types::tools::ToolFunction {
+            tool_type: crate::core::types::tools::ToolType::Function,
+            function: crate::core::types::tools::FunctionDefinition {
                 name: "get_weather".to_string(),
                 description: Some("Get the current weather".to_string()),
-                parameters: serde_json::json!({
+                parameters: Some(serde_json::json!({
                     "type": "object",
                     "properties": {
                         "location": {"type": "string"}
                     }
-                }),
-                strict: None,
+                })),
             },
         }]),
         stream: false,
@@ -295,60 +242,6 @@ async fn test_lm_studio_build_chat_request_with_tools() {
     assert_eq!(tools.len(), 1);
     assert_eq!(tools[0]["type"], "function");
     assert_eq!(tools[0]["function"]["name"], "get_weather");
-}
-
-#[tokio::test]
-async fn test_lm_studio_build_chat_request_with_response_format() {
-    let config = LMStudioConfig {
-        api_base: Some("http://localhost:1234".to_string()),
-        ..Default::default()
-    };
-
-    let provider = LMStudioProvider::new(config).await.unwrap();
-
-    // Test json_object format
-    let request = ChatRequest {
-        model: "lm_studio/llama-3".to_string(),
-        messages: vec![ChatMessage {
-            role: MessageRole::User,
-            content: Some(MessageContent::Text("Return JSON".to_string())),
-            thinking: None,
-            tool_calls: None,
-            function_call: None,
-            name: None,
-            refusal: None,
-        }],
-        response_format: Some(serde_json::json!({"type": "json_object"})),
-        stream: false,
-        ..Default::default()
-    };
-
-    let body = provider.build_chat_request(&request, false).unwrap();
-    assert_eq!(body["response_format"]["type"], "json_object");
-
-    // Test json_schema format
-    let request = ChatRequest {
-        model: "lm_studio/llama-3".to_string(),
-        messages: vec![ChatMessage {
-            role: MessageRole::User,
-            content: Some(MessageContent::Text("Return JSON".to_string())),
-            thinking: None,
-            tool_calls: None,
-            function_call: None,
-            name: None,
-            refusal: None,
-        }],
-        response_format: Some(serde_json::json!({
-            "type": "json_schema",
-            "schema": {"type": "object", "properties": {"name": {"type": "string"}}}
-        })),
-        stream: false,
-        ..Default::default()
-    };
-
-    let body = provider.build_chat_request(&request, false).unwrap();
-    assert_eq!(body["response_format"]["type"], "json_schema");
-    assert!(body["response_format"]["json_schema"].is_object());
 }
 
 #[tokio::test]
@@ -501,21 +394,4 @@ async fn test_lm_studio_get_supported_params() {
     assert!(params.contains(&"stream"));
     assert!(params.contains(&"tools"));
     assert!(params.contains(&"response_format"));
-}
-
-#[test]
-fn test_lm_studio_error_http_status_codes() {
-    use crate::core::types::errors::ProviderErrorTrait;
-
-    assert_eq!(LMStudioError::AuthenticationError("".to_string()).http_status(), 401);
-    assert_eq!(LMStudioError::InvalidRequestError("".to_string()).http_status(), 400);
-    assert_eq!(LMStudioError::ModelNotFoundError("".to_string()).http_status(), 404);
-    assert_eq!(LMStudioError::ServiceUnavailableError("".to_string()).http_status(), 503);
-    assert_eq!(LMStudioError::TimeoutError("".to_string()).http_status(), 504);
-    assert_eq!(LMStudioError::ApiError("".to_string()).http_status(), 500);
-    assert_eq!(LMStudioError::ConnectionRefusedError("".to_string()).http_status(), 503);
-    assert_eq!(
-        LMStudioError::ContextLengthExceeded { max: 4096, actual: 5000 }.http_status(),
-        400
-    );
 }

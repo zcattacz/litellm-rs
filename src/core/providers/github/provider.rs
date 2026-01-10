@@ -11,11 +11,12 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::GitHubConfig;
-use super::error::{GitHubError, GitHubErrorMapper};
+use super::error::GitHubError;
 use super::model_info::{get_available_models, get_model_info};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{
-    ProviderConfig as _, error_mapper::trait_def::ErrorMapper,
+    ProviderConfig as _,
     provider::llm_provider::trait_definition::LLMProvider,
 };
 use crate::core::types::{
@@ -43,11 +44,11 @@ impl GitHubProvider {
     /// Create a new GitHub provider instance
     pub async fn new(config: GitHubConfig) -> Result<Self, GitHubError> {
         // Validate configuration
-        config.validate().map_err(GitHubError::ConfigurationError)?;
+        config.validate().map_err(|e| ProviderError::configuration("github", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            GitHubError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration("github", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list from static configuration
@@ -117,22 +118,29 @@ impl GitHubProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| GitHubError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("github", e.to_string()))?;
 
         let status = response.status();
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| GitHubError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("github", e.to_string()))?;
 
         if !status.is_success() {
             let body_str = String::from_utf8_lossy(&response_bytes);
-            let mapper = GitHubErrorMapper;
-            return Err(mapper.map_http_error(status.as_u16(), &body_str));
+            let status_code = status.as_u16();
+            return Err(match status_code {
+                401 => ProviderError::authentication("github", "Invalid API key"),
+                404 => ProviderError::model_not_found("github", body_str.to_string()),
+                429 => ProviderError::rate_limit("github", None),
+                400 => ProviderError::invalid_request("github", body_str.to_string()),
+                500..=599 => ProviderError::provider_unavailable("github", body_str.to_string()),
+                _ => ProviderError::api_error("github", status_code, body_str.to_string()),
+            });
         }
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| GitHubError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("github", 500, format!("Failed to parse response: {}", e)))
     }
 }
 
@@ -140,7 +148,7 @@ impl GitHubProvider {
 impl LLMProvider for GitHubProvider {
     type Config = GitHubConfig;
     type Error = GitHubError;
-    type ErrorMapper = GitHubErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "github"
@@ -191,7 +199,7 @@ impl LLMProvider for GitHubProvider {
         _context: RequestContext,
     ) -> Result<serde_json::Value, Self::Error> {
         // Convert to JSON value - GitHub Models is OpenAI-compatible
-        serde_json::to_value(&request).map_err(|e| GitHubError::InvalidRequestError(e.to_string()))
+        serde_json::to_value(&request).map_err(|e| ProviderError::invalid_request("github", e.to_string()))
     }
 
     async fn transform_response(
@@ -202,13 +210,13 @@ impl LLMProvider for GitHubProvider {
     ) -> Result<ChatResponse, Self::Error> {
         // Parse response - GitHub Models uses OpenAI format
         let chat_response: ChatResponse = serde_json::from_slice(raw_response)
-            .map_err(|e| GitHubError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| ProviderError::api_error("github", 500, format!("Failed to parse response: {}", e)))?;
 
         Ok(chat_response)
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        GitHubErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -220,14 +228,14 @@ impl LLMProvider for GitHubProvider {
 
         // Transform and execute
         let request_json = serde_json::to_value(&request)
-            .map_err(|e| GitHubError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("github", e.to_string()))?;
 
         let response = self
             .execute_request("/chat/completions", request_json)
             .await?;
 
         serde_json::from_value(response)
-            .map_err(|e| GitHubError::ApiError(format!("Failed to parse chat response: {}", e)))
+            .map_err(|e| ProviderError::api_error("github", 500, format!("Failed to parse chat response: {}", e)))
     }
 
     async fn chat_completion_stream(
@@ -242,7 +250,7 @@ impl LLMProvider for GitHubProvider {
         let api_key = self
             .config
             .get_api_key()
-            .ok_or_else(|| GitHubError::AuthenticationError("API key is required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("github", "API key is required"))?;
 
         // Create streaming request
         let mut stream_request = request.clone();
@@ -258,19 +266,20 @@ impl LLMProvider for GitHubProvider {
             .json(&stream_request)
             .send()
             .await
-            .map_err(|e| GitHubError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("github", e.to_string()))?;
 
         // Check status
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.ok();
+            let body_str = body.unwrap_or_else(|| "Unknown error".to_string());
             return Err(match status {
-                400 => GitHubError::InvalidRequestError(
-                    body.unwrap_or_else(|| "Bad request".to_string()),
-                ),
-                401 => GitHubError::AuthenticationError("Invalid API key".to_string()),
-                429 => GitHubError::RateLimitError("Rate limit exceeded".to_string()),
-                _ => GitHubError::StreamingError(format!("Stream request failed: {}", status)),
+                401 => ProviderError::authentication("github", "Invalid API key"),
+                404 => ProviderError::model_not_found("github", body_str.clone()),
+                429 => ProviderError::rate_limit("github", None),
+                400 => ProviderError::invalid_request("github", body_str.clone()),
+                500..=599 => ProviderError::provider_unavailable("github", body_str.clone()),
+                _ => ProviderError::api_error("github", status, body_str),
             });
         }
 
@@ -284,8 +293,9 @@ impl LLMProvider for GitHubProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(GitHubError::InvalidRequestError(
-            "GitHub Models does not support embeddings endpoint directly. Use a specific embedding model.".to_string(),
+        Err(ProviderError::not_supported(
+            "github",
+            "GitHub Models does not support embeddings endpoint directly. Use a specific embedding model.",
         ))
     }
 
@@ -314,7 +324,7 @@ impl LLMProvider for GitHubProvider {
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
         let model_info = get_model_info(model)
-            .ok_or_else(|| GitHubError::ModelNotFoundError(format!("Unknown model: {}", model)))?;
+            .ok_or_else(|| ProviderError::model_not_found("github", format!("Unknown model: {}", model)))?;
 
         let input_cost = (input_tokens as f64) * (model_info.input_cost_per_million / 1_000_000.0);
         let output_cost =
@@ -353,10 +363,11 @@ impl GitHubStream {
 
             match serde_json::from_str::<ChatChunk>(data) {
                 Ok(chunk) => Some(Ok(chunk)),
-                Err(e) => Some(Err(GitHubError::StreamingError(format!(
-                    "Failed to parse chunk: {}",
-                    e
-                )))),
+                Err(e) => Some(Err(ProviderError::api_error(
+                    "github",
+                    500,
+                    format!("Failed to parse chunk: {}", e),
+                ))),
             }
         } else {
             None
@@ -389,7 +400,8 @@ impl Stream for GitHubStream {
                     self.buffer.push_str(&String::from_utf8_lossy(&bytes));
                 }
                 std::task::Poll::Ready(Some(Err(e))) => {
-                    return std::task::Poll::Ready(Some(Err(GitHubError::NetworkError(
+                    return std::task::Poll::Ready(Some(Err(ProviderError::network(
+                        "github",
                         e.to_string(),
                     ))));
                 }

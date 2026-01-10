@@ -12,6 +12,7 @@ use tracing::{debug, warn};
 
 use super::config::GitHubCopilotConfig;
 use super::error::GitHubCopilotError;
+use crate::core::providers::unified_provider::ProviderError;
 
 /// GitHub OAuth client ID for Copilot
 const GITHUB_CLIENT_ID: &str = "Iv1.b507a08c87ecfe98";
@@ -90,7 +91,7 @@ impl CopilotAuthenticator {
     fn ensure_token_dir(&self) -> Result<(), GitHubCopilotError> {
         if !self.token_dir.exists() {
             fs::create_dir_all(&self.token_dir).map_err(|e| {
-                GitHubCopilotError::ConfigurationError(format!(
+                ProviderError::configuration("github_copilot", format!(
                     "Failed to create token directory: {}",
                     e
                 ))
@@ -127,16 +128,18 @@ impl CopilotAuthenticator {
                 Err(e) => {
                     warn!("Device flow attempt {} failed: {}", attempt, e);
                     if attempt == 3 {
-                        return Err(GitHubCopilotError::AccessTokenError(
-                            "Failed to get access token after 3 attempts".to_string(),
+                        return Err(ProviderError::authentication(
+                            "github_copilot",
+                            "Access token error: Failed to get access token after 3 attempts",
                         ));
                     }
                 }
             }
         }
 
-        Err(GitHubCopilotError::AccessTokenError(
-            "Failed to get access token".to_string(),
+        Err(ProviderError::authentication(
+            "github_copilot",
+            "Access token error: Failed to get access token",
         ))
     }
 
@@ -186,7 +189,7 @@ impl CopilotAuthenticator {
                 .send()
                 .await
                 .map_err(|e| {
-                    GitHubCopilotError::RefreshApiKeyError(format!("HTTP error: {}", e))
+                    ProviderError::authentication("github_copilot", format!("Refresh error: HTTP error: {}", e))
                 })?;
 
             if !response.status().is_success() {
@@ -196,15 +199,16 @@ impl CopilotAuthenticator {
                     response.status()
                 );
                 if attempt == 3 {
-                    return Err(GitHubCopilotError::RefreshApiKeyError(
-                        "Failed to refresh API key after 3 attempts".to_string(),
+                    return Err(ProviderError::authentication(
+                        "github_copilot",
+                        "Refresh error: Failed to refresh API key after 3 attempts",
                     ));
                 }
                 continue;
             }
 
             let api_key_info: ApiKeyInfo = response.json().await.map_err(|e| {
-                GitHubCopilotError::RefreshApiKeyError(format!("Failed to parse response: {}", e))
+                ProviderError::authentication("github_copilot", format!("Refresh error: Failed to parse response: {}", e))
             })?;
 
             // Save to cache
@@ -218,8 +222,9 @@ impl CopilotAuthenticator {
             return Ok(api_key_info.token);
         }
 
-        Err(GitHubCopilotError::RefreshApiKeyError(
-            "Failed to refresh API key".to_string(),
+        Err(ProviderError::authentication(
+            "github_copilot",
+            "Refresh error: Failed to refresh API key",
         ))
     }
 
@@ -238,17 +243,17 @@ impl CopilotAuthenticator {
             }))
             .send()
             .await
-            .map_err(|e| GitHubCopilotError::DeviceCodeError(format!("HTTP error: {}", e)))?;
+            .map_err(|e| ProviderError::authentication("github_copilot", format!("Device code error: HTTP error: {}", e)))?;
 
         if !response.status().is_success() {
-            return Err(GitHubCopilotError::DeviceCodeError(format!(
-                "Failed to get device code: {}",
+            return Err(ProviderError::authentication("github_copilot", format!(
+                "Device code error: Failed to get device code: {}",
                 response.status()
             )));
         }
 
         let device_code_response: DeviceCodeResponse = response.json().await.map_err(|e| {
-            GitHubCopilotError::DeviceCodeError(format!("Failed to parse response: {}", e))
+            ProviderError::authentication("github_copilot", format!("Device code error: Failed to parse response: {}", e))
         })?;
 
         // Print user instructions
@@ -279,10 +284,10 @@ impl CopilotAuthenticator {
                 }))
                 .send()
                 .await
-                .map_err(|e| GitHubCopilotError::AccessTokenError(format!("HTTP error: {}", e)))?;
+                .map_err(|e| ProviderError::authentication("github_copilot", format!("Access token error: HTTP error: {}", e)))?;
 
             let token_response: AccessTokenResponse = response.json().await.map_err(|e| {
-                GitHubCopilotError::AccessTokenError(format!("Failed to parse response: {}", e))
+                ProviderError::authentication("github_copilot", format!("Access token error: Failed to parse response: {}", e))
             })?;
 
             if let Some(access_token) = token_response.access_token {
@@ -292,16 +297,17 @@ impl CopilotAuthenticator {
 
             if let Some(error) = &token_response.error {
                 if error != "authorization_pending" {
-                    return Err(GitHubCopilotError::AccessTokenError(format!(
-                        "OAuth error: {}",
+                    return Err(ProviderError::authentication("github_copilot", format!(
+                        "Access token error: OAuth error: {}",
                         error
                     )));
                 }
             }
         }
 
-        Err(GitHubCopilotError::AccessTokenError(
-            "Timed out waiting for user authorization".to_string(),
+        Err(ProviderError::authentication(
+            "github_copilot",
+            "Access token error: Timed out waiting for user authorization",
         ))
     }
 

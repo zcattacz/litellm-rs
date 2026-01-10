@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::CloudflareConfig;
-use super::error::{CloudflareError, CloudflareErrorMapper};
+use super::error::CloudflareError;
 use super::model_info::{calculate_cost, get_available_models, get_model_info};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::traits::{
@@ -42,11 +42,11 @@ impl CloudflareProvider {
         // Validate configuration
         config
             .validate()
-            .map_err(CloudflareError::ConfigurationError)?;
+            .map_err(|e| CloudflareError::configuration("cloudflare", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            CloudflareError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            CloudflareError::configuration("cloudflare", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list from static configuration
@@ -106,7 +106,7 @@ impl CloudflareProvider {
         body: serde_json::Value,
     ) -> Result<serde_json::Value, CloudflareError> {
         let account_id = self.config.get_account_id().ok_or_else(|| {
-            CloudflareError::ConfigurationError("Account ID is required".to_string())
+            CloudflareError::configuration("cloudflare", "Account ID is required")
         })?;
 
         let url = format!(
@@ -126,15 +126,15 @@ impl CloudflareProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| CloudflareError::NetworkError(e.to_string()))?;
+            .map_err(|e| CloudflareError::network("cloudflare", e.to_string()))?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| CloudflareError::NetworkError(e.to_string()))?;
+            .map_err(|e| CloudflareError::network("cloudflare", e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| CloudflareError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| CloudflareError::api_error("cloudflare", 500, format!("Failed to parse response: {}", e)))
     }
 
     /// Transform OpenAI-style request to Cloudflare format
@@ -182,7 +182,7 @@ impl CloudflareProvider {
 impl LLMProvider for CloudflareProvider {
     type Config = CloudflareConfig;
     type Error = CloudflareError;
-    type ErrorMapper = CloudflareErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "cloudflare"
@@ -234,7 +234,7 @@ impl LLMProvider for CloudflareProvider {
         request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let cloudflare_response: serde_json::Value = serde_json::from_slice(raw_response)
-            .map_err(|e| CloudflareError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| CloudflareError::api_error("cloudflare", 500, format!("Failed to parse response: {}", e)))?;
 
         // Transform Cloudflare response to OpenAI format
         let content = cloudflare_response["result"]["response"]
@@ -267,7 +267,7 @@ impl LLMProvider for CloudflareProvider {
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        CloudflareErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -334,8 +334,9 @@ impl LLMProvider for CloudflareProvider {
 
         // TODO: Implement proper SSE streaming for Cloudflare
         // For now, return an error as streaming implementation needs more work
-        Err(CloudflareError::InvalidRequestError(
-            "Streaming is not yet fully implemented for Cloudflare provider".to_string(),
+        Err(CloudflareError::not_supported(
+            "cloudflare",
+            "Streaming is not yet fully implemented for Cloudflare provider",
         ))
     }
 
@@ -345,8 +346,9 @@ impl LLMProvider for CloudflareProvider {
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
         // Cloudflare also supports embeddings models, but we'll implement text generation first
-        Err(CloudflareError::InvalidRequestError(
-            "Embeddings are not yet implemented for Cloudflare provider".to_string(),
+        Err(CloudflareError::not_supported(
+            "cloudflare",
+            "Embeddings are not yet implemented for Cloudflare provider",
         ))
     }
 
@@ -385,7 +387,7 @@ impl LLMProvider for CloudflareProvider {
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
         calculate_cost(model, input_tokens, output_tokens)
-            .ok_or_else(|| CloudflareError::ModelNotFoundError(format!("Unknown model: {}", model)))
+            .ok_or_else(|| CloudflareError::model_not_found("cloudflare", model))
     }
 }
 

@@ -14,11 +14,11 @@ use tracing::debug;
 
 use super::authenticator::CopilotAuthenticator;
 use super::config::{GITHUB_COPILOT_API_BASE, GitHubCopilotConfig, get_copilot_default_headers};
-use super::error::{GitHubCopilotError, GitHubCopilotErrorMapper};
+use super::error::GitHubCopilotError;
 use super::model_info::{
     get_available_models, get_model_info, is_claude_model, supports_reasoning,
 };
-use crate::core::traits::error_mapper::trait_def::ErrorMapper;
+use crate::ProviderError;
 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
@@ -214,10 +214,10 @@ impl GitHubCopilotProvider {
         for (key, value) in default_headers {
             headers.insert(
                 reqwest::header::HeaderName::from_bytes(key.as_bytes()).map_err(|e| {
-                    GitHubCopilotError::ConfigurationError(format!("Invalid header name: {}", e))
+                    ProviderError::configuration("github_copilot", format!("Invalid header name: {}", e))
                 })?,
                 value.parse().map_err(|e| {
-                    GitHubCopilotError::ConfigurationError(format!("Invalid header value: {}", e))
+                    ProviderError::configuration("github_copilot", format!("Invalid header value: {}", e))
                 })?,
             );
         }
@@ -239,7 +239,7 @@ impl GitHubCopilotProvider {
 impl LLMProvider for GitHubCopilotProvider {
     type Config = GitHubCopilotConfig;
     type Error = GitHubCopilotError;
-    type ErrorMapper = GitHubCopilotErrorMapper;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
         "github_copilot"
@@ -338,7 +338,7 @@ impl LLMProvider for GitHubCopilotProvider {
 
         // Convert to JSON value
         serde_json::to_value(&request)
-            .map_err(|e| GitHubCopilotError::InvalidRequestError(e.to_string()))
+            .map_err(|e| ProviderError::invalid_request("github_copilot", e.to_string()))
     }
 
     async fn transform_response(
@@ -348,14 +348,14 @@ impl LLMProvider for GitHubCopilotProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let chat_response: ChatResponse = serde_json::from_slice(raw_response).map_err(|e| {
-            GitHubCopilotError::ApiError(format!("Failed to parse response: {}", e))
+            ProviderError::api_error("github_copilot", 500, format!("Failed to parse response: {}", e))
         })?;
 
         Ok(chat_response)
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        GitHubCopilotErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -383,28 +383,35 @@ impl LLMProvider for GitHubCopilotProvider {
             .json(&request)
             .send()
             .await
-            .map_err(|e| GitHubCopilotError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("github_copilot", e.to_string()))?;
 
         let status = response.status();
         let body = response
             .bytes()
             .await
-            .map_err(|e| GitHubCopilotError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("github_copilot", e.to_string()))?;
 
         if !status.is_success() {
             let body_str = String::from_utf8_lossy(&body);
-            let mapper = GitHubCopilotErrorMapper;
+            let status_code = status.as_u16();
 
             // Clear cache on auth errors
-            if status.as_u16() == 401 {
+            if status_code == 401 {
                 self.clear_cache().await;
             }
 
-            return Err(mapper.map_http_error(status.as_u16(), &body_str));
+            return Err(match status_code {
+                401 => ProviderError::authentication("github_copilot", "Invalid API key or token"),
+                404 => ProviderError::model_not_found("github_copilot", body_str.to_string()),
+                429 => ProviderError::rate_limit("github_copilot", None),
+                400 => ProviderError::invalid_request("github_copilot", body_str.to_string()),
+                500..=599 => ProviderError::provider_unavailable("github_copilot", body_str.to_string()),
+                _ => ProviderError::api_error("github_copilot", status_code, body_str.to_string()),
+            });
         }
 
         serde_json::from_slice(&body)
-            .map_err(|e| GitHubCopilotError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("github_copilot", 500, format!("Failed to parse response: {}", e)))
     }
 
     async fn chat_completion_stream(
@@ -436,11 +443,12 @@ impl LLMProvider for GitHubCopilotProvider {
             .json(&request)
             .send()
             .await
-            .map_err(|e| GitHubCopilotError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("github_copilot", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.ok();
+            let body_str = body.unwrap_or_else(|| "Unknown error".to_string());
 
             // Clear cache on auth errors
             if status == 401 {
@@ -448,16 +456,12 @@ impl LLMProvider for GitHubCopilotProvider {
             }
 
             return Err(match status {
-                400 => GitHubCopilotError::InvalidRequestError(
-                    body.unwrap_or_else(|| "Bad request".to_string()),
-                ),
-                401 => GitHubCopilotError::AuthenticationError(
-                    "Invalid or expired API key".to_string(),
-                ),
-                429 => GitHubCopilotError::RateLimitError("Rate limit exceeded".to_string()),
-                _ => {
-                    GitHubCopilotError::StreamingError(format!("Stream request failed: {}", status))
-                }
+                401 => ProviderError::authentication("github_copilot", "Invalid API key or token"),
+                404 => ProviderError::model_not_found("github_copilot", body_str.clone()),
+                429 => ProviderError::rate_limit("github_copilot", None),
+                400 => ProviderError::invalid_request("github_copilot", body_str.clone()),
+                500..=599 => ProviderError::provider_unavailable("github_copilot", body_str.clone()),
+                _ => ProviderError::api_error("github_copilot", status, body_str),
             });
         }
 
@@ -498,22 +502,29 @@ impl LLMProvider for GitHubCopilotProvider {
             .json(&request)
             .send()
             .await
-            .map_err(|e| GitHubCopilotError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("github_copilot", e.to_string()))?;
 
         let status = response.status();
         let body = response
             .bytes()
             .await
-            .map_err(|e| GitHubCopilotError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("github_copilot", e.to_string()))?;
 
         if !status.is_success() {
             let body_str = String::from_utf8_lossy(&body);
-            let mapper = GitHubCopilotErrorMapper;
-            return Err(mapper.map_http_error(status.as_u16(), &body_str));
+            let status_code = status.as_u16();
+            return Err(match status_code {
+                401 => ProviderError::authentication("github_copilot", "Invalid API key or token"),
+                404 => ProviderError::model_not_found("github_copilot", body_str.to_string()),
+                429 => ProviderError::rate_limit("github_copilot", None),
+                400 => ProviderError::invalid_request("github_copilot", body_str.to_string()),
+                500..=599 => ProviderError::provider_unavailable("github_copilot", body_str.to_string()),
+                _ => ProviderError::api_error("github_copilot", status_code, body_str.to_string()),
+            });
         }
 
         serde_json::from_slice(&body)
-            .map_err(|e| GitHubCopilotError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("github_copilot", 500, format!("Failed to parse response: {}", e)))
     }
 
     async fn health_check(&self) -> HealthStatus {
@@ -564,10 +575,11 @@ impl GitHubCopilotStream {
 
             match serde_json::from_str::<ChatChunk>(data) {
                 Ok(chunk) => Some(Ok(chunk)),
-                Err(e) => Some(Err(GitHubCopilotError::StreamingError(format!(
-                    "Failed to parse chunk: {}",
-                    e
-                )))),
+                Err(e) => Some(Err(ProviderError::api_error(
+                    "github_copilot",
+                    500,
+                    format!("Failed to parse chunk: {}", e),
+                ))),
             }
         } else {
             None
@@ -600,7 +612,8 @@ impl Stream for GitHubCopilotStream {
                     self.buffer.push_str(&String::from_utf8_lossy(&bytes));
                 }
                 std::task::Poll::Ready(Some(Err(e))) => {
-                    return std::task::Poll::Ready(Some(Err(GitHubCopilotError::NetworkError(
+                    return std::task::Poll::Ready(Some(Err(ProviderError::network(
+                        "github_copilot",
                         e.to_string(),
                     ))));
                 }

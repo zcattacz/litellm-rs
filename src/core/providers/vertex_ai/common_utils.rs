@@ -1,9 +1,9 @@
 //! Common utilities for Vertex AI
 
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::error::VertexAIError;
 use super::models::VertexAIModel;
 
 /// Vertex AI configuration
@@ -244,24 +244,24 @@ pub fn validate_parameters(
     temperature: Option<f32>,
     top_p: Option<f32>,
     max_tokens: Option<usize>,
-) -> Result<(), VertexAIError> {
+) -> Result<(), ProviderError> {
     // Validate temperature
     if let Some(temp) = temperature {
         if !(0.0..=2.0).contains(&temp) {
-            return Err(VertexAIError::InvalidRequest(format!(
-                "Temperature must be between 0.0 and 2.0, got {}",
-                temp
-            )));
+            return Err(ProviderError::invalid_request(
+                "vertex_ai",
+                format!("Temperature must be between 0.0 and 2.0, got {}", temp),
+            ));
         }
     }
 
     // Validate top_p
     if let Some(p) = top_p {
         if !(0.0..=1.0).contains(&p) {
-            return Err(VertexAIError::InvalidRequest(format!(
-                "Top-p must be between 0.0 and 1.0, got {}",
-                p
-            )));
+            return Err(ProviderError::invalid_request(
+                "vertex_ai",
+                format!("Top-p must be between 0.0 and 1.0, got {}", p),
+            ));
         }
     }
 
@@ -269,10 +269,11 @@ pub fn validate_parameters(
     if let Some(max) = max_tokens {
         let model_max = model.max_context_tokens();
         if max > model_max {
-            return Err(VertexAIError::ContextLengthExceeded {
-                max: model_max,
-                actual: max,
-            });
+            return Err(ProviderError::context_length_exceeded(
+                "vertex_ai",
+                model_max,
+                max,
+            ));
         }
     }
 

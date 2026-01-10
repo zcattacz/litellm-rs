@@ -1,10 +1,9 @@
 //! Vertex AI Fine-tuning Module
 
+use crate::ProviderError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-
-use super::error::VertexAIError;
 
 /// Fine-tuning job
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -191,7 +190,7 @@ impl FineTuningHandler {
     pub async fn create_tuning_job(
         &self,
         request: CreateFineTuningJobRequest,
-    ) -> Result<FineTuningJob, VertexAIError> {
+    ) -> Result<FineTuningJob, ProviderError> {
         // Validate request
         self.validate_tuning_request(&request)?;
 
@@ -236,10 +235,11 @@ impl FineTuningHandler {
     }
 
     /// Get fine-tuning job status
-    pub async fn get_tuning_job(&self, _job_id: &str) -> Result<FineTuningJob, VertexAIError> {
+    pub async fn get_tuning_job(&self, _job_id: &str) -> Result<FineTuningJob, ProviderError> {
         // TODO: Implement actual job retrieval
-        Err(VertexAIError::UnsupportedFeature(
-            "Fine-tuning job retrieval not yet implemented".to_string(),
+        Err(ProviderError::not_supported(
+            "vertex_ai",
+            "Fine-tuning job retrieval not yet implemented",
         ))
     }
 
@@ -249,7 +249,7 @@ impl FineTuningHandler {
         _filter: Option<String>,
         _page_size: Option<i32>,
         _page_token: Option<String>,
-    ) -> Result<ListFineTuningJobsResponse, VertexAIError> {
+    ) -> Result<ListFineTuningJobsResponse, ProviderError> {
         // TODO: Implement actual job listing
         Ok(ListFineTuningJobsResponse {
             tuning_jobs: Vec::new(),
@@ -258,13 +258,13 @@ impl FineTuningHandler {
     }
 
     /// Cancel a fine-tuning job
-    pub async fn cancel_tuning_job(&self, _job_id: &str) -> Result<(), VertexAIError> {
+    pub async fn cancel_tuning_job(&self, _job_id: &str) -> Result<(), ProviderError> {
         // TODO: Implement actual job cancellation
         Ok(())
     }
 
     /// Delete a fine-tuning job
-    pub async fn delete_tuning_job(&self, _job_id: &str) -> Result<(), VertexAIError> {
+    pub async fn delete_tuning_job(&self, _job_id: &str) -> Result<(), ProviderError> {
         // TODO: Implement actual job deletion
         Ok(())
     }
@@ -273,35 +273,38 @@ impl FineTuningHandler {
     fn validate_tuning_request(
         &self,
         request: &CreateFineTuningJobRequest,
-    ) -> Result<(), VertexAIError> {
+    ) -> Result<(), ProviderError> {
         // Check if base model supports fine-tuning
         if !self.is_tunable_model(&request.base_model) {
-            return Err(VertexAIError::InvalidRequest(format!(
-                "Model {} does not support fine-tuning",
-                request.base_model
-            )));
+            return Err(ProviderError::invalid_request(
+                "vertex_ai",
+                format!("Model {} does not support fine-tuning", request.base_model),
+            ));
         }
 
         // Validate dataset URI
         if !request.training_dataset_uri.starts_with("gs://") {
-            return Err(VertexAIError::InvalidRequest(
-                "Training dataset must be a GCS URI (gs://)".to_string(),
+            return Err(ProviderError::invalid_request(
+                "vertex_ai",
+                "Training dataset must be a GCS URI (gs://)",
             ));
         }
 
         // Validate hyperparameters
         if let Some(epochs) = request.epoch_count {
             if !(1..=100).contains(&epochs) {
-                return Err(VertexAIError::InvalidRequest(
-                    "Epoch count must be between 1 and 100".to_string(),
+                return Err(ProviderError::invalid_request(
+                    "vertex_ai",
+                    "Epoch count must be between 1 and 100",
                 ));
             }
         }
 
         if let Some(lr_mult) = request.learning_rate_multiplier {
             if lr_mult <= 0.0 || lr_mult > 10.0 {
-                return Err(VertexAIError::InvalidRequest(
-                    "Learning rate multiplier must be between 0 and 10".to_string(),
+                return Err(ProviderError::invalid_request(
+                    "vertex_ai",
+                    "Learning rate multiplier must be between 0 and 10",
                 ));
             }
         }

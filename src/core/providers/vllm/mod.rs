@@ -19,6 +19,6 @@ mod tests;
 
 // Re-export main types for external use
 pub use config::VLLMConfig;
-pub use error::{VLLMError, VLLMErrorMapper};
+pub use error::VLLMError;
 pub use model_info::{VLLMModelInfo, get_model_info};
 pub use provider::VLLMProvider;
