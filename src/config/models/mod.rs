@@ -5,6 +5,7 @@
 #![allow(missing_docs)]
 
 pub mod auth;
+pub mod budget;
 pub mod cache;
 pub mod enterprise;
 pub mod file_storage;
@@ -18,6 +19,7 @@ pub mod storage;
 
 // Re-export all configuration types
 pub use auth::*;
+pub use budget::*;
 pub use cache::*;
 pub use enterprise::*;
 pub use file_storage::*;

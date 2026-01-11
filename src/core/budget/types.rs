@@ -484,6 +484,306 @@ impl BudgetCheckResult {
     }
 }
 
+/// Provider-specific budget configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderBudget {
+    /// Provider name (e.g., "openai", "anthropic")
+    pub provider_name: String,
+    /// Maximum budget for this provider
+    pub max_budget: f64,
+    /// Current spend amount
+    pub current_spend: f64,
+    /// Soft limit (warning threshold)
+    pub soft_limit: f64,
+    /// Reset period for the budget
+    pub reset_period: ResetPeriod,
+    /// Currency for budget amounts
+    pub currency: Currency,
+    /// Whether the budget is enabled
+    pub enabled: bool,
+    /// When the budget was created
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    /// When the budget was last updated
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    /// When the budget was last reset
+    pub last_reset_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+impl ProviderBudget {
+    /// Create a new provider budget
+    pub fn new(provider_name: impl Into<String>, max_budget: f64) -> Self {
+        let now = chrono::Utc::now();
+        let soft_limit = max_budget * 0.8;
+
+        Self {
+            provider_name: provider_name.into(),
+            max_budget,
+            current_spend: 0.0,
+            soft_limit,
+            reset_period: ResetPeriod::default(),
+            currency: Currency::default(),
+            enabled: true,
+            created_at: now,
+            updated_at: now,
+            last_reset_at: Some(now),
+        }
+    }
+
+    /// Get the current budget status
+    pub fn status(&self) -> BudgetStatus {
+        if self.current_spend >= self.max_budget {
+            BudgetStatus::Exceeded
+        } else if self.current_spend >= self.soft_limit {
+            BudgetStatus::Warning
+        } else {
+            BudgetStatus::Ok
+        }
+    }
+
+    /// Get remaining budget
+    pub fn remaining(&self) -> f64 {
+        (self.max_budget - self.current_spend).max(0.0)
+    }
+
+    /// Get usage percentage
+    pub fn usage_percentage(&self) -> f64 {
+        if self.max_budget <= 0.0 {
+            return 0.0;
+        }
+        (self.current_spend / self.max_budget) * 100.0
+    }
+
+    /// Check if the budget allows spending
+    pub fn can_spend(&self, amount: f64) -> bool {
+        if !self.enabled {
+            return true;
+        }
+        self.current_spend + amount <= self.max_budget
+    }
+
+    /// Record a spend amount
+    pub fn record_spend(&mut self, amount: f64) {
+        self.current_spend += amount;
+        self.updated_at = chrono::Utc::now();
+    }
+
+    /// Reset the budget
+    pub fn reset(&mut self) {
+        self.current_spend = 0.0;
+        let now = chrono::Utc::now();
+        self.last_reset_at = Some(now);
+        self.updated_at = now;
+    }
+
+    /// Check if the budget should be reset
+    pub fn should_reset(&self) -> bool {
+        let now = chrono::Utc::now();
+
+        match self.reset_period {
+            ResetPeriod::Never => false,
+            ResetPeriod::Daily => {
+                if let Some(last_reset) = self.last_reset_at {
+                    now.date_naive() > last_reset.date_naive()
+                } else {
+                    true
+                }
+            }
+            ResetPeriod::Weekly => {
+                if let Some(last_reset) = self.last_reset_at {
+                    let last_week = last_reset.iso_week();
+                    let current_week = now.iso_week();
+                    current_week.year() > last_week.year()
+                        || (current_week.year() == last_week.year()
+                            && current_week.week() > last_week.week())
+                } else {
+                    true
+                }
+            }
+            ResetPeriod::Monthly => {
+                if let Some(last_reset) = self.last_reset_at {
+                    now.year() > last_reset.year()
+                        || (now.year() == last_reset.year() && now.month() > last_reset.month())
+                } else {
+                    true
+                }
+            }
+        }
+    }
+}
+
+/// Model-specific budget configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelBudget {
+    /// Model name (e.g., "gpt-4", "claude-3-opus")
+    pub model_name: String,
+    /// Maximum budget for this model
+    pub max_budget: f64,
+    /// Current spend amount
+    pub current_spend: f64,
+    /// Soft limit (warning threshold)
+    pub soft_limit: f64,
+    /// Reset period for the budget
+    pub reset_period: ResetPeriod,
+    /// Currency for budget amounts
+    pub currency: Currency,
+    /// Whether the budget is enabled
+    pub enabled: bool,
+    /// When the budget was created
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    /// When the budget was last updated
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    /// When the budget was last reset
+    pub last_reset_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+impl ModelBudget {
+    /// Create a new model budget
+    pub fn new(model_name: impl Into<String>, max_budget: f64) -> Self {
+        let now = chrono::Utc::now();
+        let soft_limit = max_budget * 0.8;
+
+        Self {
+            model_name: model_name.into(),
+            max_budget,
+            current_spend: 0.0,
+            soft_limit,
+            reset_period: ResetPeriod::default(),
+            currency: Currency::default(),
+            enabled: true,
+            created_at: now,
+            updated_at: now,
+            last_reset_at: Some(now),
+        }
+    }
+
+    /// Get the current budget status
+    pub fn status(&self) -> BudgetStatus {
+        if self.current_spend >= self.max_budget {
+            BudgetStatus::Exceeded
+        } else if self.current_spend >= self.soft_limit {
+            BudgetStatus::Warning
+        } else {
+            BudgetStatus::Ok
+        }
+    }
+
+    /// Get remaining budget
+    pub fn remaining(&self) -> f64 {
+        (self.max_budget - self.current_spend).max(0.0)
+    }
+
+    /// Get usage percentage
+    pub fn usage_percentage(&self) -> f64 {
+        if self.max_budget <= 0.0 {
+            return 0.0;
+        }
+        (self.current_spend / self.max_budget) * 100.0
+    }
+
+    /// Check if the budget allows spending
+    pub fn can_spend(&self, amount: f64) -> bool {
+        if !self.enabled {
+            return true;
+        }
+        self.current_spend + amount <= self.max_budget
+    }
+
+    /// Record a spend amount
+    pub fn record_spend(&mut self, amount: f64) {
+        self.current_spend += amount;
+        self.updated_at = chrono::Utc::now();
+    }
+
+    /// Reset the budget
+    pub fn reset(&mut self) {
+        self.current_spend = 0.0;
+        let now = chrono::Utc::now();
+        self.last_reset_at = Some(now);
+        self.updated_at = now;
+    }
+
+    /// Check if the budget should be reset
+    pub fn should_reset(&self) -> bool {
+        let now = chrono::Utc::now();
+
+        match self.reset_period {
+            ResetPeriod::Never => false,
+            ResetPeriod::Daily => {
+                if let Some(last_reset) = self.last_reset_at {
+                    now.date_naive() > last_reset.date_naive()
+                } else {
+                    true
+                }
+            }
+            ResetPeriod::Weekly => {
+                if let Some(last_reset) = self.last_reset_at {
+                    let last_week = last_reset.iso_week();
+                    let current_week = now.iso_week();
+                    current_week.year() > last_week.year()
+                        || (current_week.year() == last_week.year()
+                            && current_week.week() > last_week.week())
+                } else {
+                    true
+                }
+            }
+            ResetPeriod::Monthly => {
+                if let Some(last_reset) = self.last_reset_at {
+                    now.year() > last_reset.year()
+                        || (now.year() == last_reset.year() && now.month() > last_reset.month())
+                } else {
+                    true
+                }
+            }
+        }
+    }
+}
+
+/// Provider usage statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderUsageStats {
+    /// Provider name
+    pub provider_name: String,
+    /// Current spend
+    pub current_spend: f64,
+    /// Maximum budget
+    pub max_budget: f64,
+    /// Remaining budget
+    pub remaining: f64,
+    /// Usage percentage
+    pub usage_percentage: f64,
+    /// Budget status
+    pub status: BudgetStatus,
+    /// Reset period
+    pub reset_period: ResetPeriod,
+    /// Last reset time
+    pub last_reset_at: Option<chrono::DateTime<chrono::Utc>>,
+    /// Number of requests made
+    pub request_count: u64,
+}
+
+/// Model usage statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelUsageStats {
+    /// Model name
+    pub model_name: String,
+    /// Current spend
+    pub current_spend: f64,
+    /// Maximum budget
+    pub max_budget: f64,
+    /// Remaining budget
+    pub remaining: f64,
+    /// Usage percentage
+    pub usage_percentage: f64,
+    /// Budget status
+    pub status: BudgetStatus,
+    /// Reset period
+    pub reset_period: ResetPeriod,
+    /// Last reset time
+    pub last_reset_at: Option<chrono::DateTime<chrono::Utc>>,
+    /// Number of requests made
+    pub request_count: u64,
+}
+
 /// Configuration for creating or updating a budget
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BudgetConfig {
@@ -761,5 +1061,184 @@ mod tests {
 
         // Disabled budget should allow any spend
         assert!(budget.can_spend(1000.0));
+    }
+
+    // Tests for ProviderBudget
+    #[test]
+    fn test_provider_budget_creation() {
+        let budget = ProviderBudget::new("openai", 1000.0);
+
+        assert_eq!(budget.provider_name, "openai");
+        assert_eq!(budget.max_budget, 1000.0);
+        assert_eq!(budget.soft_limit, 800.0);
+        assert_eq!(budget.current_spend, 0.0);
+        assert!(budget.enabled);
+    }
+
+    #[test]
+    fn test_provider_budget_status() {
+        let mut budget = ProviderBudget::new("openai", 100.0);
+
+        assert_eq!(budget.status(), BudgetStatus::Ok);
+
+        budget.current_spend = 79.0;
+        assert_eq!(budget.status(), BudgetStatus::Ok);
+
+        budget.current_spend = 80.0;
+        assert_eq!(budget.status(), BudgetStatus::Warning);
+
+        budget.current_spend = 100.0;
+        assert_eq!(budget.status(), BudgetStatus::Exceeded);
+    }
+
+    #[test]
+    fn test_provider_budget_can_spend() {
+        let mut budget = ProviderBudget::new("openai", 100.0);
+
+        assert!(budget.can_spend(50.0));
+        assert!(budget.can_spend(100.0));
+        assert!(!budget.can_spend(101.0));
+
+        budget.current_spend = 90.0;
+        assert!(budget.can_spend(10.0));
+        assert!(!budget.can_spend(11.0));
+    }
+
+    #[test]
+    fn test_provider_budget_record_spend() {
+        let mut budget = ProviderBudget::new("openai", 100.0);
+
+        budget.record_spend(25.0);
+        assert_eq!(budget.current_spend, 25.0);
+
+        budget.record_spend(25.0);
+        assert_eq!(budget.current_spend, 50.0);
+    }
+
+    #[test]
+    fn test_provider_budget_reset() {
+        let mut budget = ProviderBudget::new("openai", 100.0);
+        budget.current_spend = 75.0;
+
+        budget.reset();
+        assert_eq!(budget.current_spend, 0.0);
+        assert!(budget.last_reset_at.is_some());
+    }
+
+    #[test]
+    fn test_provider_budget_remaining() {
+        let mut budget = ProviderBudget::new("openai", 100.0);
+
+        assert_eq!(budget.remaining(), 100.0);
+
+        budget.current_spend = 30.0;
+        assert_eq!(budget.remaining(), 70.0);
+
+        budget.current_spend = 150.0;
+        assert_eq!(budget.remaining(), 0.0);
+    }
+
+    #[test]
+    fn test_provider_budget_usage_percentage() {
+        let mut budget = ProviderBudget::new("openai", 100.0);
+
+        assert_eq!(budget.usage_percentage(), 0.0);
+
+        budget.current_spend = 50.0;
+        assert!((budget.usage_percentage() - 50.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_provider_budget_disabled() {
+        let mut budget = ProviderBudget::new("openai", 100.0);
+        budget.enabled = false;
+        budget.current_spend = 150.0;
+
+        assert!(budget.can_spend(1000.0));
+    }
+
+    // Tests for ModelBudget
+    #[test]
+    fn test_model_budget_creation() {
+        let budget = ModelBudget::new("gpt-4", 500.0);
+
+        assert_eq!(budget.model_name, "gpt-4");
+        assert_eq!(budget.max_budget, 500.0);
+        assert_eq!(budget.soft_limit, 400.0);
+        assert_eq!(budget.current_spend, 0.0);
+        assert!(budget.enabled);
+    }
+
+    #[test]
+    fn test_model_budget_status() {
+        let mut budget = ModelBudget::new("gpt-4", 100.0);
+
+        assert_eq!(budget.status(), BudgetStatus::Ok);
+
+        budget.current_spend = 80.0;
+        assert_eq!(budget.status(), BudgetStatus::Warning);
+
+        budget.current_spend = 100.0;
+        assert_eq!(budget.status(), BudgetStatus::Exceeded);
+    }
+
+    #[test]
+    fn test_model_budget_can_spend() {
+        let mut budget = ModelBudget::new("gpt-4", 100.0);
+
+        assert!(budget.can_spend(50.0));
+        assert!(!budget.can_spend(101.0));
+
+        budget.current_spend = 90.0;
+        assert!(budget.can_spend(10.0));
+        assert!(!budget.can_spend(11.0));
+    }
+
+    #[test]
+    fn test_model_budget_record_spend() {
+        let mut budget = ModelBudget::new("gpt-4", 100.0);
+
+        budget.record_spend(25.0);
+        assert_eq!(budget.current_spend, 25.0);
+
+        budget.record_spend(25.0);
+        assert_eq!(budget.current_spend, 50.0);
+    }
+
+    #[test]
+    fn test_model_budget_reset() {
+        let mut budget = ModelBudget::new("gpt-4", 100.0);
+        budget.current_spend = 75.0;
+
+        budget.reset();
+        assert_eq!(budget.current_spend, 0.0);
+    }
+
+    #[test]
+    fn test_model_budget_remaining() {
+        let mut budget = ModelBudget::new("gpt-4", 100.0);
+
+        assert_eq!(budget.remaining(), 100.0);
+
+        budget.current_spend = 30.0;
+        assert_eq!(budget.remaining(), 70.0);
+    }
+
+    #[test]
+    fn test_provider_budget_serialization() {
+        let budget = ProviderBudget::new("openai", 1000.0);
+        let json = serde_json::to_value(&budget).unwrap();
+
+        assert_eq!(json["provider_name"], "openai");
+        assert_eq!(json["max_budget"], 1000.0);
+    }
+
+    #[test]
+    fn test_model_budget_serialization() {
+        let budget = ModelBudget::new("gpt-4", 500.0);
+        let json = serde_json::to_value(&budget).unwrap();
+
+        assert_eq!(json["model_name"], "gpt-4");
+        assert_eq!(json["max_budget"], 500.0);
     }
 }

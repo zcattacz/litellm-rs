@@ -6,7 +6,7 @@
 use super::manager::BudgetManager;
 use super::types::BudgetScope;
 use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::{web, HttpResponse};
+use actix_web::web;
 use futures::future::{ok, Ready};
 use std::future::Future;
 use std::pin::Pin;
@@ -120,7 +120,7 @@ where
     S::Future: 'static,
     B: 'static,
 {
-    type Response = ServiceResponse<actix_web::body::EitherBody<B>>;
+    type Response = ServiceResponse<B>;
     type Error = actix_web::Error;
     type InitError = ();
     type Transform = BudgetMiddlewareService<S>;
@@ -150,16 +150,16 @@ where
     S::Future: 'static,
     B: 'static,
 {
-    type Response = ServiceResponse<actix_web::body::EitherBody<B>>;
+    type Response = ServiceResponse<B>;
     type Error = actix_web::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let manager = Arc::clone(&self.manager);
-        let scope_extractor = Arc::clone(&self.scope_extractor);
-        let cost_estimator = Arc::clone(&self.cost_estimator);
+        let _manager = Arc::clone(&self.manager);
+        let _scope_extractor = Arc::clone(&self.scope_extractor);
+        let _cost_estimator = Arc::clone(&self.cost_estimator);
         let fut = self.service.call(req);
 
         Box::pin(async move {
@@ -169,7 +169,7 @@ where
 
             // For now, just pass through - actual budget checking would be done
             // in a pre-check phase. This is a simplified implementation.
-            Ok(res.map_into_left_body())
+            Ok(res)
         })
     }
 }
@@ -200,7 +200,7 @@ where
     S::Future: 'static,
     B: 'static,
 {
-    type Response = ServiceResponse<actix_web::body::EitherBody<B>>;
+    type Response = ServiceResponse<B>;
     type Error = actix_web::Error;
     type InitError = ();
     type Transform = BudgetCheckMiddlewareService<S>;
@@ -226,7 +226,7 @@ where
     S::Future: 'static,
     B: 'static,
 {
-    type Response = ServiceResponse<actix_web::body::EitherBody<B>>;
+    type Response = ServiceResponse<B>;
     type Error = actix_web::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
@@ -240,13 +240,15 @@ where
         let path = req.path().to_string();
         let method = req.method().to_string();
 
+        // We need to check budget synchronously before calling the inner service
+        // to avoid ownership issues with ServiceRequest
         let fut = self.service.call(req);
 
         Box::pin(async move {
             // Check if budget management is enabled
             if !manager.is_enabled().await {
                 let res = fut.await?;
-                return Ok(res.map_into_left_body());
+                return Ok(res);
             }
 
             if let Some(scope) = scope {
@@ -261,8 +263,10 @@ where
                     );
 
                     // Return 429 Too Many Requests
-                    let response = HttpResponse::TooManyRequests()
-                        .json(serde_json::json!({
+                    // Note: We can't use req here as it's been moved, so we return an error
+                    // that will be converted to a response by the error handler
+                    return Err(actix_web::error::ErrorTooManyRequests(
+                        serde_json::json!({
                             "error": {
                                 "type": "budget_exceeded",
                                 "message": "Budget limit exceeded",
@@ -275,9 +279,8 @@ where
                                     "usage_percentage": check_result.usage_percentage
                                 }
                             }
-                        }));
-
-                    return Ok(req.into_response(response).map_into_right_body());
+                        }).to_string()
+                    ));
                 }
 
                 debug!(
@@ -287,7 +290,7 @@ where
             }
 
             let res = fut.await?;
-            Ok(res.map_into_left_body())
+            Ok(res)
         })
     }
 }

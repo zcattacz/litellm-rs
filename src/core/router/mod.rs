@@ -20,6 +20,7 @@
 //! - `legacy_router` - Legacy Router implementation
 
 // New modular router components
+pub mod budget_routing;
 pub mod config;
 pub mod deployment;
 pub mod error;
@@ -52,6 +53,7 @@ pub use metrics::RouterMetrics;
 pub use strategy::types::RoutingStrategy;
 
 // Re-exports from new modular router (UnifiedRouter)
+pub use budget_routing::{BudgetAwareRouter, BudgetAwareRouting, RequestBudgetCheck};
 pub use config::{RouterConfig, RoutingStrategy as UnifiedRoutingStrategy};
 pub use error::{CooldownReason, RouterError};
 pub use fallback::{ExecutionResult, FallbackConfig, FallbackType};

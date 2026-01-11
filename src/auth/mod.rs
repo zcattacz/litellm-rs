@@ -1,12 +1,14 @@
 //! Authentication and authorization system
 //!
-//! This module provides comprehensive authentication and authorization functionality.
+//! This module provides comprehensive authentication and authorization functionality
+//! including API key authentication, JWT tokens, RBAC, and OAuth 2.0 / SSO support.
 
 #![allow(dead_code)]
 
-// Submodules
+// Public submodules
 pub mod api_key;
 pub mod jwt;
+pub mod oauth;
 pub mod rbac;
 
 // Internal submodules
@@ -24,3 +26,6 @@ pub use crate::core::models::ApiKey;
 // Re-export types from submodules
 pub use system::AuthSystem;
 pub use types::AuthMethod;
+
+// Re-export OAuth types for convenience
+

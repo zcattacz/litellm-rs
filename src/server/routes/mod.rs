@@ -4,6 +4,7 @@
 
 pub mod ai;
 pub mod auth;
+pub mod budget;
 pub mod health;
 pub mod keys;
 pub mod pricing;

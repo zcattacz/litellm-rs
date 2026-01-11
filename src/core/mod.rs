@@ -9,13 +9,15 @@ pub mod analytics;
 pub mod audio; // Audio API (transcription, translation, speech)
 // pub mod base_provider;  // Removed: unused dead code
 pub mod batch;
-// pub mod budget; // Budget management system - disabled: incomplete implementation
+pub mod budget; // Budget management system
 pub mod cache; // DualCache system (InMemory + Redis)
 pub mod cache_manager;
 pub mod completion; // Core completion API
 pub mod cost; // Unified cost calculation system
+pub mod embedding; // Core embedding API (Python LiteLLM compatible)
 pub mod function_calling; // Function calling support for AI providers
 pub mod health; // Health monitoring system
+pub mod integrations; // External integrations (Langfuse, etc.)
 pub mod keys; // API Key Management System
 pub mod mcp; // MCP (Model Context Protocol) Gateway
 pub mod models;

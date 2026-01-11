@@ -91,6 +91,13 @@ pub use core::completion::{
     user_message,
 };
 
+// Export core embedding functionality (Python LiteLLM compatible)
+pub use core::embedding::{
+    EmbeddingInput, EmbeddingOptions, EmbeddingResponse, aembedding, cosine_similarity,
+    dot_product, embed_text, embed_texts, embed_texts_with_options, embedding,
+    euclidean_distance, normalize,
+};
+
 // Export streaming types
 pub use core::streaming::types::{
     ChatCompletionChunk, ChatCompletionChunkChoice, ChatCompletionDelta,

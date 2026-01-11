@@ -329,10 +329,10 @@ async fn test_concurrent_budget_operations() {
     let mut handles = vec![];
 
     // Spawn multiple tasks to record spend concurrently
-    for i in 0..10 {
+    for _i in 0..10 {
         let manager_clone = Arc::clone(&manager);
         let handle = task::spawn(async move {
-            for j in 0..100 {
+            for _j in 0..100 {
                 manager_clone.record_spend(&BudgetScope::Global, 1.0).await;
             }
         });

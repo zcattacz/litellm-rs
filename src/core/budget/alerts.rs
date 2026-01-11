@@ -202,9 +202,11 @@ impl BudgetAlertManager {
         if result.should_alert_exceeded {
             self.create_alert(budget, BudgetAlertType::BudgetExceeded, budget.max_budget)
                 .await;
+            // Don't check warning thresholds if already exceeded
+            return;
         }
 
-        // Check additional warning thresholds
+        // Check additional warning thresholds (only if not exceeded)
         let config = self.config.read().await;
         for &threshold_pct in &config.warning_thresholds {
             let threshold = budget.max_budget * threshold_pct;
@@ -540,7 +542,7 @@ pub struct AlertStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::budget::types::BudgetStatus;
+    use crate::core::budget::types::{BudgetScope, BudgetStatus};
 
     fn create_test_budget() -> Budget {
         Budget::new("test-budget", "Test Budget", BudgetScope::Global, 100.0)

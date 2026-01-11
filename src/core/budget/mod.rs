@@ -66,6 +66,7 @@
 mod alerts;
 mod manager;
 mod middleware;
+mod provider_limits;
 mod tracker;
 mod types;
 
@@ -79,10 +80,15 @@ pub use middleware::{
     BudgetCheckMiddleware, BudgetCheckMiddlewareService, BudgetMiddleware,
     BudgetMiddlewareService, BudgetRecorder, BudgetRecorderExt,
 };
+pub use provider_limits::{
+    ModelBudgetManager, ModelLimitConfig, ProviderBudgetManager, ProviderLimitConfig,
+    UnifiedBudgetLimits,
+};
 pub use tracker::{BudgetTracker, SpendResult};
 pub use types::{
     AlertSeverity, Budget, BudgetAlert, BudgetAlertType, BudgetCheckResult, BudgetConfig,
-    BudgetScope, BudgetStatus, Currency, ResetPeriod,
+    BudgetScope, BudgetStatus, Currency, ModelBudget, ModelUsageStats, ProviderBudget,
+    ProviderUsageStats, ResetPeriod,
 };
 
 use std::sync::Arc;
