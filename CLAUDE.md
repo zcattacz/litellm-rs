@@ -2,6 +2,52 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Version Management
+
+### Release Workflow
+
+Follow [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH):
+- **MAJOR**: Breaking API changes
+- **MINOR**: New features, backward compatible
+- **PATCH**: Bug fixes, backward compatible
+
+### Version Bump Process
+
+```bash
+# 1. Update version in Cargo.toml
+cargo set-version 0.1.4  # or manually edit [package] version
+
+# 2. Update CHANGELOG.md
+#    - Move [Unreleased] items to new version section
+#    - Add release date in format [0.1.4] - YYYY-MM-DD
+
+# 3. Commit version bump
+git add Cargo.toml Cargo.lock CHANGELOG.md
+git commit -m "chore(release): bump version to 0.1.4"
+
+# 4. Create annotated tag
+git tag -a v0.1.4 -m "Release v0.1.4"
+
+# 5. Push with tags
+git push && git push --tags
+```
+
+### Changelog Guidelines
+
+Follow [Keep a Changelog](https://keepachangelog.com/) format:
+- **Added**: New features
+- **Changed**: Changes in existing functionality
+- **Deprecated**: Soon-to-be removed features
+- **Removed**: Now removed features
+- **Fixed**: Bug fixes
+- **Security**: Vulnerability fixes
+
+### Quick Commands
+```bash
+make version          # Show current version info
+cargo pkgid           # Show package identifier with version
+```
+
 ## Essential Commands
 
 ### Development Commands
