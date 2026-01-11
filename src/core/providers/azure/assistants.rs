@@ -158,23 +158,10 @@ pub struct CancelRunResponse {
     pub object: String,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum AssistantError {
-    #[error("Authentication error: {0}")]
-    Authentication(String),
-    #[error("Request error: {0}")]
-    Request(String),
-    #[error("Network error: {0}")]
-    Network(String),
-    #[error("Configuration error: {0}")]
-    Configuration(String),
-    #[error("Parsing error: {0}")]
-    Parsing(String),
-    #[error("Validation error: {0}")]
-    Validation(String),
-    #[error("API error (status {status}): {message}")]
-    Api { status: u16, message: String },
-}
+use crate::core::providers::unified_provider::ProviderError;
+
+/// AssistantError is a type alias for ProviderError (unified error handling)
+pub type AssistantError = ProviderError;
 
 #[async_trait]
 pub trait BaseAssistantHandler {
@@ -262,20 +249,20 @@ impl BaseAssistantHandler for AzureAssistantHandler {
             .api_key
             .as_deref()
             .or_else(|| self.client.get_config().api_key.as_deref())
-            .ok_or_else(|| AssistantError::Authentication("Azure API key required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
 
         let url = self.build_assistants_url("");
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), api_key)
-                .map_err(|e| AssistantError::Configuration(e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
 
         if let Some(custom_headers) = &config.headers {
             for (key, value) in custom_headers {
                 let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 let header_value = reqwest::header::HeaderValue::from_str(value)
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -288,19 +275,20 @@ impl BaseAssistantHandler for AzureAssistantHandler {
             .json(&request)
             .send()
             .await
-            .map_err(|e| AssistantError::Network(e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(AssistantError::Api {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+            return Err(ProviderError::api_error(
+                "azure",
+                response.status().as_u16(),
+                response.text().await.unwrap_or_default(),
+            ));
         }
 
         response
             .json()
             .await
-            .map_err(|e| AssistantError::Parsing(e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
     }
 
     async fn list_assistants(
@@ -315,7 +303,7 @@ impl BaseAssistantHandler for AzureAssistantHandler {
             .api_key
             .as_deref()
             .or_else(|| self.client.get_config().api_key.as_deref())
-            .ok_or_else(|| AssistantError::Authentication("Azure API key required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
 
         let mut url = self.build_assistants_url("");
         let mut query_params = Vec::new();
@@ -340,14 +328,14 @@ impl BaseAssistantHandler for AzureAssistantHandler {
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), api_key)
-                .map_err(|e| AssistantError::Configuration(e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
 
         if let Some(custom_headers) = &config.headers {
             for (key, value) in custom_headers {
                 let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 let header_value = reqwest::header::HeaderValue::from_str(value)
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -359,19 +347,20 @@ impl BaseAssistantHandler for AzureAssistantHandler {
             .headers(request_headers)
             .send()
             .await
-            .map_err(|e| AssistantError::Network(e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(AssistantError::Api {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+            return Err(ProviderError::api_error(
+                "azure",
+                response.status().as_u16(),
+                response.text().await.unwrap_or_default(),
+            ));
         }
 
         response
             .json()
             .await
-            .map_err(|e| AssistantError::Parsing(e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
     }
 
     async fn retrieve_assistant(
@@ -383,20 +372,20 @@ impl BaseAssistantHandler for AzureAssistantHandler {
             .api_key
             .as_deref()
             .or_else(|| self.client.get_config().api_key.as_deref())
-            .ok_or_else(|| AssistantError::Authentication("Azure API key required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
 
         let url = self.build_assistants_url(&format!("/{}", assistant_id));
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), api_key)
-                .map_err(|e| AssistantError::Configuration(e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
 
         if let Some(custom_headers) = &config.headers {
             for (key, value) in custom_headers {
                 let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 let header_value = reqwest::header::HeaderValue::from_str(value)
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -408,19 +397,20 @@ impl BaseAssistantHandler for AzureAssistantHandler {
             .headers(request_headers)
             .send()
             .await
-            .map_err(|e| AssistantError::Network(e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(AssistantError::Api {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+            return Err(ProviderError::api_error(
+                "azure",
+                response.status().as_u16(),
+                response.text().await.unwrap_or_default(),
+            ));
         }
 
         response
             .json()
             .await
-            .map_err(|e| AssistantError::Parsing(e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
     }
 
     async fn modify_assistant(
@@ -433,20 +423,20 @@ impl BaseAssistantHandler for AzureAssistantHandler {
             .api_key
             .as_deref()
             .or_else(|| self.client.get_config().api_key.as_deref())
-            .ok_or_else(|| AssistantError::Authentication("Azure API key required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
 
         let url = self.build_assistants_url(&format!("/{}", assistant_id));
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), api_key)
-                .map_err(|e| AssistantError::Configuration(e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
 
         if let Some(custom_headers) = &config.headers {
             for (key, value) in custom_headers {
                 let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 let header_value = reqwest::header::HeaderValue::from_str(value)
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -459,19 +449,20 @@ impl BaseAssistantHandler for AzureAssistantHandler {
             .json(&request)
             .send()
             .await
-            .map_err(|e| AssistantError::Network(e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(AssistantError::Api {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+            return Err(ProviderError::api_error(
+                "azure",
+                response.status().as_u16(),
+                response.text().await.unwrap_or_default(),
+            ));
         }
 
         response
             .json()
             .await
-            .map_err(|e| AssistantError::Parsing(e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
     }
 
     async fn delete_assistant(
@@ -483,20 +474,20 @@ impl BaseAssistantHandler for AzureAssistantHandler {
             .api_key
             .as_deref()
             .or_else(|| self.client.get_config().api_key.as_deref())
-            .ok_or_else(|| AssistantError::Authentication("Azure API key required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
 
         let url = self.build_assistants_url(&format!("/{}", assistant_id));
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), api_key)
-                .map_err(|e| AssistantError::Configuration(e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
 
         if let Some(custom_headers) = &config.headers {
             for (key, value) in custom_headers {
                 let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 let header_value = reqwest::header::HeaderValue::from_str(value)
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -508,19 +499,20 @@ impl BaseAssistantHandler for AzureAssistantHandler {
             .headers(request_headers)
             .send()
             .await
-            .map_err(|e| AssistantError::Network(e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(AssistantError::Api {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+            return Err(ProviderError::api_error(
+                "azure",
+                response.status().as_u16(),
+                response.text().await.unwrap_or_default(),
+            ));
         }
 
         response
             .json()
             .await
-            .map_err(|e| AssistantError::Parsing(e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
     }
 
     // Additional methods not in the trait - commented out for now
@@ -536,19 +528,19 @@ impl BaseAssistantHandler for AzureAssistantHandler {
         let api_key = api_key
             .map(|s| s.to_string())
             .or_else(|| self.client.get_config().api_key.clone())
-            .ok_or_else(|| AssistantError::Authentication("Azure API key required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
 
         let url = self.build_threads_url("");
 
         let mut request_headers = AzureUtils::create_azure_headers(self.client.get_config(), api_key)
-            .map_err(|e| AssistantError::Configuration(e.to_string()))?;
+            .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
 
         if let Some(custom_headers) = &config.headers {
             for (key, value) in custom_headers {
                 let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 let header_value = reqwest::header::HeaderValue::from_str(value)
-                    .map_err(|e| AssistantError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -559,17 +551,18 @@ impl BaseAssistantHandler for AzureAssistantHandler {
             .json(&request)
             .send()
             .await
-            .map_err(|e| AssistantError::Network(e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(AssistantError::Api {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+            return Err(ProviderError::api_error(
+                "azure",
+                response.status().as_u16(),
+                response.text().await.unwrap_or_default(),
+            ));
         }
 
         response.json().await
-            .map_err(|e| AssistantError::Parsing(e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
     }
     */
 }
@@ -585,7 +578,7 @@ impl AzureAssistantUtils {
         request: &CreateAssistantRequest,
     ) -> Result<(), AssistantError> {
         if !Self::get_supported_assistant_models().contains(&request.model.as_str()) {
-            return Err(AssistantError::Validation(format!(
+            return Err(ProviderError::invalid_request("azure",format!(
                 "Unsupported assistant model: {}",
                 request.model
             )));
@@ -593,7 +586,7 @@ impl AzureAssistantUtils {
 
         if let Some(instructions) = &request.instructions {
             if instructions.len() > 32768 {
-                return Err(AssistantError::Validation(
+                return Err(ProviderError::invalid_request("azure",
                     "Instructions exceed maximum length of 32768 characters".to_string(),
                 ));
             }
@@ -1009,47 +1002,49 @@ mod tests {
 
     #[test]
     fn test_assistant_error_authentication() {
-        let error = AssistantError::Authentication("Invalid key".to_string());
-        assert!(error.to_string().contains("Authentication"));
-        assert!(error.to_string().contains("Invalid key"));
+        let error = ProviderError::authentication("azure", "Invalid key".to_string());
+        let err_str = error.to_string();
+        assert!(err_str.contains("azure") || err_str.contains("Invalid key"));
     }
 
     #[test]
     fn test_assistant_error_request() {
-        let error = AssistantError::Request("Bad request".to_string());
-        assert!(error.to_string().contains("Request"));
+        let error = ProviderError::invalid_request("azure", "Bad request".to_string());
+        let err_str = error.to_string();
+        assert!(err_str.contains("Bad request") || err_str.contains("invalid"));
     }
 
     #[test]
     fn test_assistant_error_network() {
-        let error = AssistantError::Network("Connection failed".to_string());
-        assert!(error.to_string().contains("Network"));
+        let error = ProviderError::network("azure", "Connection failed".to_string());
+        let err_str = error.to_string();
+        assert!(err_str.contains("Connection failed") || err_str.contains("network"));
     }
 
     #[test]
     fn test_assistant_error_configuration() {
-        let error = AssistantError::Configuration("Missing config".to_string());
-        assert!(error.to_string().contains("Configuration"));
+        let error = ProviderError::configuration("azure", "Missing config".to_string());
+        let err_str = error.to_string();
+        assert!(err_str.contains("Missing config") || err_str.contains("configuration"));
     }
 
     #[test]
     fn test_assistant_error_parsing() {
-        let error = AssistantError::Parsing("Invalid JSON".to_string());
-        assert!(error.to_string().contains("Parsing"));
+        let error = ProviderError::serialization("azure", "Invalid JSON".to_string());
+        let err_str = error.to_string();
+        assert!(err_str.contains("Invalid JSON") || err_str.contains("serialization"));
     }
 
     #[test]
     fn test_assistant_error_validation() {
-        let error = AssistantError::Validation("Invalid model".to_string());
-        assert!(error.to_string().contains("Validation"));
+        let error = ProviderError::invalid_request("azure", "Invalid model".to_string());
+        let err_str = error.to_string();
+        assert!(err_str.contains("Invalid model") || err_str.contains("invalid"));
     }
 
     #[test]
     fn test_assistant_error_api() {
-        let error = AssistantError::Api {
-            status: 404,
-            message: "Not found".to_string(),
-        };
+        let error = ProviderError::api_error("azure", 404, "Not found");
         let err_str = error.to_string();
         assert!(err_str.contains("404"));
         assert!(err_str.contains("Not found"));

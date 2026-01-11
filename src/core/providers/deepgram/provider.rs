@@ -7,11 +7,15 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::DeepgramConfig;
-use super::error::{DeepgramError, DeepgramErrorMapper};
+use super::error::DeepgramErrorMapper;
 use super::stt::{self, DeepgramResponse, OpenAITranscriptionResponse, TranscriptionRequest};
 use crate::core::providers::base::GlobalPoolManager;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::ProviderConfig as _;
 use crate::core::types::common::{HealthStatus, ModelInfo, ProviderCapability};
+
+/// Provider name constant
+const PROVIDER_NAME: &str = "deepgram";
 
 /// Static capabilities for Deepgram provider
 const DEEPGRAM_CAPABILITIES: &[ProviderCapability] = &[ProviderCapability::AudioTranscription];
@@ -26,15 +30,15 @@ pub struct DeepgramProvider {
 
 impl DeepgramProvider {
     /// Create a new Deepgram provider instance
-    pub async fn new(config: DeepgramConfig) -> Result<Self, DeepgramError> {
+    pub async fn new(config: DeepgramConfig) -> Result<Self, ProviderError> {
         // Validate configuration
         config
             .validate()
-            .map_err(DeepgramError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration(PROVIDER_NAME, e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            DeepgramError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration(PROVIDER_NAME, format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list
@@ -48,7 +52,7 @@ impl DeepgramProvider {
     }
 
     /// Create provider with API key only
-    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, DeepgramError> {
+    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, ProviderError> {
         let config = DeepgramConfig {
             api_key: Some(api_key.into()),
             ..Default::default()
@@ -183,7 +187,7 @@ impl DeepgramProvider {
 
     /// Get provider name
     pub fn name(&self) -> &'static str {
-        "deepgram"
+        PROVIDER_NAME
     }
 
     /// Get provider capabilities
@@ -205,7 +209,7 @@ impl DeepgramProvider {
     pub async fn transcribe_audio(
         &self,
         request: TranscriptionRequest,
-    ) -> Result<OpenAITranscriptionResponse, DeepgramError> {
+    ) -> Result<OpenAITranscriptionResponse, ProviderError> {
         debug!("Deepgram STT request: model={}", request.model);
 
         // Build URL with query parameters
@@ -215,7 +219,7 @@ impl DeepgramProvider {
         let api_key = self
             .config
             .get_api_key()
-            .ok_or_else(|| DeepgramError::AuthenticationError("API key is required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication(PROVIDER_NAME, "API key is required"))?;
 
         // Detect content type
         let content_type = request
@@ -233,7 +237,7 @@ impl DeepgramProvider {
             .body(request.file)
             .send()
             .await
-            .map_err(|e| DeepgramError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network(PROVIDER_NAME, e.to_string()))?;
 
         // Check status
         if !response.status().is_success() {
@@ -246,14 +250,14 @@ impl DeepgramProvider {
         let response_text = response
             .text()
             .await
-            .map_err(|e| DeepgramError::ApiError(format!("Failed to read response: {}", e)))?;
+            .map_err(|e| ProviderError::response_parsing(PROVIDER_NAME, format!("Failed to read response: {}", e)))?;
 
         let deepgram_response: DeepgramResponse =
             serde_json::from_str(&response_text).map_err(|e| {
-                DeepgramError::ApiError(format!(
-                    "Failed to parse response: {}\nResponse: {}",
-                    e, response_text
-                ))
+                ProviderError::response_parsing(
+                    PROVIDER_NAME,
+                    format!("Failed to parse response: {}\nResponse: {}", e, response_text),
+                )
             })?;
 
         Ok(deepgram_response.into())
@@ -268,7 +272,7 @@ impl DeepgramProvider {
         diarize: Option<bool>,
         punctuate: Option<bool>,
         filename: Option<String>,
-    ) -> Result<OpenAITranscriptionResponse, DeepgramError> {
+    ) -> Result<OpenAITranscriptionResponse, ProviderError> {
         let request = TranscriptionRequest {
             file,
             model: model.unwrap_or_else(|| "nova-2".to_string()),
@@ -285,20 +289,20 @@ impl DeepgramProvider {
         self.transcribe_audio(request).await
     }
 
-    /// Map HTTP error to DeepgramError
-    pub fn map_http_error(status: u16, body: Option<&str>) -> DeepgramError {
+    /// Map HTTP error to ProviderError
+    pub fn map_http_error(status: u16, body: Option<&str>) -> ProviderError {
         let message = body.unwrap_or("Unknown error").to_string();
 
         match status {
-            400 => DeepgramError::InvalidRequestError(message),
-            401 => DeepgramError::AuthenticationError("Invalid API key".to_string()),
-            402 => DeepgramError::QuotaExceededError("Usage quota exceeded".to_string()),
-            403 => DeepgramError::AuthenticationError("Access forbidden".to_string()),
-            404 => DeepgramError::ModelNotFoundError("Model not found".to_string()),
-            429 => DeepgramError::RateLimitError("Rate limit exceeded".to_string()),
-            500 => DeepgramError::ApiError("Internal server error".to_string()),
-            502 | 503 => DeepgramError::ServiceUnavailableError("Service unavailable".to_string()),
-            _ => DeepgramError::ApiError(format!("HTTP error {}: {}", status, message)),
+            400 => ProviderError::invalid_request(PROVIDER_NAME, message),
+            401 => ProviderError::authentication(PROVIDER_NAME, "Invalid API key"),
+            402 => ProviderError::quota_exceeded(PROVIDER_NAME, "Usage quota exceeded"),
+            403 => ProviderError::authentication(PROVIDER_NAME, "Access forbidden"),
+            404 => ProviderError::model_not_found(PROVIDER_NAME, "Model not found"),
+            429 => ProviderError::rate_limit(PROVIDER_NAME, Some(60)),
+            500 => ProviderError::api_error(PROVIDER_NAME, 500, "Internal server error"),
+            502 | 503 => ProviderError::api_error(PROVIDER_NAME, status, "Service unavailable"),
+            _ => ProviderError::api_error(PROVIDER_NAME, status, format!("HTTP error {}: {}", status, message)),
         }
     }
 
@@ -354,31 +358,29 @@ mod tests {
 
     #[test]
     fn test_map_http_error() {
-        use DeepgramError::*;
-
         let err = DeepgramProvider::map_http_error(400, Some("Bad request"));
-        assert!(matches!(err, InvalidRequestError(_)));
+        assert!(matches!(err, ProviderError::InvalidRequest { .. }));
 
         let err = DeepgramProvider::map_http_error(401, None);
-        assert!(matches!(err, AuthenticationError(_)));
+        assert!(matches!(err, ProviderError::Authentication { .. }));
 
         let err = DeepgramProvider::map_http_error(402, Some("Quota"));
-        assert!(matches!(err, QuotaExceededError(_)));
+        assert!(matches!(err, ProviderError::QuotaExceeded { .. }));
 
         let err = DeepgramProvider::map_http_error(403, None);
-        assert!(matches!(err, AuthenticationError(_)));
+        assert!(matches!(err, ProviderError::Authentication { .. }));
 
         let err = DeepgramProvider::map_http_error(404, None);
-        assert!(matches!(err, ModelNotFoundError(_)));
+        assert!(matches!(err, ProviderError::ModelNotFound { .. }));
 
         let err = DeepgramProvider::map_http_error(429, None);
-        assert!(matches!(err, RateLimitError(_)));
+        assert!(matches!(err, ProviderError::RateLimit { .. }));
 
         let err = DeepgramProvider::map_http_error(500, None);
-        assert!(matches!(err, ApiError(_)));
+        assert!(matches!(err, ProviderError::ApiError { .. }));
 
         let err = DeepgramProvider::map_http_error(503, None);
-        assert!(matches!(err, ServiceUnavailableError(_)));
+        assert!(matches!(err, ProviderError::ApiError { .. }));
     }
 
     #[test]

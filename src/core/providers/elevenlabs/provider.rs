@@ -7,12 +7,16 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::ElevenLabsConfig;
-use super::error::{ElevenLabsError, ElevenLabsErrorMapper};
+use super::error::ElevenLabsErrorMapper;
 use super::stt::{self, TranscriptionRequest, TranscriptionResponse};
 use super::tts::{self, TextToSpeechRequest, TextToSpeechResponse, VoiceSettings};
 use crate::core::providers::base::GlobalPoolManager;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::ProviderConfig as _;
 use crate::core::types::common::{HealthStatus, ModelInfo, ProviderCapability};
+
+/// Provider name constant
+const PROVIDER_NAME: &str = "elevenlabs";
 
 /// Static capabilities for ElevenLabs provider
 const ELEVENLABS_CAPABILITIES: &[ProviderCapability] = &[
@@ -30,15 +34,15 @@ pub struct ElevenLabsProvider {
 
 impl ElevenLabsProvider {
     /// Create a new ElevenLabs provider instance
-    pub async fn new(config: ElevenLabsConfig) -> Result<Self, ElevenLabsError> {
+    pub async fn new(config: ElevenLabsConfig) -> Result<Self, ProviderError> {
         // Validate configuration
         config
             .validate()
-            .map_err(ElevenLabsError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration(PROVIDER_NAME, e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ElevenLabsError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration(PROVIDER_NAME, format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list
@@ -52,7 +56,7 @@ impl ElevenLabsProvider {
     }
 
     /// Create provider with API key only
-    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, ElevenLabsError> {
+    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, ProviderError> {
         let config = ElevenLabsConfig {
             api_key: Some(api_key.into()),
             ..Default::default()
@@ -155,7 +159,7 @@ impl ElevenLabsProvider {
 
     /// Get provider name
     pub fn name(&self) -> &'static str {
-        "elevenlabs"
+        PROVIDER_NAME
     }
 
     /// Get provider capabilities
@@ -181,7 +185,7 @@ impl ElevenLabsProvider {
         model: Option<&str>,
         voice_settings: Option<VoiceSettings>,
         output_format: Option<&str>,
-    ) -> Result<TextToSpeechResponse, ElevenLabsError> {
+    ) -> Result<TextToSpeechResponse, ProviderError> {
         debug!("ElevenLabs TTS request: voice={}", voice);
 
         // Resolve voice ID
@@ -204,11 +208,11 @@ impl ElevenLabsProvider {
         };
 
         let body = serde_json::to_value(&request)
-            .map_err(|e| ElevenLabsError::InvalidRequestError(e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request(PROVIDER_NAME, e.to_string()))?;
 
         // Get API key
         let api_key = self.config.get_api_key().ok_or_else(|| {
-            ElevenLabsError::AuthenticationError("API key is required".to_string())
+            ProviderError::authentication(PROVIDER_NAME, "API key is required")
         })?;
 
         // Execute request
@@ -220,7 +224,7 @@ impl ElevenLabsProvider {
             .json(&body)
             .send()
             .await
-            .map_err(|e| ElevenLabsError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network(PROVIDER_NAME, e.to_string()))?;
 
         // Check status
         if !response.status().is_success() {
@@ -253,7 +257,7 @@ impl ElevenLabsProvider {
         let audio_data = response
             .bytes()
             .await
-            .map_err(|e| ElevenLabsError::NetworkError(e.to_string()))?
+            .map_err(|e| ProviderError::network(PROVIDER_NAME, e.to_string()))?
             .to_vec();
 
         Ok(TextToSpeechResponse {
@@ -272,7 +276,7 @@ impl ElevenLabsProvider {
         language: Option<String>,
         temperature: Option<f32>,
         filename: Option<String>,
-    ) -> Result<TranscriptionResponse, ElevenLabsError> {
+    ) -> Result<TranscriptionResponse, ProviderError> {
         debug!("ElevenLabs STT request");
 
         let request = TranscriptionRequest {
@@ -285,10 +289,13 @@ impl ElevenLabsProvider {
 
         // Validate file size
         if request.file.len() > stt::MAX_FILE_SIZE {
-            return Err(ElevenLabsError::InvalidRequestError(format!(
-                "Audio file too large (max {}MB)",
-                stt::MAX_FILE_SIZE / 1024 / 1024
-            )));
+            return Err(ProviderError::invalid_request(
+                PROVIDER_NAME,
+                format!(
+                    "Audio file too large (max {}MB)",
+                    stt::MAX_FILE_SIZE / 1024 / 1024
+                ),
+            ));
         }
 
         // Create multipart form
@@ -299,7 +306,7 @@ impl ElevenLabsProvider {
 
         // Get API key
         let api_key = self.config.get_api_key().ok_or_else(|| {
-            ElevenLabsError::AuthenticationError("API key is required".to_string())
+            ProviderError::authentication(PROVIDER_NAME, "API key is required")
         })?;
 
         // Execute request
@@ -310,7 +317,7 @@ impl ElevenLabsProvider {
             .multipart(form)
             .send()
             .await
-            .map_err(|e| ElevenLabsError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network(PROVIDER_NAME, e.to_string()))?;
 
         // Check status
         if !response.status().is_success() {
@@ -323,28 +330,28 @@ impl ElevenLabsProvider {
         let response_text = response
             .text()
             .await
-            .map_err(|e| ElevenLabsError::ApiError(format!("Failed to read response: {}", e)))?;
+            .map_err(|e| ProviderError::response_parsing(PROVIDER_NAME, format!("Failed to read response: {}", e)))?;
 
         serde_json::from_str::<TranscriptionResponse>(&response_text)
-            .map_err(|e| ElevenLabsError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::response_parsing(PROVIDER_NAME, format!("Failed to parse response: {}", e)))
     }
 
-    /// Map HTTP error to ElevenLabsError
-    pub fn map_http_error(status: u16, body: Option<&str>) -> ElevenLabsError {
+    /// Map HTTP error to ProviderError
+    pub fn map_http_error(status: u16, body: Option<&str>) -> ProviderError {
         let message = body.unwrap_or("Unknown error").to_string();
 
         match status {
-            400 => ElevenLabsError::InvalidRequestError(message),
-            401 => ElevenLabsError::AuthenticationError("Invalid API key".to_string()),
-            402 => ElevenLabsError::QuotaExceededError("Character quota exceeded".to_string()),
-            403 => ElevenLabsError::AuthenticationError("Access forbidden".to_string()),
-            404 => ElevenLabsError::VoiceNotFoundError("Voice not found".to_string()),
-            429 => ElevenLabsError::RateLimitError("Rate limit exceeded".to_string()),
-            500 => ElevenLabsError::ApiError("Internal server error".to_string()),
+            400 => ProviderError::invalid_request(PROVIDER_NAME, message),
+            401 => ProviderError::authentication(PROVIDER_NAME, "Invalid API key"),
+            402 => ProviderError::quota_exceeded(PROVIDER_NAME, "Character quota exceeded"),
+            403 => ProviderError::authentication(PROVIDER_NAME, "Access forbidden"),
+            404 => ProviderError::model_not_found(PROVIDER_NAME, "Voice not found"),
+            429 => ProviderError::rate_limit(PROVIDER_NAME, Some(60)),
+            500 => ProviderError::api_error(PROVIDER_NAME, 500, "Internal server error"),
             502 | 503 => {
-                ElevenLabsError::ServiceUnavailableError("Service unavailable".to_string())
+                ProviderError::api_error(PROVIDER_NAME, status, "Service unavailable")
             }
-            _ => ElevenLabsError::ApiError(format!("HTTP error {}: {}", status, message)),
+            _ => ProviderError::api_error(PROVIDER_NAME, status, format!("HTTP error {}: {}", status, message)),
         }
     }
 
@@ -396,19 +403,19 @@ mod tests {
     #[test]
     fn test_map_http_error() {
         let err = ElevenLabsProvider::map_http_error(401, Some("Unauthorized"));
-        assert!(matches!(err, ElevenLabsError::AuthenticationError(_)));
+        assert!(matches!(err, ProviderError::Authentication { .. }));
 
         let err = ElevenLabsProvider::map_http_error(402, Some("Quota exceeded"));
-        assert!(matches!(err, ElevenLabsError::QuotaExceededError(_)));
+        assert!(matches!(err, ProviderError::QuotaExceeded { .. }));
 
         let err = ElevenLabsProvider::map_http_error(404, Some("Not found"));
-        assert!(matches!(err, ElevenLabsError::VoiceNotFoundError(_)));
+        assert!(matches!(err, ProviderError::ModelNotFound { .. }));
 
         let err = ElevenLabsProvider::map_http_error(429, Some("Too many requests"));
-        assert!(matches!(err, ElevenLabsError::RateLimitError(_)));
+        assert!(matches!(err, ProviderError::RateLimit { .. }));
 
         let err = ElevenLabsProvider::map_http_error(503, Some("Service unavailable"));
-        assert!(matches!(err, ElevenLabsError::ServiceUnavailableError(_)));
+        assert!(matches!(err, ProviderError::ApiError { .. }));
     }
 
     #[test]

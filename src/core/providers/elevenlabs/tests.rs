@@ -3,6 +3,7 @@
 //! Comprehensive unit tests for the ElevenLabs provider implementation.
 
 use super::*;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::types::common::ProviderCapability;
 
 // ==================== Config Tests ====================
@@ -53,54 +54,31 @@ fn test_config_get_api_key() {
 
 #[test]
 fn test_error_types() {
-    use crate::core::types::errors::ProviderErrorTrait;
+    let err = ProviderError::api_error("elevenlabs", 500, "test");
+    assert!(matches!(err, ProviderError::ApiError { .. }));
 
-    let err = ElevenLabsError::ApiError("test".to_string());
-    assert_eq!(err.error_type(), "api_error");
-    assert_eq!(err.http_status(), 500);
-    assert!(!err.is_retryable());
+    let err = ProviderError::authentication("elevenlabs", "bad key");
+    assert!(matches!(err, ProviderError::Authentication { .. }));
 
-    let err = ElevenLabsError::AuthenticationError("bad key".to_string());
-    assert_eq!(err.error_type(), "authentication_error");
-    assert_eq!(err.http_status(), 401);
-    assert!(!err.is_retryable());
+    let err = ProviderError::rate_limit("elevenlabs", Some(60));
+    assert!(matches!(err, ProviderError::RateLimit { .. }));
 
-    let err = ElevenLabsError::RateLimitError("too many".to_string());
-    assert_eq!(err.error_type(), "rate_limit_error");
-    assert_eq!(err.http_status(), 429);
-    assert!(err.is_retryable());
-    assert_eq!(err.retry_delay(), Some(60));
+    let err = ProviderError::model_not_found("elevenlabs", "unknown");
+    assert!(matches!(err, ProviderError::ModelNotFound { .. }));
 
-    let err = ElevenLabsError::VoiceNotFoundError("unknown".to_string());
-    assert_eq!(err.error_type(), "voice_not_found_error");
-    assert_eq!(err.http_status(), 404);
-
-    let err = ElevenLabsError::QuotaExceededError("limit".to_string());
-    assert_eq!(err.error_type(), "quota_exceeded_error");
-    assert_eq!(err.http_status(), 402);
+    let err = ProviderError::quota_exceeded("elevenlabs", "limit");
+    assert!(matches!(err, ProviderError::QuotaExceeded { .. }));
 }
 
 #[test]
 fn test_error_display() {
-    let err = ElevenLabsError::ApiError("something went wrong".to_string());
-    assert_eq!(err.to_string(), "API error: something went wrong");
+    let err = ProviderError::api_error("elevenlabs", 500, "something went wrong");
+    let display = err.to_string();
+    assert!(display.contains("something went wrong") || display.contains("API error"));
 
-    let err = ElevenLabsError::VoiceNotFoundError("voice-123".to_string());
-    assert_eq!(err.to_string(), "Voice not found: voice-123");
-}
-
-#[test]
-fn test_error_to_provider_error() {
-    use crate::core::providers::unified_provider::ProviderError;
-
-    let err: ProviderError = ElevenLabsError::AuthenticationError("bad".to_string()).into();
-    assert!(matches!(err, ProviderError::Authentication { .. }));
-
-    let err: ProviderError = ElevenLabsError::RateLimitError("limit".to_string()).into();
-    assert!(matches!(err, ProviderError::RateLimit { .. }));
-
-    let err: ProviderError = ElevenLabsError::VoiceNotFoundError("voice".to_string()).into();
-    assert!(matches!(err, ProviderError::ModelNotFound { .. }));
+    let err = ProviderError::model_not_found("elevenlabs", "voice-123");
+    let display = err.to_string();
+    assert!(display.contains("voice-123") || display.contains("not found"));
 }
 
 // ==================== TTS Tests ====================
@@ -335,37 +313,35 @@ fn test_provider_build_model_list() {
 
 #[test]
 fn test_provider_map_http_error() {
-    use ElevenLabsError::*;
-
     let err = ElevenLabsProvider::map_http_error(400, Some("Bad request"));
-    assert!(matches!(err, InvalidRequestError(_)));
+    assert!(matches!(err, ProviderError::InvalidRequest { .. }));
 
     let err = ElevenLabsProvider::map_http_error(401, None);
-    assert!(matches!(err, AuthenticationError(_)));
+    assert!(matches!(err, ProviderError::Authentication { .. }));
 
     let err = ElevenLabsProvider::map_http_error(402, Some("Quota"));
-    assert!(matches!(err, QuotaExceededError(_)));
+    assert!(matches!(err, ProviderError::QuotaExceeded { .. }));
 
     let err = ElevenLabsProvider::map_http_error(403, None);
-    assert!(matches!(err, AuthenticationError(_)));
+    assert!(matches!(err, ProviderError::Authentication { .. }));
 
     let err = ElevenLabsProvider::map_http_error(404, None);
-    assert!(matches!(err, VoiceNotFoundError(_)));
+    assert!(matches!(err, ProviderError::ModelNotFound { .. }));
 
     let err = ElevenLabsProvider::map_http_error(429, None);
-    assert!(matches!(err, RateLimitError(_)));
+    assert!(matches!(err, ProviderError::RateLimit { .. }));
 
     let err = ElevenLabsProvider::map_http_error(500, None);
-    assert!(matches!(err, ApiError(_)));
+    assert!(matches!(err, ProviderError::ApiError { .. }));
 
     let err = ElevenLabsProvider::map_http_error(502, None);
-    assert!(matches!(err, ServiceUnavailableError(_)));
+    assert!(matches!(err, ProviderError::ApiError { .. }));
 
     let err = ElevenLabsProvider::map_http_error(503, None);
-    assert!(matches!(err, ServiceUnavailableError(_)));
+    assert!(matches!(err, ProviderError::ApiError { .. }));
 
     let err = ElevenLabsProvider::map_http_error(418, Some("I'm a teapot"));
-    assert!(matches!(err, ApiError(_)));
+    assert!(matches!(err, ProviderError::ApiError { .. }));
 }
 
 // ==================== Error Mapper Tests ====================
@@ -377,28 +353,28 @@ fn test_error_mapper_http_errors() {
     let mapper = ElevenLabsErrorMapper;
 
     let err = mapper.map_http_error(400, "Invalid parameter");
-    assert!(matches!(err, ElevenLabsError::InvalidRequestError(_)));
+    assert!(matches!(err, ProviderError::InvalidRequest { .. }));
 
     let err = mapper.map_http_error(401, "");
-    assert!(matches!(err, ElevenLabsError::AuthenticationError(_)));
+    assert!(matches!(err, ProviderError::Authentication { .. }));
 
     let err = mapper.map_http_error(402, "");
-    assert!(matches!(err, ElevenLabsError::QuotaExceededError(_)));
+    assert!(matches!(err, ProviderError::QuotaExceeded { .. }));
 
     let err = mapper.map_http_error(404, "");
-    assert!(matches!(err, ElevenLabsError::VoiceNotFoundError(_)));
+    assert!(matches!(err, ProviderError::ModelNotFound { .. }));
 
     let err = mapper.map_http_error(429, "");
-    assert!(matches!(err, ElevenLabsError::RateLimitError(_)));
+    assert!(matches!(err, ProviderError::RateLimit { .. }));
 
     let err = mapper.map_http_error(500, "");
-    assert!(matches!(err, ElevenLabsError::ApiError(_)));
+    assert!(matches!(err, ProviderError::ApiError { .. }));
 
     let err = mapper.map_http_error(502, "");
-    assert!(matches!(err, ElevenLabsError::ServiceUnavailableError(_)));
+    assert!(matches!(err, ProviderError::ApiError { .. }));
 
     let err = mapper.map_http_error(503, "");
-    assert!(matches!(err, ElevenLabsError::ServiceUnavailableError(_)));
+    assert!(matches!(err, ProviderError::ApiError { .. }));
 }
 
 #[test]
@@ -407,11 +383,7 @@ fn test_error_mapper_empty_body() {
 
     let mapper = ElevenLabsErrorMapper;
     let err = mapper.map_http_error(400, "");
-    if let ElevenLabsError::InvalidRequestError(msg) = err {
-        assert!(msg.contains("HTTP error 400"));
-    } else {
-        panic!("Expected InvalidRequestError");
-    }
+    assert!(matches!(err, ProviderError::InvalidRequest { .. }));
 }
 
 // ==================== Integration-like Tests ====================

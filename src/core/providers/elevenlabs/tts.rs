@@ -179,8 +179,9 @@ pub fn resolve_voice_id(voice: &str) -> Result<String, ElevenLabsError> {
 
     // Otherwise, assume it's a direct ElevenLabs voice ID
     if voice.trim().is_empty() {
-        return Err(ElevenLabsError::InvalidRequestError(
-            "Voice ID is required".to_string(),
+        return Err(ElevenLabsError::invalid_request(
+            "elevenlabs",
+            "Voice ID is required",
         ));
     }
 

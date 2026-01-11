@@ -19,7 +19,7 @@ mod tests;
 
 // Re-export main types for external use
 pub use config::DeepgramConfig;
-pub use error::{DeepgramError, DeepgramErrorMapper};
+pub use error::DeepgramErrorMapper;
 pub use provider::DeepgramProvider;
 
 // Re-export feature types

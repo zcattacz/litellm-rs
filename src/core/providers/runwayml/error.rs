@@ -71,33 +71,11 @@ fn parse_retry_after(response_body: &str) -> Option<u64> {
     }
 }
 
-/// Task-specific error types for Runway ML
-pub enum RunwayMLTaskError {
-    /// Task failed during generation
-    TaskFailed(String),
-    /// Task was canceled
-    TaskCanceled(String),
-    /// Task timed out waiting for completion
-    TaskTimeout(String),
-}
-
-impl From<RunwayMLTaskError> for ProviderError {
-    fn from(error: RunwayMLTaskError) -> Self {
-        match error {
-            RunwayMLTaskError::TaskFailed(msg) => {
-                ProviderError::api_error(PROVIDER_NAME, 500, format!("Task failed: {}", msg))
-            }
-            RunwayMLTaskError::TaskCanceled(msg) => ProviderError::cancelled(
-                PROVIDER_NAME,
-                "video_generation",
-                format!("Task canceled: {}", msg),
-            ),
-            RunwayMLTaskError::TaskTimeout(msg) => {
-                ProviderError::timeout(PROVIDER_NAME, format!("Task timeout: {}", msg))
-            }
-        }
-    }
-}
+// Note: Task-specific error handling is done directly using ProviderError factory methods
+// in provider.rs. See poll_task() for usage of:
+// - ProviderError::api_error(PROVIDER_NAME, 500, ...) for task failures
+// - ProviderError::cancelled(PROVIDER_NAME, "video_generation", ...) for cancellations
+// - ProviderError::timeout(PROVIDER_NAME, ...) for timeouts
 
 #[cfg(test)]
 mod tests {
@@ -193,23 +171,27 @@ mod tests {
     }
 
     #[test]
-    fn test_task_error_failed() {
-        let err: ProviderError =
-            RunwayMLTaskError::TaskFailed("Generation failed".to_string()).into();
-        assert!(matches!(err, ProviderError::ApiError { .. }));
+    fn test_task_error_failed_via_provider_error() {
+        // Test that task failure errors are created correctly using ProviderError factory
+        let err = ProviderError::api_error(PROVIDER_NAME, 500, "Task failed: Generation failed");
+        assert!(matches!(err, ProviderError::ApiError { status: 500, .. }));
     }
 
     #[test]
-    fn test_task_error_canceled() {
-        let err: ProviderError =
-            RunwayMLTaskError::TaskCanceled("User canceled".to_string()).into();
+    fn test_task_error_canceled_via_provider_error() {
+        // Test that task cancellation errors are created correctly using ProviderError factory
+        let err = ProviderError::cancelled(
+            PROVIDER_NAME,
+            "video_generation",
+            "Task canceled: User canceled",
+        );
         assert!(matches!(err, ProviderError::Cancelled { .. }));
     }
 
     #[test]
-    fn test_task_error_timeout() {
-        let err: ProviderError =
-            RunwayMLTaskError::TaskTimeout("Max retries exceeded".to_string()).into();
+    fn test_task_error_timeout_via_provider_error() {
+        // Test that task timeout errors are created correctly using ProviderError factory
+        let err = ProviderError::timeout(PROVIDER_NAME, "Task timeout: Max retries exceeded");
         assert!(matches!(err, ProviderError::Timeout { .. }));
     }
 }

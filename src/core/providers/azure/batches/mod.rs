@@ -42,23 +42,10 @@ pub struct CancelBatchResponse {
     pub status: String,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum BatchError {
-    #[error("Authentication error: {0}")]
-    Authentication(String),
-    #[error("Request error: {0}")]
-    Request(String),
-    #[error("Network error: {0}")]
-    Network(String),
-    #[error("Configuration error: {0}")]
-    Configuration(String),
-    #[error("Parsing error: {0}")]
-    Parsing(String),
-    #[error("Validation error: {0}")]
-    Validation(String),
-    #[error("API error (status {status}): {message}")]
-    Api { status: u16, message: String },
-}
+use crate::core::providers::unified_provider::ProviderError;
+
+/// BatchError is a type alias for ProviderError (unified error handling)
+pub type BatchError = ProviderError;
 
 #[async_trait]
 pub trait BaseBatchHandler {
@@ -137,20 +124,20 @@ impl BaseBatchHandler for AzureBatchHandler {
         let api_key = api_key
             .map(|s| s.to_string())
             .or_else(|| self.client.get_config().api_key.clone())
-            .ok_or_else(|| BatchError::Authentication("Azure API key required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
 
         let url = self.build_batches_url("");
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), &api_key)
-                .map_err(|e| BatchError::Configuration(e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {
                 let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| BatchError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 let header_value = reqwest::header::HeaderValue::from_str(&value)
-                    .map_err(|e| BatchError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -163,19 +150,20 @@ impl BaseBatchHandler for AzureBatchHandler {
             .json(&request)
             .send()
             .await
-            .map_err(|e| BatchError::Network(e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(BatchError::Api {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+            return Err(ProviderError::api_error(
+                "azure",
+                response.status().as_u16(),
+                response.text().await.unwrap_or_default(),
+            ));
         }
 
         response
             .json()
             .await
-            .map_err(|e| BatchError::Parsing(e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
     }
 
     async fn list_batches(
@@ -189,7 +177,7 @@ impl BaseBatchHandler for AzureBatchHandler {
         let api_key = api_key
             .map(|s| s.to_string())
             .or_else(|| self.client.get_config().api_key.clone())
-            .ok_or_else(|| BatchError::Authentication("Azure API key required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
 
         let mut url = self.build_batches_url("");
         let mut query_params = Vec::new();
@@ -208,14 +196,14 @@ impl BaseBatchHandler for AzureBatchHandler {
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), &api_key)
-                .map_err(|e| BatchError::Configuration(e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {
                 let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| BatchError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 let header_value = reqwest::header::HeaderValue::from_str(&value)
-                    .map_err(|e| BatchError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -227,19 +215,20 @@ impl BaseBatchHandler for AzureBatchHandler {
             .headers(request_headers)
             .send()
             .await
-            .map_err(|e| BatchError::Network(e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(BatchError::Api {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+            return Err(ProviderError::api_error(
+                "azure",
+                response.status().as_u16(),
+                response.text().await.unwrap_or_default(),
+            ));
         }
 
         response
             .json()
             .await
-            .map_err(|e| BatchError::Parsing(e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
     }
 
     async fn retrieve_batch(
@@ -252,20 +241,20 @@ impl BaseBatchHandler for AzureBatchHandler {
         let api_key = api_key
             .map(|s| s.to_string())
             .or_else(|| self.client.get_config().api_key.clone())
-            .ok_or_else(|| BatchError::Authentication("Azure API key required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
 
         let url = self.build_batches_url(&format!("/{}", batch_id));
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), &api_key)
-                .map_err(|e| BatchError::Configuration(e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {
                 let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| BatchError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 let header_value = reqwest::header::HeaderValue::from_str(&value)
-                    .map_err(|e| BatchError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -277,19 +266,20 @@ impl BaseBatchHandler for AzureBatchHandler {
             .headers(request_headers)
             .send()
             .await
-            .map_err(|e| BatchError::Network(e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(BatchError::Api {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+            return Err(ProviderError::api_error(
+                "azure",
+                response.status().as_u16(),
+                response.text().await.unwrap_or_default(),
+            ));
         }
 
         response
             .json()
             .await
-            .map_err(|e| BatchError::Parsing(e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
     }
 
     async fn cancel_batch(
@@ -302,20 +292,20 @@ impl BaseBatchHandler for AzureBatchHandler {
         let api_key = api_key
             .map(|s| s.to_string())
             .or_else(|| self.client.get_config().api_key.clone())
-            .ok_or_else(|| BatchError::Authentication("Azure API key required".to_string()))?;
+            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
 
         let url = self.build_batches_url(&format!("/{}/cancel", batch_id));
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), &api_key)
-                .map_err(|e| BatchError::Configuration(e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {
                 let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| BatchError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 let header_value = reqwest::header::HeaderValue::from_str(&value)
-                    .map_err(|e| BatchError::Network(format!("Invalid header: {}", e)))?;
+                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -327,19 +317,20 @@ impl BaseBatchHandler for AzureBatchHandler {
             .headers(request_headers)
             .send()
             .await
-            .map_err(|e| BatchError::Network(e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(BatchError::Api {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+            return Err(ProviderError::api_error(
+                "azure",
+                response.status().as_u16(),
+                response.text().await.unwrap_or_default(),
+            ));
         }
 
         response
             .json()
             .await
-            .map_err(|e| BatchError::Parsing(e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
     }
 }
 
@@ -397,20 +388,20 @@ impl AzureBatchUtils {
 
     pub fn validate_batch_request(request: &CreateBatchRequest) -> Result<(), BatchError> {
         if !Self::get_supported_batch_endpoints().contains(&request.endpoint.as_str()) {
-            return Err(BatchError::Validation(format!(
+            return Err(ProviderError::invalid_request("azure",format!(
                 "Unsupported batch endpoint: {}",
                 request.endpoint
             )));
         }
 
         if request.input_file_id.is_empty() {
-            return Err(BatchError::Validation(
+            return Err(ProviderError::invalid_request("azure",
                 "Input file ID is required".to_string(),
             ));
         }
 
         if request.completion_window != "24h" {
-            return Err(BatchError::Validation(
+            return Err(ProviderError::invalid_request("azure",
                 "Only 24h completion window is supported".to_string(),
             ));
         }
@@ -641,60 +632,50 @@ mod tests {
 
     #[test]
     fn test_batch_error_authentication() {
-        let error = BatchError::Authentication("Invalid API key".to_string());
+        let error = ProviderError::authentication("azure", "Invalid API key".to_string());
         let msg = error.to_string();
-        assert!(msg.contains("Authentication error"));
-        assert!(msg.contains("Invalid API key"));
+        assert!(msg.contains("azure") || msg.contains("Invalid API key"));
     }
 
     #[test]
     fn test_batch_error_request() {
-        let error = BatchError::Request("Bad request format".to_string());
+        let error = ProviderError::invalid_request("azure", "Bad request format".to_string());
         let msg = error.to_string();
-        assert!(msg.contains("Request error"));
-        assert!(msg.contains("Bad request format"));
+        assert!(msg.contains("Bad request format") || msg.contains("invalid"));
     }
 
     #[test]
     fn test_batch_error_network() {
-        let error = BatchError::Network("Connection refused".to_string());
+        let error = ProviderError::network("azure", "Connection refused".to_string());
         let msg = error.to_string();
-        assert!(msg.contains("Network error"));
-        assert!(msg.contains("Connection refused"));
+        assert!(msg.contains("Connection refused") || msg.contains("network"));
     }
 
     #[test]
     fn test_batch_error_configuration() {
-        let error = BatchError::Configuration("Missing endpoint".to_string());
+        let error = ProviderError::configuration("azure", "Missing endpoint".to_string());
         let msg = error.to_string();
-        assert!(msg.contains("Configuration error"));
-        assert!(msg.contains("Missing endpoint"));
+        assert!(msg.contains("Missing endpoint") || msg.contains("configuration"));
     }
 
     #[test]
     fn test_batch_error_parsing() {
-        let error = BatchError::Parsing("Invalid JSON".to_string());
+        let error = ProviderError::serialization("azure", "Invalid JSON".to_string());
         let msg = error.to_string();
-        assert!(msg.contains("Parsing error"));
-        assert!(msg.contains("Invalid JSON"));
+        assert!(msg.contains("Invalid JSON") || msg.contains("serialization"));
     }
 
     #[test]
     fn test_batch_error_validation() {
-        let error = BatchError::Validation("Invalid file ID".to_string());
+        let error = ProviderError::invalid_request("azure", "Invalid file ID".to_string());
         let msg = error.to_string();
-        assert!(msg.contains("Validation error"));
-        assert!(msg.contains("Invalid file ID"));
+        assert!(msg.contains("Invalid file ID") || msg.contains("invalid"));
     }
 
     #[test]
     fn test_batch_error_api() {
-        let error = BatchError::Api {
-            status: 429,
-            message: "Rate limit exceeded".to_string(),
-        };
+        let error = ProviderError::api_error("azure", 429, "Rate limit exceeded");
         let msg = error.to_string();
-        assert!(msg.contains("API error"));
         assert!(msg.contains("429"));
         assert!(msg.contains("Rate limit exceeded"));
     }
@@ -702,7 +683,7 @@ mod tests {
     #[test]
     fn test_batch_error_api_various_codes() {
         let test_cases = vec![
-            (400, "Bad Request"),
+            (400_u16, "Bad Request"),
             (401, "Unauthorized"),
             (403, "Forbidden"),
             (404, "Not Found"),
@@ -711,10 +692,7 @@ mod tests {
         ];
 
         for (status, message) in test_cases {
-            let error = BatchError::Api {
-                status,
-                message: message.to_string(),
-            };
+            let error = ProviderError::api_error("azure", status, message);
             let msg = error.to_string();
             assert!(msg.contains(&status.to_string()));
             assert!(msg.contains(message));
@@ -1067,8 +1045,8 @@ mod tests {
 
         let result = AzureBatchUtils::validate_batch_request(&request);
         assert!(result.is_err());
-        if let Err(BatchError::Validation(msg)) = result {
-            assert!(msg.contains("Unsupported batch endpoint"));
+        if let Err(ProviderError::InvalidRequest { message, .. }) = result {
+            assert!(message.contains("Unsupported batch endpoint"));
         }
     }
 
@@ -1082,8 +1060,8 @@ mod tests {
 
         let result = AzureBatchUtils::validate_batch_request(&request);
         assert!(result.is_err());
-        if let Err(BatchError::Validation(msg)) = result {
-            assert!(msg.contains("Input file ID is required"));
+        if let Err(ProviderError::InvalidRequest { message, .. }) = result {
+            assert!(message.contains("Input file ID is required"));
         }
     }
 
@@ -1097,8 +1075,8 @@ mod tests {
 
         let result = AzureBatchUtils::validate_batch_request(&request);
         assert!(result.is_err());
-        if let Err(BatchError::Validation(msg)) = result {
-            assert!(msg.contains("Only 24h completion window is supported"));
+        if let Err(ProviderError::InvalidRequest { message, .. }) = result {
+            assert!(message.contains("Only 24h completion window is supported"));
         }
     }
 

@@ -2,8 +2,11 @@
 //!
 //! Provides audio transcription capabilities using ElevenLabs' speech-to-text API.
 
-use super::error::ElevenLabsError;
+use crate::core::providers::unified_provider::ProviderError;
 use serde::{Deserialize, Serialize};
+
+/// Provider name constant
+const PROVIDER_NAME: &str = "elevenlabs";
 
 /// STT API endpoint path
 pub const STT_ENDPOINT_PATH: &str = "/v1/speech-to-text";
@@ -119,7 +122,7 @@ impl From<TranscriptionResponse> for OpenAITranscriptionResponse {
 /// Create multipart form for audio upload
 pub fn create_multipart_form(
     request: &TranscriptionRequest,
-) -> Result<reqwest::multipart::Form, ElevenLabsError> {
+) -> Result<reqwest::multipart::Form, ProviderError> {
     use reqwest::multipart;
 
     let mut form = multipart::Form::new();
@@ -137,7 +140,7 @@ pub fn create_multipart_form(
     let file_part = multipart::Part::bytes(request.file.clone())
         .file_name(filename)
         .mime_str(mime_type)
-        .map_err(|e| ElevenLabsError::InvalidRequestError(format!("Invalid MIME type: {}", e)))?;
+        .map_err(|e| ProviderError::invalid_request(PROVIDER_NAME, format!("Invalid MIME type: {}", e)))?;
     form = form.part("file", file_part);
 
     // Add model_id
