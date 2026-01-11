@@ -31,17 +31,24 @@ pub mod github;
 pub mod github_copilot;
 pub mod gradient_ai;
 pub mod groq;
+pub mod heroku;
+pub mod hosted_vllm;
 pub mod huggingface;
 pub mod hyperbolic;
 pub mod infinity;
 pub mod jina;
+pub mod lambda_ai;
+pub mod langgraph;
 pub mod llamafile;
 pub mod lm_studio;
 pub mod meta_llama;
+pub mod milvus;
 pub mod minimax;
 pub mod mistral;
 pub mod moonshot;
+pub mod nanogpt;
 pub mod nebius;
+pub mod nlp_cloud;
 pub mod novita;
 pub mod nscale;
 pub mod nvidia_nim;
@@ -52,7 +59,11 @@ pub mod openai;
 pub mod openai_like;
 pub mod openrouter;
 pub mod perplexity;
+pub mod pg_vector;
+pub mod poe;
+pub mod predibase;
 pub mod replicate;
+pub mod runwayml;
 pub mod sagemaker;
 pub mod sambanova;
 pub mod snowflake;
@@ -143,6 +154,8 @@ pub enum ProviderType {
     Volcengine,
     Nebius,
     Nscale,
+    PydanticAI,
+    OpenAICompatible,
     Custom(String),
 }
 
@@ -179,6 +192,8 @@ impl From<&str> for ProviderType {
             "volcengine" | "volc" | "doubao" | "bytedance" => ProviderType::Volcengine,
             "nebius" | "nebius-ai" => ProviderType::Nebius,
             "nscale" | "nscale-ai" => ProviderType::Nscale,
+            "pydantic_ai" | "pydantic-ai" | "pydantic" => ProviderType::PydanticAI,
+            "openai_compatible" | "openai-compatible" => ProviderType::OpenAICompatible,
             _ => ProviderType::Custom(s.to_string()),
         }
     }
@@ -217,6 +232,8 @@ impl std::fmt::Display for ProviderType {
             ProviderType::Volcengine => write!(f, "volcengine"),
             ProviderType::Nebius => write!(f, "nebius"),
             ProviderType::Nscale => write!(f, "nscale"),
+            ProviderType::PydanticAI => write!(f, "pydantic_ai"),
+            ProviderType::OpenAICompatible => write!(f, "openai_compatible"),
             ProviderType::Custom(name) => write!(f, "{}", name),
         }
     }

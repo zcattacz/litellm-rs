@@ -23,7 +23,7 @@ use crate::core::types::{
 };
 
 /// Provider name constant
-const PROVIDER_NAME: &str = "lambda_ai";
+pub const PROVIDER_NAME: &str = "lambda_ai";
 
 /// Static capabilities for Lambda Labs AI provider
 const LAMBDA_AI_CAPABILITIES: &[ProviderCapability] = &[

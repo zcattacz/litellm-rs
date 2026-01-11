@@ -44,7 +44,7 @@ impl HerokuProvider {
             headers.push(header("Authorization", format!("Bearer {}", api_key)));
         }
 
-        headers.push(header("Content-Type", "application/json"));
+        headers.push(header("Content-Type", "application/json".to_string()));
 
         // Add custom headers
         for (key, value) in &self.config.base.headers {

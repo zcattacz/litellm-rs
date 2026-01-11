@@ -183,7 +183,7 @@ mod tests {
         let err = ProviderError::cancelled(
             PROVIDER_NAME,
             "video_generation",
-            "Task canceled: User canceled",
+            Some("Task canceled: User canceled".to_string()),
         );
         assert!(matches!(err, ProviderError::Cancelled { .. }));
     }

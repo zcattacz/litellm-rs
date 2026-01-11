@@ -275,7 +275,7 @@ impl RunwayMLProvider {
                     return Err(ProviderError::cancelled(
                         PROVIDER_NAME,
                         "video_generation",
-                        "Task was cancelled",
+                        Some("Task was cancelled".to_string()),
                     ));
                 }
                 _ => {

@@ -225,7 +225,7 @@ impl MilvusConfig {
         // Token-based auth takes precedence
         if let Some(ref token) = self.token {
             headers.push(("Authorization".to_string(), format!("Bearer {}", token)));
-        } else if let (Some(ref username), Some(ref password)) = (&self.username, &self.password) {
+        } else if let (Some(username), Some(password)) = (&self.username, &self.password) {
             // Basic auth
             let credentials = base64_encode(&format!("{}:{}", username, password));
             headers.push((

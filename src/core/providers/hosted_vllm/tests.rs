@@ -142,6 +142,7 @@ mod model_tests {
 #[cfg(test)]
 mod provider_tests {
     use super::*;
+    use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 
     #[tokio::test]
     async fn test_provider_creation_requires_api_base() {

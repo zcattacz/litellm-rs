@@ -1,6 +1,7 @@
 //! LangGraph Provider Tests
 
 use super::*;
+use super::models::{get_model_registry, CreateThreadRequest, RunGraphRequest, RunResponse, RunStatus};
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 use crate::core::traits::ProviderConfig;
@@ -298,6 +299,8 @@ fn test_provider_creation_without_api_key() {
 
 #[test]
 fn test_provider_name() {
+    use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
+
     let config = LangGraphConfig::with_api_key("test-key");
     let provider = LangGraphProvider::new(config).unwrap();
     assert_eq!(provider.name(), "langgraph");

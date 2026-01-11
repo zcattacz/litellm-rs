@@ -148,6 +148,8 @@ async fn test_provider_creation_without_key() {
 
 #[tokio::test]
 async fn test_provider_creation_with_key() {
+    use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
+
     let config = LambdaAIConfig::new("test-api-key");
     let result = provider::LambdaAIProvider::new(config).await;
 

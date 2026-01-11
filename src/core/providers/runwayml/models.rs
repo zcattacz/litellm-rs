@@ -86,8 +86,8 @@ impl RunwayMLModelRegistry {
                 updated_at: None,
                 metadata: {
                     let mut m = HashMap::new();
-                    m.insert("type".to_string(), "video".to_string());
-                    m.insert("cost_per_second".to_string(), "0.05".to_string());
+                    m.insert("type".to_string(), serde_json::json!("video"));
+                    m.insert("cost_per_second".to_string(), serde_json::json!("0.05"));
                     m
                 },
             },
@@ -119,8 +119,8 @@ impl RunwayMLModelRegistry {
                 updated_at: None,
                 metadata: {
                     let mut m = HashMap::new();
-                    m.insert("type".to_string(), "video".to_string());
-                    m.insert("cost_per_second".to_string(), "0.10".to_string());
+                    m.insert("type".to_string(), serde_json::json!("video"));
+                    m.insert("cost_per_second".to_string(), serde_json::json!("0.10"));
                     m
                 },
             },
@@ -152,8 +152,8 @@ impl RunwayMLModelRegistry {
                 updated_at: None,
                 metadata: {
                     let mut m = HashMap::new();
-                    m.insert("type".to_string(), "video".to_string());
-                    m.insert("input_type".to_string(), "image".to_string());
+                    m.insert("type".to_string(), serde_json::json!("video"));
+                    m.insert("input_type".to_string(), serde_json::json!("image"));
                     m
                 },
             },

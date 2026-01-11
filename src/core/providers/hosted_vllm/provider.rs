@@ -105,7 +105,7 @@ impl HostedVLLMProvider {
     }
 
     /// Build headers for requests
-    fn build_headers(&self) -> Vec<(String, String)> {
+    fn build_headers(&self) -> Vec<(std::borrow::Cow<'static, str>, std::borrow::Cow<'static, str>)> {
         let mut headers = Vec::with_capacity(4 + self.config.custom_headers.len());
 
         // Add auth headers if API key is provided
@@ -119,7 +119,7 @@ impl HostedVLLMProvider {
 
         // Custom headers
         for (key, value) in &self.config.custom_headers {
-            headers.push(header(key, value.clone()));
+            headers.push((std::borrow::Cow::Owned(key.clone()), std::borrow::Cow::Owned(value.clone())));
         }
 
         headers

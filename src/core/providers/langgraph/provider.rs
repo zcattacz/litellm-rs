@@ -14,6 +14,7 @@ use crate::core::providers::base::{
     HttpMethod,
 };
 use crate::core::providers::unified_provider::ProviderError;
+use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 use crate::core::traits::ProviderConfig;
 use crate::core::types::{
@@ -76,7 +77,7 @@ impl LangGraphProvider {
             headers.push(header("x-api-key", api_key.clone()));
         }
 
-        headers.push(header("Content-Type", "application/json"));
+        headers.push(header("Content-Type", "application/json".to_string()));
 
         // Add custom headers
         for (key, value) in &self.config.base.headers {
@@ -269,7 +270,7 @@ impl LangGraphProvider {
     }
 
     /// Convert ChatRequest to LangGraph input format
-    fn transform_chat_to_langgraph_input(&self, request: &ChatRequest) -> serde_json::Value {
+    pub fn transform_chat_to_langgraph_input(&self, request: &ChatRequest) -> serde_json::Value {
         // LangGraph typically expects messages in a specific format
         let messages: Vec<serde_json::Value> = request
             .messages
@@ -289,7 +290,7 @@ impl LangGraphProvider {
                                 serde_json::Value::String(text.clone()),
                             );
                         }
-                        MessageContent::Array(parts) => {
+                        MessageContent::Parts(parts) => {
                             // For multimodal content, serialize the parts
                             if let Ok(val) = serde_json::to_value(parts) {
                                 m.insert("content".to_string(), val);
@@ -592,7 +593,8 @@ fn create_langgraph_stream(
 ) -> impl Stream<Item = Result<ChatChunk, ProviderError>> + Send {
     use futures::StreamExt;
 
-    let mut buffer = String::new();
+    use std::sync::{Arc, Mutex};
+    let buffer = Arc::new(Mutex::new(String::new()));
 
     byte_stream
         .map(move |chunk_result| {
@@ -606,17 +608,18 @@ fn create_langgraph_stream(
             }
         })
         .filter_map(move |result| {
-            let buffer_ref = &mut buffer;
+            let buffer_clone = Arc::clone(&buffer);
             async move {
                 match result {
                     Ok((data, model)) => {
-                        buffer_ref.push_str(&data);
+                        let mut buffer_guard = buffer_clone.lock().unwrap();
+                        buffer_guard.push_str(&data);
 
                         // Process complete SSE events
                         let mut chunks = Vec::new();
-                        while let Some(event_end) = buffer_ref.find("\n\n") {
-                            let event = buffer_ref[..event_end].to_string();
-                            *buffer_ref = buffer_ref[event_end + 2..].to_string();
+                        while let Some(event_end) = buffer_guard.find("\n\n") {
+                            let event = buffer_guard[..event_end].to_string();
+                            *buffer_guard = buffer_guard[event_end + 2..].to_string();
 
                             if let Some(chunk) = parse_langgraph_sse_event(&event, &model) {
                                 chunks.push(Ok(chunk));

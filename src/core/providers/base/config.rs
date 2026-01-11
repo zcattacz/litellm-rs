@@ -205,16 +205,10 @@ macro_rules! define_provider_config {
             #[serde(flatten)]
             pub base: $crate::core::providers::base::config::BaseConfig,
             $(
-                #[serde(default = stringify!($field _default))]
+                #[serde(skip_serializing_if = "Option::is_none")]
                 pub $field: $type,
             )*
         }
-
-        $(
-            fn $field _default() -> $type {
-                $default
-            }
-        )*
 
         impl Default for $name {
             fn default() -> Self {
