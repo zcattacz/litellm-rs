@@ -20,7 +20,7 @@ use crate::core::types::{
 
 use super::client::GeminiClient;
 use super::config::GeminiConfig;
-use super::error::{GeminiError, GeminiErrorMapper, gemini_model_error, gemini_validation_error};
+use super::error::{GeminiErrorMapper, gemini_model_error, gemini_validation_error};
 use super::models::{ModelFeature, get_gemini_registry};
 use super::streaming::GeminiStream;
 
@@ -128,7 +128,7 @@ impl GeminiProvider {
 #[async_trait]
 impl LLMProvider for GeminiProvider {
     type Config = GeminiConfig;
-    type Error = GeminiError;
+    type Error = ProviderError;
     type ErrorMapper = GeminiErrorMapper;
 
     fn name(&self) -> &'static str {

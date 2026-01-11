@@ -3,8 +3,7 @@
 //! Handles Ollama's streaming response format (NDJSON - newline-delimited JSON).
 //! Ollama uses a different format than OpenAI's SSE, so we need a custom parser.
 
-use super::error::OllamaError;
-use crate::ProviderError;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::types::requests::MessageRole;
 use crate::core::types::responses::{ChatChunk, ChatDelta, ChatResponse, ChatStreamChoice, Usage};
 use bytes::Bytes;
@@ -114,7 +113,7 @@ where
     }
 
     /// Parse a single line as an Ollama chunk
-    fn parse_line(&self, line: &str) -> Result<Option<ChatChunk>, OllamaError> {
+    fn parse_line(&self, line: &str) -> Result<Option<ChatChunk>, ProviderError> {
         let line = line.trim();
         if line.is_empty() {
             return Ok(None);
@@ -135,7 +134,7 @@ where
     }
 
     /// Convert Ollama chunk to standard ChatChunk
-    fn convert_chunk(&self, chunk: OllamaStreamChunk) -> Result<ChatChunk, OllamaError> {
+    fn convert_chunk(&self, chunk: OllamaStreamChunk) -> Result<ChatChunk, ProviderError> {
         let mut delta = ChatDelta {
             role: None,
             content: None,
@@ -237,7 +236,7 @@ impl<S> Stream for OllamaStream<S>
 where
     S: Stream<Item = Result<Bytes, reqwest::Error>> + Unpin,
 {
-    type Item = Result<ChatChunk, OllamaError>;
+    type Item = Result<ChatChunk, ProviderError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if self.finished {
@@ -311,7 +310,7 @@ where
 /// Create a fake stream from a complete response
 pub async fn create_fake_stream(
     response: ChatResponse,
-) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, OllamaError>> + Send>>, OllamaError> {
+) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, ProviderError>> + Send>>, ProviderError> {
     let chunks = response_to_chunks(response);
     let stream = futures::stream::iter(chunks.into_iter().map(Ok));
     Ok(Box::pin(stream))

@@ -6,7 +6,6 @@ use bytes::Bytes;
 use futures::Stream;
 use std::pin::Pin;
 
-use super::error::OpenAIError;
 use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEStream};
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::types::responses::ChatChunk;
@@ -25,7 +24,7 @@ pub fn create_openai_stream(
     UnifiedSSEStream::new(Box::pin(stream), transformer)
 }
 
-/// Wrapper stream that converts ProviderError to OpenAIError for backward compatibility
+/// Wrapper stream that keeps same type (for backward compatibility, now deprecated)
 pub struct OpenAIStreamCompat {
     inner: OpenAIStream,
 }
@@ -39,39 +38,14 @@ impl OpenAIStreamCompat {
 }
 
 impl Stream for OpenAIStreamCompat {
-    type Item = Result<ChatChunk, OpenAIError>;
+    type Item = Result<ChatChunk, ProviderError>;
 
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
         use std::pin::Pin;
-        use std::task::Poll;
-
-        match Pin::new(&mut self.inner).poll_next(cx) {
-            Poll::Ready(Some(Ok(chunk))) => Poll::Ready(Some(Ok(chunk))),
-            Poll::Ready(Some(Err(e))) => Poll::Ready(Some(Err(provider_error_to_openai(e)))),
-            Poll::Ready(None) => Poll::Ready(None),
-            Poll::Pending => Poll::Pending,
-        }
-    }
-}
-
-/// Convert ProviderError to OpenAIError
-fn provider_error_to_openai(e: ProviderError) -> OpenAIError {
-    match e {
-        ProviderError::ResponseParsing { message, .. } => OpenAIError::ResponseParsing {
-            provider: "openai",
-            message,
-        },
-        ProviderError::Network { message, .. } => OpenAIError::Other {
-            provider: "openai",
-            message,
-        },
-        _ => OpenAIError::Other {
-            provider: "openai",
-            message: e.to_string(),
-        },
+        Pin::new(&mut self.inner).poll_next(cx)
     }
 }
 
@@ -262,42 +236,6 @@ mod tests {
 
         let result2 = parser.process_bytes(part2);
         assert!(result2.is_ok());
-    }
-
-    // ==================== Error Conversion Tests ====================
-
-    #[test]
-    fn test_provider_error_to_openai_parsing() {
-        let provider_err = ProviderError::ResponseParsing {
-            provider: "openai",
-            message: "Invalid JSON".to_string(),
-        };
-        let openai_err = provider_error_to_openai(provider_err);
-
-        assert!(matches!(openai_err, OpenAIError::ResponseParsing { .. }));
-    }
-
-    #[test]
-    fn test_provider_error_to_openai_network() {
-        let provider_err = ProviderError::Network {
-            provider: "openai",
-            message: "Connection failed".to_string(),
-        };
-        let openai_err = provider_error_to_openai(provider_err);
-
-        assert!(matches!(openai_err, OpenAIError::Other { .. }));
-    }
-
-    #[test]
-    fn test_provider_error_to_openai_other() {
-        let provider_err = ProviderError::ApiError {
-            provider: "openai",
-            status: 500,
-            message: "Some error".to_string(),
-        };
-        let openai_err = provider_error_to_openai(provider_err);
-
-        assert!(matches!(openai_err, OpenAIError::Other { .. }));
     }
 
     // ==================== Transformer Tests ====================

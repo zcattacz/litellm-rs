@@ -10,7 +10,8 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::GradientAIConfig;
-use super::error::{GradientAIError, GradientAIErrorMapper};
+use super::error::GradientAIErrorMapper;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEStream};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::traits::{
@@ -61,15 +62,15 @@ pub struct GradientAIProvider {
 
 impl GradientAIProvider {
     /// Create a new Gradient AI provider instance
-    pub async fn new(config: GradientAIConfig) -> Result<Self, GradientAIError> {
+    pub async fn new(config: GradientAIConfig) -> Result<Self, ProviderError> {
         // Validate configuration
         config
             .validate()
-            .map_err(GradientAIError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration("gradient_ai", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            GradientAIError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration("gradient_ai", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build default model list
@@ -102,7 +103,7 @@ impl GradientAIProvider {
     }
 
     /// Create provider with API key only
-    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, GradientAIError> {
+    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, ProviderError> {
         let config = GradientAIConfig {
             api_key: Some(api_key.into()),
             ..Default::default()
@@ -151,7 +152,7 @@ impl GradientAIProvider {
         &self,
         url: &str,
         body: serde_json::Value,
-    ) -> Result<serde_json::Value, GradientAIError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let mut headers = Vec::with_capacity(2);
         if let Some(api_key) = &self.config.get_api_key() {
             headers.push(header("Authorization", format!("Bearer {}", api_key)));
@@ -162,22 +163,22 @@ impl GradientAIProvider {
             .pool_manager
             .execute_request(url, HttpMethod::POST, headers, Some(body))
             .await
-            .map_err(|e| GradientAIError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("gradient_ai", e.to_string()))?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| GradientAIError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("gradient_ai", e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| GradientAIError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("gradient_ai", 500, format!("Failed to parse response: {}", e)))
     }
 }
 
 #[async_trait]
 impl LLMProvider for GradientAIProvider {
     type Config = GradientAIConfig;
-    type Error = GradientAIError;
+    type Error = ProviderError;
     type ErrorMapper = GradientAIErrorMapper;
 
     fn name(&self) -> &'static str {
@@ -221,7 +222,7 @@ impl LLMProvider for GradientAIProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         serde_json::from_slice(raw_response)
-            .map_err(|e| GradientAIError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error("gradient_ai", 500, format!("Failed to parse response: {}", e)))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -241,7 +242,7 @@ impl LLMProvider for GradientAIProvider {
         let response = self.execute_request(&url, request_body).await?;
 
         serde_json::from_value(response)
-            .map_err(|e| GradientAIError::ApiError(format!("Failed to parse chat response: {}", e)))
+            .map_err(|e| ProviderError::api_error("gradient_ai", 500, format!("Failed to parse chat response: {}", e)))
     }
 
     async fn chat_completion_stream(
@@ -255,7 +256,7 @@ impl LLMProvider for GradientAIProvider {
         request.stream = true;
 
         let api_key = self.config.get_api_key().ok_or_else(|| {
-            GradientAIError::AuthenticationError("API key is required".to_string())
+            ProviderError::authentication("gradient_ai", "API key is required")
         })?;
 
         let url = self.config.get_complete_url();
@@ -269,18 +270,25 @@ impl LLMProvider for GradientAIProvider {
             .json(&request_body)
             .send()
             .await
-            .map_err(|e| GradientAIError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("gradient_ai", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.ok();
             return Err(match status {
-                400 => GradientAIError::InvalidRequestError(
+                400 => ProviderError::invalid_request(
+                    "gradient_ai",
                     body.unwrap_or_else(|| "Bad request".to_string()),
                 ),
-                401 => GradientAIError::AuthenticationError("Invalid API key".to_string()),
-                429 => GradientAIError::RateLimitError("Rate limit exceeded".to_string()),
-                _ => GradientAIError::StreamingError(format!("Stream request failed: {}", status)),
+                401 => ProviderError::authentication("gradient_ai", "Invalid API key"),
+                429 => ProviderError::rate_limit("gradient_ai", None),
+                _ => ProviderError::streaming_error(
+                    "gradient_ai",
+                    "chat",
+                    None,
+                    None,
+                    format!("Stream request failed: {}", status),
+                ),
             });
         }
 
@@ -288,12 +296,12 @@ impl LLMProvider for GradientAIProvider {
         let transformer = OpenAICompatibleTransformer::new("gradient_ai");
         let inner_stream = UnifiedSSEStream::new(Box::pin(response.bytes_stream()), transformer);
 
-        // Wrap to convert ProviderError to GradientAIError
+        // Wrap to convert ProviderError to Self::Error (they're the same type now)
         let mapped_stream = futures::stream::unfold(inner_stream, |mut stream| async move {
             use futures::StreamExt;
             match stream.next().await {
                 Some(Ok(chunk)) => Some((Ok(chunk), stream)),
-                Some(Err(e)) => Some((Err(GradientAIError::StreamingError(e.to_string())), stream)),
+                Some(Err(e)) => Some((Err(ProviderError::streaming_error("gradient_ai", "chat", None, None, e.to_string())), stream)),
                 None => None,
             }
         });
@@ -306,10 +314,10 @@ impl LLMProvider for GradientAIProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(GradientAIError::InvalidRequestError(
+        Err(ProviderError::not_supported(
+            "gradient_ai",
             "Gradient AI does not support embeddings through this endpoint. \
-             Use the Gradient AI embeddings API directly."
-                .to_string(),
+             Use the Gradient AI embeddings API directly.",
         ))
     }
 

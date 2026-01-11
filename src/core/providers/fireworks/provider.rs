@@ -10,7 +10,6 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::FireworksConfig;
-use super::error::FireworksError;
 use super::model_info::{
     format_model_id, get_available_models, get_model_info, is_reasoning_model,
     supports_function_calling, supports_tool_choice,
@@ -43,7 +42,7 @@ pub struct FireworksProvider {
 
 impl FireworksProvider {
     /// Create a new Fireworks AI provider instance
-    pub async fn new(config: FireworksConfig) -> Result<Self, FireworksError> {
+    pub async fn new(config: FireworksConfig) -> Result<Self, ProviderError> {
         // Validate configuration
         config
             .validate()
@@ -98,7 +97,7 @@ impl FireworksProvider {
     }
 
     /// Create provider with API key only
-    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, FireworksError> {
+    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, ProviderError> {
         let config = FireworksConfig {
             api_key: Some(api_key.into()),
             ..Default::default()
@@ -164,7 +163,7 @@ impl FireworksProvider {
         &self,
         endpoint: &str,
         body: serde_json::Value,
-    ) -> Result<serde_json::Value, FireworksError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let url = format!("{}{}", self.config.get_api_base(), endpoint);
 
         let mut headers = Vec::with_capacity(2);
@@ -207,7 +206,7 @@ impl FireworksProvider {
 #[async_trait]
 impl LLMProvider for FireworksProvider {
     type Config = FireworksConfig;
-    type Error = FireworksError;
+    type Error = ProviderError;
     type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {

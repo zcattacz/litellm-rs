@@ -2,7 +2,7 @@
 //!
 //! OCI uses an OpenAI-compatible SSE format for streaming responses.
 
-use super::error::OciError;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::types::requests::MessageRole;
 use crate::core::types::responses::{ChatChunk, ChatDelta, ChatStreamChoice, FinishReason};
 use bytes::Bytes;
@@ -34,7 +34,7 @@ where
     }
 
     /// Process SSE data line
-    fn process_data(&self, data: &str) -> Option<Result<ChatChunk, OciError>> {
+    fn process_data(&self, data: &str) -> Option<Result<ChatChunk, ProviderError>> {
         // Check for done signal
         if data == "[DONE]" {
             return None;
@@ -43,15 +43,15 @@ where
         // Parse JSON response
         match serde_json::from_str::<serde_json::Value>(data) {
             Ok(json) => Some(self.parse_chunk(json)),
-            Err(e) => Some(Err(OciError::ApiError(format!(
-                "Failed to parse streaming response: {}",
-                e
-            )))),
+            Err(e) => Some(Err(ProviderError::response_parsing(
+                "oci",
+                format!("Failed to parse streaming response: {}", e),
+            ))),
         }
     }
 
     /// Parse response chunk into ChatChunk
-    fn parse_chunk(&self, json: serde_json::Value) -> Result<ChatChunk, OciError> {
+    fn parse_chunk(&self, json: serde_json::Value) -> Result<ChatChunk, ProviderError> {
         let id = json
             .get("id")
             .and_then(|v| v.as_str())
@@ -153,7 +153,7 @@ impl<S> Stream for OciStream<S>
 where
     S: Stream<Item = Result<Bytes, reqwest::Error>> + Unpin,
 {
-    type Item = Result<ChatChunk, OciError>;
+    type Item = Result<ChatChunk, ProviderError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if self.done {
@@ -188,7 +188,7 @@ where
                     self.buffer.push_str(&String::from_utf8_lossy(&bytes));
                 }
                 Poll::Ready(Some(Err(e))) => {
-                    return Poll::Ready(Some(Err(OciError::NetworkError(e.to_string()))));
+                    return Poll::Ready(Some(Err(ProviderError::network("oci", e.to_string()))));
                 }
                 Poll::Ready(None) => {
                     self.done = true;

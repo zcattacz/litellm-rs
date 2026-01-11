@@ -10,11 +10,10 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::NvidiaNimConfig;
-use super::error::NvidiaNimError;
 use super::model_info::{
     get_available_models, get_model_info, get_supported_params, supports_tools,
 };
-use crate::ProviderError;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
@@ -43,7 +42,7 @@ pub struct NvidiaNimProvider {
 
 impl NvidiaNimProvider {
     /// Create a new NVIDIA NIM provider instance
-    pub async fn new(config: NvidiaNimConfig) -> Result<Self, NvidiaNimError> {
+    pub async fn new(config: NvidiaNimConfig) -> Result<Self, ProviderError> {
         // Validate configuration
         config
             .validate()
@@ -98,7 +97,7 @@ impl NvidiaNimProvider {
     }
 
     /// Create provider with API key only
-    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, NvidiaNimError> {
+    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, ProviderError> {
         let config = NvidiaNimConfig {
             api_key: Some(api_key.into()),
             ..Default::default()
@@ -111,7 +110,7 @@ impl NvidiaNimProvider {
         &self,
         endpoint: &str,
         body: serde_json::Value,
-    ) -> Result<serde_json::Value, NvidiaNimError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let url = format!("{}{}", self.config.get_api_base(), endpoint);
 
         let mut headers = Vec::with_capacity(2);
@@ -185,7 +184,7 @@ impl NvidiaNimProvider {
 #[async_trait]
 impl LLMProvider for NvidiaNimProvider {
     type Config = NvidiaNimConfig;
-    type Error = NvidiaNimError;
+    type Error = ProviderError;
     type ErrorMapper = crate::core::traits::error_mapper::types::GenericErrorMapper;
 
     fn name(&self) -> &'static str {
@@ -433,7 +432,7 @@ impl NvidiaNimStream {
 }
 
 impl Stream for NvidiaNimStream {
-    type Item = Result<ChatChunk, NvidiaNimError>;
+    type Item = Result<ChatChunk, ProviderError>;
 
     fn poll_next(
         mut self: Pin<&mut Self>,

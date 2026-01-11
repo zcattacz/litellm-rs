@@ -6,13 +6,13 @@
 pub mod chat;
 
 use crate::core::{
+    providers::unified_provider::ProviderError,
     traits::{
-        error_mapper::{trait_def::ErrorMapper, types::GenericErrorMapper},
+        error_mapper::types::GenericErrorMapper,
         provider::{LLMProvider, ProviderConfig},
     },
     types::{
         common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
-        errors::ProviderErrorTrait,
         requests::ChatRequest,
         responses::ChatResponse,
     },
@@ -22,6 +22,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::LazyLock;
+
+/// Provider name constant for error messages
+const PROVIDER_NAME: &str = "v0";
 
 /// V0 Provider configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -198,7 +201,7 @@ impl V0Provider {
     }
 
     /// Internal health check method
-    async fn check_health(&self) -> Result<(), V0Error> {
+    async fn check_health(&self) -> Result<(), ProviderError> {
         let url = self.get_endpoint("models");
         let response = self
             .client
@@ -206,54 +209,16 @@ impl V0Provider {
             .headers(self.create_headers())
             .send()
             .await
-            .map_err(V0Error::HttpError)?;
+            .map_err(|e| ProviderError::network(PROVIDER_NAME, e.to_string()))?;
 
         if response.status().is_success() {
             Ok(())
         } else {
-            Err(V0Error::ApiError(format!(
-                "Health check failed with status: {}",
-                response.status()
-            )))
-        }
-    }
-}
-
-/// V0 specific errors
-#[derive(Debug, thiserror::Error)]
-pub enum V0Error {
-    #[error("HTTP error: {0}")]
-    HttpError(#[from] reqwest::Error),
-
-    #[error("JSON error: {0}")]
-    JsonError(#[from] serde_json::Error),
-
-    #[error("API error: {0}")]
-    ApiError(String),
-
-    #[error("Invalid request: {0}")]
-    InvalidRequest(String),
-
-    #[error("Rate limit exceeded")]
-    RateLimitExceeded,
-
-    #[error("Authentication failed")]
-    AuthenticationFailed,
-
-    #[error("Model not found: {0}")]
-    ModelNotFound(String),
-}
-
-/// Error
-pub struct V0ErrorMapper;
-
-impl ErrorMapper<V0Error> for V0ErrorMapper {
-    fn map_http_error(&self, status_code: u16, response_body: &str) -> V0Error {
-        match status_code {
-            401 => V0Error::AuthenticationFailed,
-            429 => V0Error::RateLimitExceeded,
-            404 => V0Error::ModelNotFound("Model not found".to_string()),
-            _ => GenericErrorMapper.map_http_error(status_code, response_body),
+            Err(ProviderError::api_error(
+                PROVIDER_NAME,
+                response.status().as_u16(),
+                format!("Health check failed with status: {}", response.status()),
+            ))
         }
     }
 }
@@ -264,8 +229,8 @@ impl ErrorMapper<V0Error> for V0ErrorMapper {
 #[async_trait]
 impl LLMProvider for V0Provider {
     type Config = V0Config;
-    type Error = V0Error;
-    type ErrorMapper = V0ErrorMapper;
+    type Error = ProviderError;
+    type ErrorMapper = GenericErrorMapper;
 
     /// Get
     fn name(&self) -> &'static str {
@@ -358,13 +323,17 @@ impl LLMProvider for V0Provider {
     ) -> Result<Value, Self::Error> {
         // Request
         if request.messages.is_empty() {
-            return Err(V0Error::InvalidRequest(
-                "Messages cannot be empty".to_string(),
+            return Err(ProviderError::invalid_request(
+                PROVIDER_NAME,
+                "Messages cannot be empty",
             ));
         }
 
         if request.model.is_empty() {
-            return Err(V0Error::InvalidRequest("Model cannot be empty".to_string()));
+            return Err(ProviderError::invalid_request(
+                PROVIDER_NAME,
+                "Model cannot be empty",
+            ));
         }
 
         // Convert to V0 API format (OpenAI compatible)
@@ -390,8 +359,8 @@ impl LLMProvider for V0Provider {
         request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         // Response
-        let response_json: Value =
-            serde_json::from_slice(raw_response).map_err(V0Error::JsonError)?;
+        let response_json: Value = serde_json::from_slice(raw_response)
+            .map_err(|e| ProviderError::serialization(PROVIDER_NAME, e.to_string()))?;
 
         // Convert to standard ChatResponse format
         // Response
@@ -400,13 +369,15 @@ impl LLMProvider for V0Provider {
         let choices = response_json
             .get("choices")
             .and_then(|c| c.as_array())
-            .ok_or_else(|| V0Error::ApiError("Invalid response format".to_string()))?;
+            .ok_or_else(|| {
+                ProviderError::response_parsing(PROVIDER_NAME, "Invalid response format")
+            })?;
 
         let usage = response_json
             .get("usage")
             .map(|u| serde_json::from_value(u.clone()))
             .transpose()
-            .map_err(V0Error::JsonError)?;
+            .map_err(|e| ProviderError::serialization(PROVIDER_NAME, e.to_string()))?;
 
         let chat_response = ChatResponse {
             id: request_id.to_string(),
@@ -417,7 +388,7 @@ impl LLMProvider for V0Provider {
                 .as_secs() as i64,
             model: model.to_string(),
             choices: serde_json::from_value(serde_json::Value::Array(choices.clone()))
-                .map_err(V0Error::JsonError)?,
+                .map_err(|e| ProviderError::serialization(PROVIDER_NAME, e.to_string()))?,
             usage,
             system_fingerprint: None,
         };
@@ -427,7 +398,7 @@ impl LLMProvider for V0Provider {
 
     /// Error
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        V0ErrorMapper
+        GenericErrorMapper
     }
 
     // ==================== Core functionality: chat completion ====================
@@ -466,80 +437,6 @@ impl LLMProvider for V0Provider {
         let input_cost = (input_tokens as f64 / 1000.0) * 0.1;
         let output_cost = (output_tokens as f64 / 1000.0) * 0.2;
         Ok(input_cost + output_cost)
-    }
-}
-
-impl ProviderErrorTrait for V0Error {
-    fn error_type(&self) -> &'static str {
-        match self {
-            Self::HttpError(_) => "network_error",
-            Self::JsonError(_) => "parsing_error",
-            Self::ApiError(_) => "api_error",
-            Self::InvalidRequest(_) => "invalid_request_error",
-            Self::RateLimitExceeded => "rate_limit_error",
-            Self::AuthenticationFailed => "authentication_error",
-            Self::ModelNotFound(_) => "model_not_found",
-        }
-    }
-
-    fn is_retryable(&self) -> bool {
-        match self {
-            Self::HttpError(_) | Self::RateLimitExceeded => true,
-            Self::ApiError(_) => true, // Depends on the specific API error
-            _ => false,
-        }
-    }
-
-    fn retry_delay(&self) -> Option<u64> {
-        match self {
-            Self::RateLimitExceeded => Some(60), // 1 minute
-            Self::HttpError(_) => Some(1),       // 1 second
-            Self::ApiError(_) => Some(5),        // 5 seconds
-            _ => None,
-        }
-    }
-
-    fn http_status(&self) -> u16 {
-        match self {
-            Self::AuthenticationFailed => 401,
-            Self::RateLimitExceeded => 429,
-            Self::ModelNotFound(_) => 404,
-            Self::InvalidRequest(_) => 400,
-            Self::HttpError(_) => 503,
-            _ => 500,
-        }
-    }
-
-    fn not_supported(feature: &str) -> Self {
-        Self::InvalidRequest(format!("Feature '{}' is not supported by V0", feature))
-    }
-
-    fn authentication_failed(_reason: &str) -> Self {
-        Self::AuthenticationFailed
-    }
-
-    fn rate_limited(_retry_after: Option<u64>) -> Self {
-        Self::RateLimitExceeded
-    }
-
-    fn network_error(details: &str) -> Self {
-        Self::InvalidRequest(format!("Network error: {}", details))
-    }
-
-    fn parsing_error(details: &str) -> Self {
-        // Create a JSON parsing error by attempting to parse invalid JSON
-        let invalid_json = format!("{{\"error\": \"{}\"}}", details.replace('"', "\\\""));
-        match serde_json::from_str::<serde_json::Value>(&invalid_json) {
-            Err(e) => Self::JsonError(e),
-            Ok(_) => {
-                // If that somehow succeeded, create a different error
-                Self::InvalidRequest(format!("JSON parsing error: {}", details))
-            }
-        }
-    }
-
-    fn not_implemented(feature: &str) -> Self {
-        Self::InvalidRequest(format!("Feature '{}' not implemented for V0", feature))
     }
 }
 
@@ -839,126 +736,6 @@ mod tests {
 
         assert!(headers.contains_key(reqwest::header::AUTHORIZATION));
         assert!(headers.contains_key(reqwest::header::CONTENT_TYPE));
-    }
-
-    // ==================== V0Error Tests ====================
-
-    #[test]
-    fn test_v0_error_display() {
-        let http_err = V0Error::ApiError("test error".to_string());
-        assert!(http_err.to_string().contains("test error"));
-
-        let rate_limit = V0Error::RateLimitExceeded;
-        assert!(rate_limit.to_string().contains("Rate limit"));
-
-        let auth_failed = V0Error::AuthenticationFailed;
-        assert!(auth_failed.to_string().contains("Authentication"));
-
-        let model_not_found = V0Error::ModelNotFound("gpt-5".to_string());
-        assert!(model_not_found.to_string().contains("gpt-5"));
-
-        let invalid_request = V0Error::InvalidRequest("bad request".to_string());
-        assert!(invalid_request.to_string().contains("bad request"));
-    }
-
-    #[test]
-    fn test_v0_error_trait_error_type() {
-        assert_eq!(V0Error::RateLimitExceeded.error_type(), "rate_limit_error");
-        assert_eq!(
-            V0Error::AuthenticationFailed.error_type(),
-            "authentication_error"
-        );
-        assert_eq!(
-            V0Error::ModelNotFound("x".to_string()).error_type(),
-            "model_not_found"
-        );
-        assert_eq!(
-            V0Error::InvalidRequest("x".to_string()).error_type(),
-            "invalid_request_error"
-        );
-        assert_eq!(V0Error::ApiError("x".to_string()).error_type(), "api_error");
-    }
-
-    #[test]
-    fn test_v0_error_trait_is_retryable() {
-        assert!(V0Error::RateLimitExceeded.is_retryable());
-        assert!(V0Error::ApiError("server error".to_string()).is_retryable());
-        assert!(!V0Error::AuthenticationFailed.is_retryable());
-        assert!(!V0Error::InvalidRequest("bad".to_string()).is_retryable());
-        assert!(!V0Error::ModelNotFound("x".to_string()).is_retryable());
-    }
-
-    #[test]
-    fn test_v0_error_trait_retry_delay() {
-        assert_eq!(V0Error::RateLimitExceeded.retry_delay(), Some(60));
-        assert_eq!(V0Error::ApiError("x".to_string()).retry_delay(), Some(5));
-        assert_eq!(V0Error::AuthenticationFailed.retry_delay(), None);
-        assert_eq!(V0Error::InvalidRequest("x".to_string()).retry_delay(), None);
-    }
-
-    #[test]
-    fn test_v0_error_trait_http_status() {
-        assert_eq!(V0Error::AuthenticationFailed.http_status(), 401);
-        assert_eq!(V0Error::RateLimitExceeded.http_status(), 429);
-        assert_eq!(V0Error::ModelNotFound("x".to_string()).http_status(), 404);
-        assert_eq!(V0Error::InvalidRequest("x".to_string()).http_status(), 400);
-        assert_eq!(V0Error::ApiError("x".to_string()).http_status(), 500);
-    }
-
-    #[test]
-    fn test_v0_error_not_supported() {
-        let err = V0Error::not_supported("vision");
-        assert!(matches!(err, V0Error::InvalidRequest(_)));
-        assert!(err.to_string().contains("vision"));
-    }
-
-    #[test]
-    fn test_v0_error_authentication_failed() {
-        let err = V0Error::authentication_failed("invalid token");
-        assert!(matches!(err, V0Error::AuthenticationFailed));
-    }
-
-    #[test]
-    fn test_v0_error_rate_limited() {
-        let err = V0Error::rate_limited(Some(60));
-        assert!(matches!(err, V0Error::RateLimitExceeded));
-    }
-
-    #[test]
-    fn test_v0_error_network_error() {
-        let err = V0Error::network_error("connection refused");
-        assert!(matches!(err, V0Error::InvalidRequest(_)));
-        assert!(err.to_string().contains("Network error"));
-    }
-
-    #[test]
-    fn test_v0_error_not_implemented() {
-        let err = V0Error::not_implemented("embeddings");
-        assert!(matches!(err, V0Error::InvalidRequest(_)));
-        assert!(err.to_string().contains("embeddings"));
-    }
-
-    // ==================== V0ErrorMapper Tests ====================
-
-    #[test]
-    fn test_v0_error_mapper_401() {
-        let mapper = V0ErrorMapper;
-        let err = mapper.map_http_error(401, "unauthorized");
-        assert!(matches!(err, V0Error::AuthenticationFailed));
-    }
-
-    #[test]
-    fn test_v0_error_mapper_429() {
-        let mapper = V0ErrorMapper;
-        let err = mapper.map_http_error(429, "rate limited");
-        assert!(matches!(err, V0Error::RateLimitExceeded));
-    }
-
-    #[test]
-    fn test_v0_error_mapper_404() {
-        let mapper = V0ErrorMapper;
-        let err = mapper.map_http_error(404, "not found");
-        assert!(matches!(err, V0Error::ModelNotFound(_)));
     }
 
     // ==================== LLMProvider Trait Tests ====================

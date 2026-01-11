@@ -14,7 +14,6 @@ use tracing::debug;
 
 use super::authenticator::CopilotAuthenticator;
 use super::config::{GITHUB_COPILOT_API_BASE, GitHubCopilotConfig, get_copilot_default_headers};
-use super::error::GitHubCopilotError;
 use super::model_info::{
     get_available_models, get_model_info, is_claude_model, supports_reasoning,
 };
@@ -59,7 +58,7 @@ impl Clone for GitHubCopilotProvider {
 
 impl GitHubCopilotProvider {
     /// Create a new GitHub Copilot provider instance
-    pub async fn new(config: GitHubCopilotConfig) -> Result<Self, GitHubCopilotError> {
+    pub async fn new(config: GitHubCopilotConfig) -> Result<Self, ProviderError> {
         let authenticator = CopilotAuthenticator::new(&config);
 
         // Build model list from static configuration
@@ -105,7 +104,7 @@ impl GitHubCopilotProvider {
     }
 
     /// Get the API key, using cache or refreshing if needed
-    async fn get_api_key(&self) -> Result<String, GitHubCopilotError> {
+    async fn get_api_key(&self) -> Result<String, ProviderError> {
         // Check cache first
         {
             let cache = self.cached_api_key.read().await;
@@ -206,7 +205,7 @@ impl GitHubCopilotProvider {
     async fn build_headers(
         &self,
         messages: &[ChatMessage],
-    ) -> Result<reqwest::header::HeaderMap, GitHubCopilotError> {
+    ) -> Result<reqwest::header::HeaderMap, ProviderError> {
         let api_key = self.get_api_key().await?;
         let default_headers = get_copilot_default_headers(&api_key);
 
@@ -244,7 +243,7 @@ impl GitHubCopilotProvider {
 #[async_trait]
 impl LLMProvider for GitHubCopilotProvider {
     type Config = GitHubCopilotConfig;
-    type Error = GitHubCopilotError;
+    type Error = ProviderError;
     type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
@@ -586,7 +585,7 @@ impl GitHubCopilotStream {
         }
     }
 
-    fn parse_sse_line(&self, line: &str) -> Option<Result<ChatChunk, GitHubCopilotError>> {
+    fn parse_sse_line(&self, line: &str) -> Option<Result<ChatChunk, ProviderError>> {
         if line.is_empty() || line.starts_with(':') {
             return None;
         }
@@ -613,7 +612,7 @@ impl GitHubCopilotStream {
 }
 
 impl Stream for GitHubCopilotStream {
-    type Item = Result<ChatChunk, GitHubCopilotError>;
+    type Item = Result<ChatChunk, ProviderError>;
 
     fn poll_next(
         mut self: Pin<&mut Self>,

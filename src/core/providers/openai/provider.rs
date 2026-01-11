@@ -16,9 +16,9 @@ use crate::core::types::{
 use super::{
     client::OpenAIProvider as OpenAIClient,
     config::OpenAIConfig,
-    error::OpenAIError,
     models::{OpenAIModelFeature, OpenAIUseCase, get_openai_registry},
 };
+use crate::core::providers::unified_provider::ProviderError;
 
 /// OpenAI Provider facade implementing all capabilities
 #[derive(Debug, Clone)]
@@ -28,13 +28,13 @@ pub struct OpenAIProvider {
 
 impl OpenAIProvider {
     /// Create new OpenAI provider
-    pub async fn new(config: OpenAIConfig) -> Result<Self, OpenAIError> {
+    pub async fn new(config: OpenAIConfig) -> Result<Self, ProviderError> {
         let client = OpenAIClient::new(config).await?;
         Ok(Self { client })
     }
 
     /// Create provider with API key
-    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, OpenAIError> {
+    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, ProviderError> {
         let client = OpenAIClient::with_api_key(api_key).await?;
         Ok(Self { client })
     }
@@ -60,7 +60,7 @@ impl OpenAIProvider {
     }
 
     /// Get detailed model information
-    pub fn get_model_info(&self, model_id: &str) -> Result<ModelInfo, OpenAIError> {
+    pub fn get_model_info(&self, model_id: &str) -> Result<ModelInfo, ProviderError> {
         self.client.get_model_info(model_id)
     }
 
@@ -77,7 +77,7 @@ impl OpenAIProvider {
 #[async_trait]
 impl LLMProvider for OpenAIProvider {
     type Config = OpenAIConfig;
-    type Error = OpenAIError;
+    type Error = ProviderError;
     type ErrorMapper = super::client::OpenAIErrorMapper;
 
     fn name(&self) -> &'static str {
@@ -135,7 +135,7 @@ impl LLMProvider for OpenAIProvider {
             .await?;
 
         // Transform OpenAI response to standard format
-        serde_json::from_value(response).map_err(|e| OpenAIError::ResponseParsing {
+        serde_json::from_value(response).map_err(|e| ProviderError::ResponseParsing {
             provider: "openai",
             message: e.to_string(),
         })
@@ -208,14 +208,14 @@ impl OpenAIProvider {
         model: Option<String>,
         language: Option<String>,
         response_format: Option<String>,
-    ) -> Result<serde_json::Value, OpenAIError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         self.client
             .transcribe_audio(file, model, language, response_format)
             .await
     }
 
     /// List available models from OpenAI API
-    pub async fn list_available_models(&self) -> Result<Vec<String>, OpenAIError> {
+    pub async fn list_available_models(&self) -> Result<Vec<String>, ProviderError> {
         // This would need to be implemented in the client
         // For now, return static model list
         Ok(self.models().iter().map(|m| m.id.clone()).collect())
@@ -235,7 +235,7 @@ impl OpenAIProvider {
     }
 
     /// Estimate request cost before execution
-    pub async fn estimate_request_cost(&self, request: &ChatRequest) -> Result<f64, OpenAIError> {
+    pub async fn estimate_request_cost(&self, request: &ChatRequest) -> Result<f64, ProviderError> {
         // Simple estimation based on message content length
         let estimated_input_tokens = request
             .messages
@@ -267,7 +267,7 @@ impl OpenAIProvider {
     }
 
     /// Get model context window information
-    pub fn get_model_context_window(&self, model_id: &str) -> Result<u32, OpenAIError> {
+    pub fn get_model_context_window(&self, model_id: &str) -> Result<u32, ProviderError> {
         let model_info = self.get_model_info(model_id)?;
         Ok(model_info.max_context_length)
     }

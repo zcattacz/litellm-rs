@@ -1,6 +1,7 @@
 //! Unit tests for Llamafile provider
 
 use super::*;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::ProviderConfig;
 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 use crate::core::types::common::ProviderCapability;
@@ -60,60 +61,25 @@ fn test_llamafile_config_validation() {
 
 #[test]
 fn test_llamafile_error_types() {
-    use crate::core::types::errors::ProviderErrorTrait;
+    // Test ProviderError factory methods
+    let api_error = ProviderError::api_error("llamafile", 500, "test");
+    assert_eq!(api_error.http_status(), 500);
+    // API errors with 5xx status codes are retryable in unified ProviderError
+    assert!(api_error.is_retryable());
 
-    let api_error = LlamafileError::ApiError("test".to_string());
-    assert_eq!(api_error.error_type(), "api_error");
-    assert!(!api_error.is_retryable());
-
-    let network_error = LlamafileError::NetworkError("test".to_string());
-    assert_eq!(network_error.error_type(), "network_error");
+    let network_error = ProviderError::network("llamafile", "test");
     assert!(network_error.is_retryable());
 
-    let timeout_error = LlamafileError::TimeoutError("test".to_string());
-    assert_eq!(timeout_error.error_type(), "timeout_error");
+    let timeout_error = ProviderError::timeout("llamafile", "test");
     assert!(timeout_error.is_retryable());
-    assert_eq!(timeout_error.retry_delay(), Some(10));
-}
+    assert!(timeout_error.retry_delay().is_some());
 
-#[test]
-fn test_llamafile_error_conversion() {
-    use crate::core::providers::unified_provider::ProviderError;
+    // Non-retryable errors
+    let auth_error = ProviderError::authentication("llamafile", "test");
+    assert!(!auth_error.is_retryable());
 
-    let llamafile_error = LlamafileError::AuthenticationError("invalid key".to_string());
-    let provider_error: ProviderError = llamafile_error.into();
-
-    assert!(matches!(
-        provider_error,
-        ProviderError::Authentication { .. }
-    ));
-}
-
-#[test]
-fn test_llamafile_error_mapper() {
-    use crate::core::traits::error_mapper::trait_def::ErrorMapper;
-
-    let mapper = LlamafileErrorMapper;
-
-    // Test 400 error
-    let error = mapper.map_http_error(400, "Bad request");
-    assert!(matches!(error, LlamafileError::InvalidRequestError(_)));
-
-    // Test 401 error
-    let error = mapper.map_http_error(401, "Unauthorized");
-    assert!(matches!(error, LlamafileError::AuthenticationError(_)));
-
-    // Test 404 error
-    let error = mapper.map_http_error(404, "Not found");
-    assert!(matches!(error, LlamafileError::ModelNotFoundError(_)));
-
-    // Test 503 error
-    let error = mapper.map_http_error(503, "Service unavailable");
-    assert!(matches!(error, LlamafileError::ServiceUnavailableError(_)));
-
-    // Test pattern matching for model not found
-    let error = mapper.map_http_error(400, "model 'llama' not found");
-    assert!(matches!(error, LlamafileError::ModelNotFoundError(_)));
+    let invalid_request = ProviderError::invalid_request("llamafile", "test");
+    assert!(!invalid_request.is_retryable());
 }
 
 #[test]
@@ -365,39 +331,32 @@ async fn test_llamafile_get_supported_params() {
 
 #[test]
 fn test_llamafile_error_http_status_codes() {
-    use crate::core::types::errors::ProviderErrorTrait;
-
     assert_eq!(
-        LlamafileError::AuthenticationError("".to_string()).http_status(),
+        ProviderError::authentication("llamafile", "test").http_status(),
         401
     );
     assert_eq!(
-        LlamafileError::InvalidRequestError("".to_string()).http_status(),
+        ProviderError::invalid_request("llamafile", "test").http_status(),
         400
     );
     assert_eq!(
-        LlamafileError::ModelNotFoundError("".to_string()).http_status(),
+        ProviderError::model_not_found("llamafile", "test").http_status(),
         404
     );
     assert_eq!(
-        LlamafileError::ServiceUnavailableError("".to_string()).http_status(),
+        ProviderError::provider_unavailable("llamafile", "test").http_status(),
         503
     );
     assert_eq!(
-        LlamafileError::TimeoutError("".to_string()).http_status(),
-        504
-    );
-    assert_eq!(LlamafileError::ApiError("".to_string()).http_status(), 500);
-    assert_eq!(
-        LlamafileError::ConnectionRefusedError("".to_string()).http_status(),
+        ProviderError::timeout("llamafile", "test").http_status(),
         503
     );
     assert_eq!(
-        LlamafileError::ContextLengthExceeded {
-            max: 4096,
-            actual: 5000
-        }
-        .http_status(),
-        400
+        ProviderError::api_error("llamafile", 500, "test").http_status(),
+        500
+    );
+    assert_eq!(
+        ProviderError::context_length_exceeded("llamafile", 4096, 5000).http_status(),
+        413
     );
 }

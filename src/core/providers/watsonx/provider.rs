@@ -14,6 +14,7 @@ use super::config::WatsonxConfig;
 use super::error::{WatsonxError, WatsonxErrorMapper};
 use super::model_info::{get_available_models, get_model_info, supports_tools};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header_owned};
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
@@ -77,11 +78,11 @@ impl WatsonxProvider {
         // Validate configuration
         config
             .validate()
-            .map_err(WatsonxError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration("watsonx", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            WatsonxError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration("watsonx", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list from static configuration
@@ -163,8 +164,9 @@ impl WatsonxProvider {
 
         // Generate new IAM token
         let api_key = self.config.get_api_key().ok_or_else(|| {
-            WatsonxError::AuthenticationError(
-                "API key not configured. Set WATSONX_API_KEY environment variable.".to_string(),
+            ProviderError::authentication(
+                "watsonx",
+                "API key not configured. Set WATSONX_API_KEY environment variable.",
             )
         })?;
 
@@ -182,26 +184,26 @@ impl WatsonxProvider {
             ])
             .send()
             .await
-            .map_err(|e| WatsonxError::TokenError(format!("Failed to request token: {}", e)))?;
+            .map_err(|e| ProviderError::authentication("watsonx", format!("Failed to request token: {}", e)))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(WatsonxError::TokenError(format!(
-                "Token request failed with status {}: {}",
-                status, body
-            )));
+            return Err(ProviderError::authentication(
+                "watsonx",
+                format!("Token request failed with status {}: {}", status, body),
+            ));
         }
 
         let token_response: serde_json::Value = response.json().await.map_err(|e| {
-            WatsonxError::TokenError(format!("Failed to parse token response: {}", e))
+            ProviderError::authentication("watsonx", format!("Failed to parse token response: {}", e))
         })?;
 
         let access_token = token_response
             .get("access_token")
             .and_then(|v| v.as_str())
             .ok_or_else(|| {
-                WatsonxError::TokenError("Missing access_token in response".to_string())
+                ProviderError::authentication("watsonx", "Missing access_token in response")
             })?
             .to_string();
 
@@ -260,7 +262,7 @@ impl WatsonxProvider {
 
         self.config
             .build_url(&endpoint, stream)
-            .map_err(WatsonxError::ConfigurationError)
+            .map_err(|e| ProviderError::configuration("watsonx", e))
     }
 
     /// Prepare the request payload
@@ -284,8 +286,9 @@ impl WatsonxProvider {
             } else if let Some(space_id) = self.config.get_space_id() {
                 payload["space_id"] = serde_json::Value::String(space_id);
             } else {
-                return Err(WatsonxError::ProjectError(
-                    "Either project_id or space_id must be configured".to_string(),
+                return Err(ProviderError::configuration(
+                    "watsonx",
+                    "Either project_id or space_id must be configured",
                 ));
             }
         }
@@ -365,13 +368,13 @@ impl WatsonxProvider {
             .pool_manager
             .execute_request(url, HttpMethod::POST, header_tuples, Some(body))
             .await
-            .map_err(|e| WatsonxError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("watsonx", e.to_string()))?;
 
         let status = response.status();
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| WatsonxError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("watsonx", e.to_string()))?;
 
         if !status.is_success() {
             let body_str = String::from_utf8_lossy(&response_bytes);
@@ -380,7 +383,7 @@ impl WatsonxProvider {
         }
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| WatsonxError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::response_parsing("watsonx", format!("Failed to parse response: {}", e)))
     }
 }
 
@@ -476,7 +479,7 @@ impl LLMProvider for WatsonxProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         serde_json::from_slice(raw_response)
-            .map_err(|e| WatsonxError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::response_parsing("watsonx", format!("Failed to parse response: {}", e)))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -496,7 +499,7 @@ impl LLMProvider for WatsonxProvider {
         let response = self.execute_request(&url, payload).await?;
 
         serde_json::from_value(response)
-            .map_err(|e| WatsonxError::ApiError(format!("Failed to parse chat response: {}", e)))
+            .map_err(|e| ProviderError::response_parsing("watsonx", format!("Failed to parse chat response: {}", e)))
     }
 
     async fn chat_completion_stream(
@@ -523,7 +526,7 @@ impl LLMProvider for WatsonxProvider {
             .json(&payload)
             .send()
             .await
-            .map_err(|e| WatsonxError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("watsonx", e.to_string()))?;
 
         // Check status
         if !response.status().is_success() {
@@ -543,10 +546,10 @@ impl LLMProvider for WatsonxProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(WatsonxError::InvalidRequestError(
+        Err(ProviderError::not_supported(
+            "watsonx",
             "Embeddings are available through a separate Watsonx embeddings API. \
-            Use the watsonx_embed provider for embeddings."
-                .to_string(),
+            Use the watsonx_embed provider for embeddings.",
         ))
     }
 
@@ -565,7 +568,7 @@ impl LLMProvider for WatsonxProvider {
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
         let model_info = get_model_info(model)
-            .ok_or_else(|| WatsonxError::ModelNotFoundError(format!("Unknown model: {}", model)))?;
+            .ok_or_else(|| ProviderError::model_not_found("watsonx", format!("Unknown model: {}", model)))?;
 
         let input_cost = (input_tokens as f64) * (model_info.input_cost_per_million / 1_000_000.0);
         let output_cost =

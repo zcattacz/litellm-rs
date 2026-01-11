@@ -2,7 +2,8 @@
 //!
 //! Chat completion functionality for DeepInfra platform
 
-use crate::core::providers::deepinfra::{DeepInfraConfig, DeepInfraError};
+use crate::core::providers::deepinfra::DeepInfraConfig;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::types::{
     common::RequestContext,
     requests::ChatRequest,
@@ -29,9 +30,10 @@ impl DeepInfraChatHandler {
         &self,
         _request: ChatRequest,
         _context: RequestContext,
-    ) -> Result<ChatResponse, DeepInfraError> {
-        Err(DeepInfraError::NotImplemented(
-            "Chat completion not yet implemented".to_string(),
+    ) -> Result<ChatResponse, ProviderError> {
+        Err(ProviderError::not_implemented(
+            "deepinfra",
+            "Chat completion not yet implemented",
         ))
     }
 
@@ -40,10 +42,19 @@ impl DeepInfraChatHandler {
         &self,
         _request: ChatRequest,
         _context: RequestContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, DeepInfraError>> + Send>>, DeepInfraError>
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, ProviderError>> + Send>>, ProviderError>
     {
-        Err(DeepInfraError::NotImplemented(
-            "Chat streaming not yet implemented".to_string(),
+        Err(ProviderError::not_implemented(
+            "deepinfra",
+            "Chat streaming not yet implemented",
         ))
+    }
+}
+
+#[allow(dead_code)]
+impl DeepInfraChatHandler {
+    /// Get the config (used for testing)
+    fn get_config(&self) -> &DeepInfraConfig {
+        &self.config
     }
 }

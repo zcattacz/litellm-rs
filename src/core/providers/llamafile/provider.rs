@@ -10,11 +10,10 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::LlamafileConfig;
-use super::error::{LlamafileError, LlamafileErrorMapper};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{
-    ProviderConfig as _, error_mapper::trait_def::ErrorMapper,
-    provider::llm_provider::trait_definition::LLMProvider,
+    ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
 };
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
@@ -23,7 +22,8 @@ use crate::core::types::{
     tools::FunctionCall,
 };
 
-/// Static capabilities for Llamafile provider
+/// Provider name constant
+const PROVIDER_NAME: &str = "llamafile";
 pub(crate) const LLAMAFILE_CAPABILITIES: &[ProviderCapability] = &[
     ProviderCapability::ChatCompletion,
     ProviderCapability::ChatCompletionStream,
@@ -39,15 +39,15 @@ pub struct LlamafileProvider {
 
 impl LlamafileProvider {
     /// Create a new Llamafile provider instance
-    pub async fn new(config: LlamafileConfig) -> Result<Self, LlamafileError> {
+    pub async fn new(config: LlamafileConfig) -> Result<Self, ProviderError> {
         // Validate configuration
         config
             .validate()
-            .map_err(LlamafileError::ConfigurationError)?;
+            .map_err(|e| ProviderError::configuration(PROVIDER_NAME, e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            LlamafileError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration(PROVIDER_NAME, format!("Failed to create pool manager: {}", e))
         })?);
 
         // Initialize with empty models
@@ -61,12 +61,12 @@ impl LlamafileProvider {
     }
 
     /// Create provider with default configuration
-    pub async fn default_local() -> Result<Self, LlamafileError> {
+    pub async fn default_local() -> Result<Self, ProviderError> {
         Self::new(LlamafileConfig::default()).await
     }
 
     /// Create provider with custom API base
-    pub async fn with_base_url(base_url: impl Into<String>) -> Result<Self, LlamafileError> {
+    pub async fn with_base_url(base_url: impl Into<String>) -> Result<Self, ProviderError> {
         let config = LlamafileConfig {
             api_base: Some(base_url.into()),
             ..Default::default()
@@ -80,7 +80,7 @@ impl LlamafileProvider {
         url: &str,
         method: HttpMethod,
         body: Option<serde_json::Value>,
-    ) -> Result<serde_json::Value, LlamafileError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let mut headers = Vec::with_capacity(2);
 
         // Add auth header (Llamafile typically doesn't require it, but support it anyway)
@@ -97,23 +97,24 @@ impl LlamafileProvider {
             .map_err(|e| {
                 let error_msg = e.to_string();
                 if error_msg.contains("Connection refused") || error_msg.contains("connect error") {
-                    LlamafileError::ConnectionRefusedError(
-                        "Failed to connect to llamafile server. Is llamafile running?".to_string(),
+                    ProviderError::provider_unavailable(
+                        PROVIDER_NAME,
+                        "Failed to connect to llamafile server. Is llamafile running?",
                     )
                 } else if error_msg.contains("timed out") || error_msg.contains("timeout") {
-                    LlamafileError::TimeoutError(error_msg)
+                    ProviderError::timeout(PROVIDER_NAME, error_msg)
                 } else {
-                    LlamafileError::NetworkError(error_msg)
+                    ProviderError::network(PROVIDER_NAME, error_msg)
                 }
             })?;
 
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| LlamafileError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network(PROVIDER_NAME, e.to_string()))?;
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| LlamafileError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::api_error(PROVIDER_NAME, 500, format!("Failed to parse response: {}", e)))
     }
 
     /// Build OpenAI-compatible chat request from ChatRequest
@@ -121,7 +122,7 @@ impl LlamafileProvider {
         &self,
         request: &ChatRequest,
         stream: bool,
-    ) -> Result<serde_json::Value, LlamafileError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let mut messages = Vec::new();
 
         for msg in &request.messages {
@@ -255,18 +256,18 @@ impl LlamafileProvider {
         &self,
         response: serde_json::Value,
         model: &str,
-    ) -> Result<ChatResponse, LlamafileError> {
+    ) -> Result<ChatResponse, ProviderError> {
         let choices = response
             .get("choices")
             .and_then(|c| c.as_array())
-            .ok_or_else(|| LlamafileError::ApiError("Missing choices in response".to_string()))?;
+            .ok_or_else(|| ProviderError::api_error(PROVIDER_NAME, 500, "Missing choices in response"))?;
 
         let mut chat_choices = Vec::new();
 
         for (i, choice) in choices.iter().enumerate() {
             let message = choice
                 .get("message")
-                .ok_or_else(|| LlamafileError::ApiError("Missing message in choice".to_string()))?;
+                .ok_or_else(|| ProviderError::api_error(PROVIDER_NAME, 500, "Missing message in choice"))?;
 
             let content = message
                 .get("content")
@@ -388,11 +389,11 @@ impl LlamafileProvider {
 #[async_trait]
 impl LLMProvider for LlamafileProvider {
     type Config = LlamafileConfig;
-    type Error = LlamafileError;
-    type ErrorMapper = LlamafileErrorMapper;
+    type Error = ProviderError;
+    type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
-        "llamafile"
+        PROVIDER_NAME
     }
 
     fn capabilities(&self) -> &'static [ProviderCapability] {
@@ -442,13 +443,13 @@ impl LLMProvider for LlamafileProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let response: serde_json::Value = serde_json::from_slice(raw_response)
-            .map_err(|e| LlamafileError::ApiError(format!("Failed to parse response: {}", e)))?;
+            .map_err(|e| ProviderError::api_error(PROVIDER_NAME, 500, format!("Failed to parse response: {}", e)))?;
 
         self.parse_chat_response(response, model)
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        LlamafileErrorMapper
+        crate::core::traits::error_mapper::DefaultErrorMapper
     }
 
     async fn chat_completion(
@@ -498,22 +499,22 @@ impl LLMProvider for LlamafileProvider {
             .map_err(|e| {
                 let error_msg = e.to_string();
                 if error_msg.contains("Connection refused") || error_msg.contains("connect error") {
-                    LlamafileError::ConnectionRefusedError(
-                        "Failed to connect to llamafile server. Is llamafile running?".to_string(),
+                    ProviderError::provider_unavailable(
+                        PROVIDER_NAME,
+                        "Failed to connect to llamafile server. Is llamafile running?",
                     )
                 } else if error_msg.contains("timed out") || error_msg.contains("timeout") {
-                    LlamafileError::TimeoutError(error_msg)
+                    ProviderError::timeout(PROVIDER_NAME, error_msg)
                 } else {
-                    LlamafileError::NetworkError(error_msg)
+                    ProviderError::network(PROVIDER_NAME, error_msg)
                 }
             })?;
 
         // Check status
         if !response.status().is_success() {
             let status = response.status().as_u16();
-            let body = response.text().await.ok();
-            let mapper = LlamafileErrorMapper;
-            return Err(mapper.map_http_error(status, &body.unwrap_or_default()));
+            let body = response.text().await.ok().unwrap_or_default();
+            return Err(Self::map_http_error(status, &body));
         }
 
         // Create SSE stream using the OpenAI streaming format
@@ -595,7 +596,7 @@ impl LLMProvider for LlamafileProvider {
                     }
                     None
                 }
-                Err(e) => Some(Err(LlamafileError::StreamingError(e.to_string()))),
+                Err(e) => Some(Err(ProviderError::streaming_error(PROVIDER_NAME, "chat", None, None, e.to_string()))),
             }
         });
 
@@ -608,8 +609,6 @@ impl LLMProvider for LlamafileProvider {
 
         match self.execute_request(&url, HttpMethod::GET, None).await {
             Ok(_) => HealthStatus::Healthy,
-            Err(LlamafileError::ConnectionRefusedError(_)) => HealthStatus::Unhealthy,
-            Err(LlamafileError::TimeoutError(_)) => HealthStatus::Unhealthy,
             Err(_) => HealthStatus::Unhealthy,
         }
     }
@@ -627,6 +626,36 @@ impl LLMProvider for LlamafileProvider {
 
 // Additional utility methods
 impl LlamafileProvider {
+    /// Map HTTP status codes to provider errors
+    fn map_http_error(status: u16, body: &str) -> ProviderError {
+        let message = if body.is_empty() {
+            format!("HTTP error {}", status)
+        } else {
+            body.to_string()
+        };
+
+        // Check for specific error patterns
+        let message_lower = message.to_lowercase();
+        if message_lower.contains("model") && message_lower.contains("not found") {
+            return ProviderError::model_not_found(PROVIDER_NAME, message);
+        }
+        if message_lower.contains("context length") || message_lower.contains("too long") {
+            return ProviderError::context_length_exceeded(PROVIDER_NAME, 0, 0);
+        }
+
+        match status {
+            400 => ProviderError::invalid_request(PROVIDER_NAME, message),
+            401 => ProviderError::authentication(PROVIDER_NAME, "Invalid API key"),
+            403 => ProviderError::authentication(PROVIDER_NAME, "Access forbidden"),
+            404 => ProviderError::model_not_found(PROVIDER_NAME, message),
+            408 | 504 => ProviderError::timeout(PROVIDER_NAME, message),
+            429 => ProviderError::rate_limit(PROVIDER_NAME, None),
+            500 => ProviderError::api_error(PROVIDER_NAME, 500, message),
+            502 | 503 => ProviderError::provider_unavailable(PROVIDER_NAME, message),
+            _ => ProviderError::api_error(PROVIDER_NAME, status, message),
+        }
+    }
+
     /// Check if Llamafile server is running
     pub async fn is_server_running(&self) -> bool {
         let url = self.config.get_models_endpoint();
@@ -636,7 +665,7 @@ impl LlamafileProvider {
     }
 
     /// List available models from Llamafile server
-    pub async fn list_models(&self) -> Result<Vec<String>, LlamafileError> {
+    pub async fn list_models(&self) -> Result<Vec<String>, ProviderError> {
         let url = self.config.get_models_endpoint();
         let response = self.execute_request(&url, HttpMethod::GET, None).await?;
 
@@ -658,7 +687,7 @@ impl LlamafileProvider {
     }
 
     /// Refresh model list from server
-    pub async fn refresh_models(&mut self) -> Result<(), LlamafileError> {
+    pub async fn refresh_models(&mut self) -> Result<(), ProviderError> {
         let model_ids = self.list_models().await?;
 
         self.models = model_ids

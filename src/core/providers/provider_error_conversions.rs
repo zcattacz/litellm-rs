@@ -87,24 +87,7 @@ impl From<crate::core::providers::meta_llama::common_utils::LlamaError> for Prov
 
 // OpenRouterError is now a type alias for ProviderError, no conversion needed
 
-impl From<crate::core::providers::deepinfra::DeepInfraError> for ProviderError {
-    fn from(err: crate::core::providers::deepinfra::DeepInfraError) -> Self {
-        use crate::core::providers::deepinfra::DeepInfraError;
-        match err {
-            DeepInfraError::Authentication(msg) => Self::authentication("deepinfra", msg),
-            DeepInfraError::RateLimit(_msg) => Self::rate_limit("deepinfra", None),
-            DeepInfraError::ModelNotFound(model) => Self::model_not_found("deepinfra", model),
-            DeepInfraError::Configuration(msg) => Self::invalid_request("deepinfra", msg),
-            DeepInfraError::Network(msg) => Self::network("deepinfra", msg),
-            DeepInfraError::Serialization(msg) => Self::serialization("deepinfra", msg),
-            DeepInfraError::Validation(msg) => Self::invalid_request("deepinfra", msg),
-            DeepInfraError::NotImplemented(feature) => Self::not_implemented("deepinfra", feature),
-            DeepInfraError::Api { status, message } => {
-                Self::api_error("deepinfra", status, message)
-            }
-        }
-    }
-}
+// DeepInfraError is now a type alias for ProviderError, no conversion needed
 
 impl From<crate::core::cost::types::CostError> for ProviderError {
     fn from(err: crate::core::cost::types::CostError) -> Self {
@@ -130,22 +113,7 @@ impl From<crate::core::cost::types::CostError> for ProviderError {
 
 // VertexAIError is now a type alias for ProviderError, no conversion needed
 
-impl From<crate::core::providers::v0::V0Error> for ProviderError {
-    fn from(err: crate::core::providers::v0::V0Error) -> Self {
-        use crate::core::providers::v0::V0Error;
-        match err {
-            V0Error::AuthenticationFailed => {
-                Self::authentication("v0", "Authentication failed".to_string())
-            }
-            V0Error::RateLimitExceeded => Self::rate_limit("v0", None),
-            V0Error::ModelNotFound(model) => Self::model_not_found("v0", model),
-            V0Error::InvalidRequest(msg) => Self::invalid_request("v0", msg),
-            V0Error::HttpError(e) => Self::network("v0", e.to_string()),
-            V0Error::JsonError(e) => Self::serialization("v0", e.to_string()),
-            V0Error::ApiError(msg) => Self::api_error("v0", 500, msg),
-        }
-    }
-}
+// V0 provider now uses ProviderError directly - no conversion needed
 
 // DeepSeek now uses ProviderError directly - no conversion needed
 

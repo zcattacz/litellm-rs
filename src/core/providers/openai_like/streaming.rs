@@ -58,27 +58,19 @@ impl Stream for OpenAILikeStreamCompat {
 }
 
 /// Convert ProviderError to OpenAILikeError
+/// Since OpenAILikeError is now an alias for ProviderError, this is essentially a passthrough
 fn provider_error_to_openai_like(e: ProviderError) -> OpenAILikeError {
+    // Since OpenAILikeError is a type alias for ProviderError, we can just return it directly
+    // But we update the provider field to ensure consistency
     match e {
-        ProviderError::ResponseParsing { message, .. } => OpenAILikeError::ResponseParsing {
-            provider: "openai_like",
-            message,
-        },
-        ProviderError::Network { message, .. } => OpenAILikeError::Other {
-            provider: "openai_like",
-            message,
-        },
-        ProviderError::Streaming { message, .. } => OpenAILikeError::Streaming {
-            provider: "openai_like",
-            stream_type: "chat".to_string(),
-            position: None,
-            last_chunk: None,
-            message,
-        },
-        _ => OpenAILikeError::Other {
-            provider: "openai_like",
-            message: e.to_string(),
-        },
+        ProviderError::ResponseParsing { message, .. } => {
+            OpenAILikeError::response_parsing("openai_like", message)
+        }
+        ProviderError::Network { message, .. } => OpenAILikeError::other("openai_like", message),
+        ProviderError::Streaming { message, .. } => {
+            OpenAILikeError::streaming_error("openai_like", "chat", None, None, message)
+        }
+        _ => OpenAILikeError::other("openai_like", e.to_string()),
     }
 }
 

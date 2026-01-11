@@ -15,14 +15,13 @@ use futures::Stream;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
-use thiserror::Error;
 
 use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{
     ProviderConfig, error_mapper::trait_def::ErrorMapper,
     provider::llm_provider::trait_definition::LLMProvider,
 };
-use crate::core::types::errors::ProviderErrorTrait;
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
     requests::{ChatRequest, EmbeddingRequest, ImageGenerationRequest},
@@ -82,111 +81,8 @@ impl DeepInfraConfig {
     }
 }
 
-/// DeepInfra error types
-#[derive(Debug, Error)]
-pub enum DeepInfraError {
-    #[error("Configuration error: {0}")]
-    Configuration(String),
-
-    #[error("Authentication error: {0}")]
-    Authentication(String),
-
-    #[error("Network error: {0}")]
-    Network(String),
-
-    #[error("API error: {status} - {message}")]
-    Api { status: u16, message: String },
-
-    #[error("Serialization error: {0}")]
-    Serialization(String),
-
-    #[error("Validation error: {0}")]
-    Validation(String),
-
-    #[error("Rate limit exceeded: {0}")]
-    RateLimit(String),
-
-    #[error("Feature not implemented: {0}")]
-    NotImplemented(String),
-
-    #[error("Model not found: {0}")]
-    ModelNotFound(String),
-}
-
-/// Implement ProviderError trait for DeepInfraError
-impl ProviderErrorTrait for DeepInfraError {
-    fn error_type(&self) -> &'static str {
-        match self {
-            Self::Configuration(_) => "configuration",
-            Self::Authentication(_) => "authentication",
-            Self::Network(_) => "network",
-            Self::Api { .. } => "api_error",
-            Self::Serialization(_) => "serialization",
-            Self::Validation(_) => "validation",
-            Self::RateLimit(_) => "rate_limit",
-            Self::NotImplemented(_) => "not_implemented",
-            Self::ModelNotFound(_) => "model_not_found",
-        }
-    }
-
-    fn is_retryable(&self) -> bool {
-        match self {
-            Self::Network(_) => true,
-            Self::RateLimit(_) => true,
-            Self::Api { status, .. } if *status >= 500 => true,
-            Self::Api { status, .. } if *status == 429 => true,
-            _ => false,
-        }
-    }
-
-    fn retry_delay(&self) -> Option<u64> {
-        match self {
-            Self::Network(_) => Some(5),
-            Self::RateLimit(_) => Some(60),
-            Self::Api { status, .. } if *status == 429 => Some(30),
-            Self::Api { status, .. } if *status >= 500 => Some(10),
-            _ if self.is_retryable() => Some(15),
-            _ => None,
-        }
-    }
-
-    fn http_status(&self) -> u16 {
-        match self {
-            Self::Api { status, .. } => *status,
-            Self::Authentication(_) => 401,
-            Self::Configuration(_) => 400,
-            Self::Validation(_) => 400,
-            Self::RateLimit(_) => 429,
-            Self::ModelNotFound(_) => 404,
-            Self::NotImplemented(_) => 501,
-            _ => 500,
-        }
-    }
-
-    fn not_supported(feature: &str) -> Self {
-        Self::Configuration(format!("Feature not supported: {}", feature))
-    }
-
-    fn authentication_failed(reason: &str) -> Self {
-        Self::Authentication(reason.to_string())
-    }
-
-    fn rate_limited(_retry_after: Option<u64>) -> Self {
-        Self::RateLimit("Rate limit exceeded".to_string())
-    }
-
-    fn network_error(details: &str) -> Self {
-        Self::Network(details.to_string())
-    }
-
-    fn parsing_error(details: &str) -> Self {
-        Self::Serialization(details.to_string())
-    }
-
-    fn not_implemented(feature: &str) -> Self {
-        Self::NotImplemented(feature.to_string())
-    }
-}
+/// DeepInfra error type (alias to unified ProviderError)
+pub type DeepInfraError = ProviderError;
 
 /// DeepInfra provider
 #[derive(Debug, Clone)]
@@ -211,7 +107,7 @@ impl DeepInfraProvider {
 
         // Create base HTTP client
         let base_client = BaseHttpClient::new(base_config)
-            .map_err(|e| DeepInfraError::Configuration(e.to_string()))?;
+            .map_err(|e| ProviderError::configuration("deepinfra", e.to_string()))?;
 
         Ok(Self {
             config,
@@ -227,7 +123,7 @@ impl DeepInfraProvider {
 
         if let Some(api_key) = &self.config.api_key {
             let auth_value = HeaderValue::from_str(&format!("Bearer {}", api_key))
-                .map_err(|e| DeepInfraError::Configuration(format!("Invalid API key: {}", e)))?;
+                .map_err(|e| ProviderError::configuration("deepinfra", format!("Invalid API key: {}", e)))?;
             headers.insert(AUTHORIZATION, auth_value);
         }
 
@@ -272,7 +168,7 @@ impl DeepInfraProvider {
             .json(&body)
             .send()
             .await
-            .map_err(|e| DeepInfraError::Network(format!("Request failed: {}", e)))?;
+            .map_err(|e| ProviderError::network("deepinfra", format!("Request failed: {}", e)))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
@@ -280,10 +176,7 @@ impl DeepInfraProvider {
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(DeepInfraError::Api {
-                status,
-                message: error_body,
-            });
+            return Err(ProviderError::api_error("deepinfra", status, error_body));
         }
 
         Ok(response)
@@ -297,24 +190,29 @@ pub struct DeepInfraErrorMapper;
 impl ErrorMapper<DeepInfraError> for DeepInfraErrorMapper {
     fn map_http_error(&self, status_code: u16, response_body: &str) -> DeepInfraError {
         match status_code {
-            401 => DeepInfraError::authentication_failed(&format!(
-                "Invalid API key: {}",
-                response_body
-            )),
-            403 => DeepInfraError::authentication_failed(&format!(
-                "Permission denied: {}",
-                response_body
-            )),
-            404 => DeepInfraError::ModelNotFound(format!("Model not found: {}", response_body)),
-            429 => DeepInfraError::rate_limited(None),
-            500..=599 => DeepInfraError::Api {
-                status: status_code,
-                message: format!("Server error: {}", response_body),
-            },
-            _ => DeepInfraError::Api {
-                status: status_code,
-                message: format!("HTTP {}: {}", status_code, response_body),
-            },
+            401 => ProviderError::authentication(
+                "deepinfra",
+                format!("Invalid API key: {}", response_body),
+            ),
+            403 => ProviderError::authentication(
+                "deepinfra",
+                format!("Permission denied: {}", response_body),
+            ),
+            404 => ProviderError::model_not_found(
+                "deepinfra",
+                format!("Model not found: {}", response_body),
+            ),
+            429 => ProviderError::rate_limit("deepinfra", None),
+            500..=599 => ProviderError::api_error(
+                "deepinfra",
+                status_code,
+                format!("Server error: {}", response_body),
+            ),
+            _ => ProviderError::api_error(
+                "deepinfra",
+                status_code,
+                format!("HTTP {}: {}", status_code, response_body),
+            ),
         }
     }
 }
@@ -393,10 +291,10 @@ impl LLMProvider for DeepInfraProvider {
         request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let response_text = std::str::from_utf8(raw_response)
-            .map_err(|e| DeepInfraError::Serialization(format!("Invalid UTF-8: {}", e)))?;
+            .map_err(|e| ProviderError::serialization("deepinfra", format!("Invalid UTF-8: {}", e)))?;
 
         let _response_json: serde_json::Value = serde_json::from_str(response_text)
-            .map_err(|e| DeepInfraError::Serialization(format!("Invalid JSON: {}", e)))?;
+            .map_err(|e| ProviderError::serialization("deepinfra", format!("Invalid JSON: {}", e)))?;
 
         // Basic response structure - would need full implementation
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -463,12 +361,12 @@ impl LLMProvider for DeepInfraProvider {
 
         // Parse response
         let response_json: serde_json::Value = response.json().await.map_err(|e| {
-            DeepInfraError::Serialization(format!("Failed to parse response: {}", e))
+            ProviderError::serialization("deepinfra", format!("Failed to parse response: {}", e))
         })?;
 
         // Transform to ChatResponse
         let chat_response: ChatResponse = serde_json::from_value(response_json).map_err(|e| {
-            DeepInfraError::Serialization(format!("Failed to parse ChatResponse: {}", e))
+            ProviderError::serialization("deepinfra", format!("Failed to parse ChatResponse: {}", e))
         })?;
 
         Ok(chat_response)
@@ -482,8 +380,9 @@ impl LLMProvider for DeepInfraProvider {
     {
         // For now, return not implemented since streaming requires SSE parsing
         // which would need to be implemented separately
-        Err(DeepInfraError::NotImplemented(
-            "Streaming not yet implemented".to_string(),
+        Err(ProviderError::not_implemented(
+            "deepinfra",
+            "Streaming not yet implemented",
         ))
     }
 
@@ -492,7 +391,7 @@ impl LLMProvider for DeepInfraProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(DeepInfraError::not_supported("Embeddings not supported"))
+        Err(ProviderError::not_supported("deepinfra", "Embeddings"))
     }
 
     async fn image_generation(
@@ -500,9 +399,7 @@ impl LLMProvider for DeepInfraProvider {
         _request: ImageGenerationRequest,
         _context: RequestContext,
     ) -> Result<ImageGenerationResponse, Self::Error> {
-        Err(DeepInfraError::not_supported(
-            "Image generation not supported",
-        ))
+        Err(ProviderError::not_supported("deepinfra", "Image generation"))
     }
 }
 
@@ -617,169 +514,77 @@ mod tests {
         assert_eq!(config.max_retries(), 5);
     }
 
-    // DeepInfraError tests
+    // ProviderError tests (using unified error type)
     #[test]
     fn test_deepinfra_error_display() {
-        let err = DeepInfraError::Configuration("missing config".to_string());
-        assert_eq!(err.to_string(), "Configuration error: missing config");
+        let err = ProviderError::configuration("deepinfra", "missing config");
+        assert!(err.to_string().contains("missing config"));
 
-        let err = DeepInfraError::Authentication("bad key".to_string());
-        assert_eq!(err.to_string(), "Authentication error: bad key");
+        let err = ProviderError::authentication("deepinfra", "bad key");
+        assert!(err.to_string().contains("bad key"));
 
-        let err = DeepInfraError::Network("timeout".to_string());
-        assert_eq!(err.to_string(), "Network error: timeout");
+        let err = ProviderError::network("deepinfra", "timeout");
+        assert!(err.to_string().contains("timeout"));
 
-        let err = DeepInfraError::Api {
-            status: 500,
-            message: "server error".to_string(),
-        };
-        assert_eq!(err.to_string(), "API error: 500 - server error");
+        let err = ProviderError::api_error("deepinfra", 500, "server error");
+        assert!(err.to_string().contains("500"));
+        assert!(err.to_string().contains("server error"));
 
-        let err = DeepInfraError::Serialization("parse error".to_string());
-        assert_eq!(err.to_string(), "Serialization error: parse error");
+        let err = ProviderError::serialization("deepinfra", "parse error");
+        assert!(err.to_string().contains("parse error"));
 
-        let err = DeepInfraError::Validation("invalid input".to_string());
-        assert_eq!(err.to_string(), "Validation error: invalid input");
+        let err = ProviderError::rate_limit_simple("deepinfra", "too many requests");
+        assert!(err.to_string().contains("too many requests"));
 
-        let err = DeepInfraError::RateLimit("too many requests".to_string());
-        assert_eq!(err.to_string(), "Rate limit exceeded: too many requests");
+        let err = ProviderError::not_implemented("deepinfra", "streaming");
+        assert!(err.to_string().contains("streaming"));
 
-        let err = DeepInfraError::NotImplemented("streaming".to_string());
-        assert_eq!(err.to_string(), "Feature not implemented: streaming");
-
-        let err = DeepInfraError::ModelNotFound("gpt-5".to_string());
-        assert_eq!(err.to_string(), "Model not found: gpt-5");
-    }
-
-    #[test]
-    fn test_deepinfra_error_type() {
-        assert_eq!(
-            DeepInfraError::Configuration("".to_string()).error_type(),
-            "configuration"
-        );
-        assert_eq!(
-            DeepInfraError::Authentication("".to_string()).error_type(),
-            "authentication"
-        );
-        assert_eq!(
-            DeepInfraError::Network("".to_string()).error_type(),
-            "network"
-        );
-        assert_eq!(
-            DeepInfraError::Api {
-                status: 500,
-                message: "".to_string()
-            }
-            .error_type(),
-            "api_error"
-        );
-        assert_eq!(
-            DeepInfraError::Serialization("".to_string()).error_type(),
-            "serialization"
-        );
-        assert_eq!(
-            DeepInfraError::Validation("".to_string()).error_type(),
-            "validation"
-        );
-        assert_eq!(
-            DeepInfraError::RateLimit("".to_string()).error_type(),
-            "rate_limit"
-        );
-        assert_eq!(
-            DeepInfraError::NotImplemented("".to_string()).error_type(),
-            "not_implemented"
-        );
-        assert_eq!(
-            DeepInfraError::ModelNotFound("".to_string()).error_type(),
-            "model_not_found"
-        );
+        let err = ProviderError::model_not_found("deepinfra", "gpt-5");
+        assert!(err.to_string().contains("gpt-5"));
     }
 
     #[test]
     fn test_deepinfra_error_is_retryable() {
-        assert!(DeepInfraError::Network("".to_string()).is_retryable());
-        assert!(DeepInfraError::RateLimit("".to_string()).is_retryable());
-        assert!(
-            DeepInfraError::Api {
-                status: 500,
-                message: "".to_string()
-            }
-            .is_retryable()
-        );
-        assert!(
-            DeepInfraError::Api {
-                status: 503,
-                message: "".to_string()
-            }
-            .is_retryable()
-        );
-        assert!(
-            DeepInfraError::Api {
-                status: 429,
-                message: "".to_string()
-            }
-            .is_retryable()
-        );
+        assert!(ProviderError::network("deepinfra", "").is_retryable());
+        assert!(ProviderError::rate_limit("deepinfra", None).is_retryable());
+        assert!(ProviderError::api_error("deepinfra", 500, "").is_retryable());
+        assert!(ProviderError::api_error("deepinfra", 503, "").is_retryable());
+        assert!(ProviderError::api_error("deepinfra", 429, "").is_retryable());
 
-        assert!(!DeepInfraError::Configuration("".to_string()).is_retryable());
-        assert!(!DeepInfraError::Authentication("".to_string()).is_retryable());
-        assert!(
-            !DeepInfraError::Api {
-                status: 400,
-                message: "".to_string()
-            }
-            .is_retryable()
-        );
-        assert!(
-            !DeepInfraError::Api {
-                status: 404,
-                message: "".to_string()
-            }
-            .is_retryable()
-        );
-        assert!(!DeepInfraError::Validation("".to_string()).is_retryable());
+        assert!(!ProviderError::configuration("deepinfra", "").is_retryable());
+        assert!(!ProviderError::authentication("deepinfra", "").is_retryable());
+        assert!(!ProviderError::api_error("deepinfra", 400, "").is_retryable());
+        assert!(!ProviderError::api_error("deepinfra", 404, "").is_retryable());
+        assert!(!ProviderError::invalid_request("deepinfra", "").is_retryable());
     }
 
     #[test]
     fn test_deepinfra_error_retry_delay() {
         assert_eq!(
-            DeepInfraError::Network("".to_string()).retry_delay(),
-            Some(5)
+            ProviderError::network("deepinfra", "").retry_delay(),
+            Some(1)
+        );
+        assert!(
+            ProviderError::rate_limit("deepinfra", Some(60)).retry_delay().is_some()
         );
         assert_eq!(
-            DeepInfraError::RateLimit("".to_string()).retry_delay(),
+            ProviderError::api_error("deepinfra", 429, "").retry_delay(),
             Some(60)
         );
         assert_eq!(
-            DeepInfraError::Api {
-                status: 429,
-                message: "".to_string()
-            }
-            .retry_delay(),
-            Some(30)
+            ProviderError::api_error("deepinfra", 500, "").retry_delay(),
+            Some(3)
         );
         assert_eq!(
-            DeepInfraError::Api {
-                status: 500,
-                message: "".to_string()
-            }
-            .retry_delay(),
-            Some(10)
+            ProviderError::api_error("deepinfra", 503, "").retry_delay(),
+            Some(3)
         );
         assert_eq!(
-            DeepInfraError::Api {
-                status: 503,
-                message: "".to_string()
-            }
-            .retry_delay(),
-            Some(10)
-        );
-        assert_eq!(
-            DeepInfraError::Configuration("".to_string()).retry_delay(),
+            ProviderError::configuration("deepinfra", "").retry_delay(),
             None
         );
         assert_eq!(
-            DeepInfraError::Authentication("".to_string()).retry_delay(),
+            ProviderError::authentication("deepinfra", "").retry_delay(),
             None
         );
     }
@@ -787,60 +592,56 @@ mod tests {
     #[test]
     fn test_deepinfra_error_http_status() {
         assert_eq!(
-            DeepInfraError::Api {
-                status: 503,
-                message: "".to_string()
-            }
-            .http_status(),
+            ProviderError::api_error("deepinfra", 503, "").http_status(),
             503
         );
         assert_eq!(
-            DeepInfraError::Authentication("".to_string()).http_status(),
+            ProviderError::authentication("deepinfra", "").http_status(),
             401
         );
         assert_eq!(
-            DeepInfraError::Configuration("".to_string()).http_status(),
+            ProviderError::configuration("deepinfra", "").http_status(),
             400
         );
         assert_eq!(
-            DeepInfraError::Validation("".to_string()).http_status(),
+            ProviderError::invalid_request("deepinfra", "").http_status(),
             400
         );
-        assert_eq!(DeepInfraError::RateLimit("".to_string()).http_status(), 429);
+        assert_eq!(ProviderError::rate_limit("deepinfra", None).http_status(), 429);
         assert_eq!(
-            DeepInfraError::ModelNotFound("".to_string()).http_status(),
+            ProviderError::model_not_found("deepinfra", "").http_status(),
             404
         );
         assert_eq!(
-            DeepInfraError::NotImplemented("".to_string()).http_status(),
+            ProviderError::not_implemented("deepinfra", "").http_status(),
             501
         );
-        assert_eq!(DeepInfraError::Network("".to_string()).http_status(), 500);
+        assert_eq!(ProviderError::network("deepinfra", "").http_status(), 503);
         assert_eq!(
-            DeepInfraError::Serialization("".to_string()).http_status(),
+            ProviderError::serialization("deepinfra", "").http_status(),
             500
         );
     }
 
     #[test]
     fn test_deepinfra_error_factory_methods() {
-        let err = DeepInfraError::not_supported("vision");
-        assert!(matches!(err, DeepInfraError::Configuration(_)));
+        let err = ProviderError::not_supported("deepinfra", "vision");
+        assert!(matches!(err, ProviderError::NotSupported { .. }));
 
-        let err = DeepInfraError::authentication_failed("bad token");
-        assert!(matches!(err, DeepInfraError::Authentication(_)));
+        let err = ProviderError::authentication("deepinfra", "bad token");
+        assert!(matches!(err, ProviderError::Authentication { .. }));
 
-        let err = DeepInfraError::rate_limited(Some(30));
-        assert!(matches!(err, DeepInfraError::RateLimit(_)));
+        let err = ProviderError::rate_limit("deepinfra", Some(30));
+        assert!(matches!(err, ProviderError::RateLimit { .. }));
 
-        let err = DeepInfraError::network_error("timeout");
-        assert!(matches!(err, DeepInfraError::Network(_)));
+        let err = ProviderError::network("deepinfra", "timeout");
+        assert!(matches!(err, ProviderError::Network { .. }));
 
-        let err = DeepInfraError::parsing_error("invalid json");
-        assert!(matches!(err, DeepInfraError::Serialization(_)));
+        let err = ProviderError::serialization("deepinfra", "invalid json");
+        assert!(matches!(err, ProviderError::Serialization { .. }));
 
-        let err = DeepInfraError::not_implemented("streaming");
-        assert!(matches!(err, DeepInfraError::NotImplemented(_)));
+        let err = ProviderError::not_implemented("deepinfra", "streaming");
+        assert!(matches!(err, ProviderError::NotImplemented { .. }));
     }
 
     // DeepInfraErrorMapper tests
@@ -848,49 +649,49 @@ mod tests {
     fn test_deepinfra_error_mapper_401() {
         let mapper = DeepInfraErrorMapper;
         let err = mapper.map_http_error(401, "invalid key");
-        assert!(matches!(err, DeepInfraError::Authentication(_)));
+        assert!(matches!(err, ProviderError::Authentication { .. }));
     }
 
     #[test]
     fn test_deepinfra_error_mapper_403() {
         let mapper = DeepInfraErrorMapper;
         let err = mapper.map_http_error(403, "forbidden");
-        assert!(matches!(err, DeepInfraError::Authentication(_)));
+        assert!(matches!(err, ProviderError::Authentication { .. }));
     }
 
     #[test]
     fn test_deepinfra_error_mapper_404() {
         let mapper = DeepInfraErrorMapper;
         let err = mapper.map_http_error(404, "not found");
-        assert!(matches!(err, DeepInfraError::ModelNotFound(_)));
+        assert!(matches!(err, ProviderError::ModelNotFound { .. }));
     }
 
     #[test]
     fn test_deepinfra_error_mapper_429() {
         let mapper = DeepInfraErrorMapper;
         let err = mapper.map_http_error(429, "rate limited");
-        assert!(matches!(err, DeepInfraError::RateLimit(_)));
+        assert!(matches!(err, ProviderError::RateLimit { .. }));
     }
 
     #[test]
     fn test_deepinfra_error_mapper_500() {
         let mapper = DeepInfraErrorMapper;
         let err = mapper.map_http_error(500, "server error");
-        assert!(matches!(err, DeepInfraError::Api { status: 500, .. }));
+        assert!(matches!(err, ProviderError::ApiError { status: 500, .. }));
     }
 
     #[test]
     fn test_deepinfra_error_mapper_503() {
         let mapper = DeepInfraErrorMapper;
         let err = mapper.map_http_error(503, "service unavailable");
-        assert!(matches!(err, DeepInfraError::Api { status: 503, .. }));
+        assert!(matches!(err, ProviderError::ApiError { status: 503, .. }));
     }
 
     #[test]
     fn test_deepinfra_error_mapper_unknown() {
         let mapper = DeepInfraErrorMapper;
         let err = mapper.map_http_error(418, "teapot");
-        assert!(matches!(err, DeepInfraError::Api { status: 418, .. }));
+        assert!(matches!(err, ProviderError::ApiError { status: 418, .. }));
     }
 
     // DeepInfraProvider tests

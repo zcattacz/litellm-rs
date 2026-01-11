@@ -12,6 +12,7 @@ use std::sync::Arc;
 use crate::core::providers::base::{
     GlobalPoolManager, HeaderPair, HttpMethod, header, header_owned, streaming_client,
 };
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
@@ -21,7 +22,6 @@ use crate::core::types::{
 
 use super::{
     config::OpenAIConfig,
-    error::OpenAIError,
     models::{OpenAIModelRegistry, get_openai_registry},
 };
 
@@ -64,9 +64,9 @@ impl OpenAIProvider {
     }
 
     /// Create new OpenAI provider
-    pub async fn new(config: OpenAIConfig) -> Result<Self, OpenAIError> {
+    pub async fn new(config: OpenAIConfig) -> Result<Self, ProviderError> {
         // Validate configuration
-        config.validate().map_err(|e| OpenAIError::Configuration {
+        config.validate().map_err(|e| ProviderError::Configuration {
             provider: "openai",
             message: e.to_string(),
         })?;
@@ -75,7 +75,7 @@ impl OpenAIProvider {
         // This avoids redundant HashMap allocation during initialization.
 
         let pool_manager =
-            Arc::new(GlobalPoolManager::new().map_err(|e| OpenAIError::Network {
+            Arc::new(GlobalPoolManager::new().map_err(|e| ProviderError::Network {
                 provider: "openai",
                 message: e.to_string(),
             })?);
@@ -89,7 +89,7 @@ impl OpenAIProvider {
     }
 
     /// Create provider with API key only
-    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, OpenAIError> {
+    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, ProviderError> {
         let mut config = OpenAIConfig::default();
         config.base.api_key = Some(api_key.into());
         Self::new(config).await
@@ -99,7 +99,7 @@ impl OpenAIProvider {
     async fn execute_chat_completion(
         &self,
         request: ChatRequest,
-    ) -> Result<ChatResponse, OpenAIError> {
+    ) -> Result<ChatResponse, ProviderError> {
         // Transform request to OpenAI format
         let openai_request = self.transform_chat_request(request)?;
 
@@ -112,18 +112,18 @@ impl OpenAIProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, body)
             .await
-            .map_err(|e| OpenAIError::Network {
+            .map_err(|e| ProviderError::Network {
                 provider: "openai",
                 message: e.to_string(),
             })?;
 
-        let response_bytes = response.bytes().await.map_err(|e| OpenAIError::Network {
+        let response_bytes = response.bytes().await.map_err(|e| ProviderError::Network {
             provider: "openai",
             message: e.to_string(),
         })?;
 
         let response_json: Value =
-            serde_json::from_slice(&response_bytes).map_err(|e| OpenAIError::ResponseParsing {
+            serde_json::from_slice(&response_bytes).map_err(|e| ProviderError::ResponseParsing {
                 provider: "openai",
                 message: e.to_string(),
             })?;
@@ -136,7 +136,7 @@ impl OpenAIProvider {
     async fn execute_chat_completion_stream(
         &self,
         request: ChatRequest,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, OpenAIError>> + Send>>, OpenAIError>
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, ProviderError>> + Send>>, ProviderError>
     {
         // Transform request with streaming enabled
         let mut openai_request = self.transform_chat_request(request)?;
@@ -148,7 +148,7 @@ impl OpenAIProvider {
                 .base
                 .api_key
                 .as_ref()
-                .ok_or_else(|| OpenAIError::Authentication {
+                .ok_or_else(|| ProviderError::Authentication {
                     provider: "openai",
                     message: "API key is required".to_string(),
                 })?;
@@ -171,7 +171,7 @@ impl OpenAIProvider {
             req = req.header("OpenAI-Project", project);
         }
 
-        let response = req.send().await.map_err(|e| OpenAIError::Network {
+        let response = req.send().await.map_err(|e| ProviderError::Network {
             provider: "openai",
             message: e.to_string(),
         })?;
@@ -185,7 +185,7 @@ impl OpenAIProvider {
     pub(crate) fn transform_chat_request(
         &self,
         request: ChatRequest,
-    ) -> Result<Value, OpenAIError> {
+    ) -> Result<Value, ProviderError> {
         let mut openai_request = serde_json::json!({
             "model": self.config.get_model_mapping(&request.model),
             "messages": request.messages
@@ -246,13 +246,13 @@ impl OpenAIProvider {
     }
 
     /// Transform OpenAI response to standard format
-    fn transform_chat_response(&self, response: Value) -> Result<ChatResponse, OpenAIError> {
+    fn transform_chat_response(&self, response: Value) -> Result<ChatResponse, ProviderError> {
         let response: crate::core::providers::openai::models::OpenAIChatResponse =
             serde_json::from_value(response)?;
 
         // Use existing transformer logic
         use crate::core::providers::openai::transformer::OpenAIResponseTransformer;
-        OpenAIResponseTransformer::transform(response).map_err(|e| OpenAIError::Other {
+        OpenAIResponseTransformer::transform(response).map_err(|e| ProviderError::Other {
             provider: "openai",
             message: e.to_string(),
         })
@@ -262,7 +262,7 @@ impl OpenAIProvider {
     pub fn get_model_info(
         &self,
         model_id: &str,
-    ) -> Result<crate::core::types::common::ModelInfo, OpenAIError> {
+    ) -> Result<crate::core::types::common::ModelInfo, ProviderError> {
         // Return a default ModelInfo for any model
         // Like Python LiteLLM, we don't validate models locally
         use crate::core::types::common::ModelInfo;
@@ -309,7 +309,7 @@ impl OpenAIProvider {
 #[async_trait]
 impl LLMProvider for OpenAIProvider {
     type Config = OpenAIConfig;
-    type Error = OpenAIError;
+    type Error = ProviderError;
     type ErrorMapper = crate::core::traits::error_mapper::implementations::OpenAIErrorMapper;
 
     fn name(&self) -> &'static str {

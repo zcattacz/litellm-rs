@@ -3,6 +3,7 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
+    use crate::core::providers::unified_provider::ProviderError;
     use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
     use crate::core::types::common::ProviderCapability;
 
@@ -140,48 +141,40 @@ mod tests {
 
         // Test 401 error mapping
         let auth_error = mapper.map_http_error(401, "Unauthorized");
-        match auth_error {
-            error::WatsonxError::AuthenticationError(_) => {}
-            _ => panic!("Expected AuthenticationError"),
-        }
+        assert!(matches!(auth_error, ProviderError::Authentication { .. }));
 
         // Test 429 error mapping
         let rate_error = mapper.map_http_error(429, "Too many requests");
-        match rate_error {
-            error::WatsonxError::RateLimitError(_) => {}
-            _ => panic!("Expected RateLimitError"),
-        }
+        assert!(matches!(rate_error, ProviderError::RateLimit { .. }));
 
         // Test 404 error mapping
         let not_found = mapper.map_http_error(404, "Not found");
-        match not_found {
-            error::WatsonxError::ModelNotFoundError(_) => {}
-            _ => panic!("Expected ModelNotFoundError"),
-        }
+        assert!(matches!(not_found, ProviderError::ModelNotFound { .. }));
     }
 
     #[test]
     fn test_error_retryability() {
-        use crate::core::types::errors::ProviderErrorTrait;
-
         // Rate limit errors should be retryable
-        let rate_error = error::WatsonxError::RateLimitError("Rate limited".to_string());
+        let rate_error = ProviderError::rate_limit("watsonx", Some(60));
         assert!(rate_error.is_retryable());
         assert!(rate_error.retry_delay().is_some());
 
+        // Rate limit without retry_after is still retryable but no delay
+        let rate_error_no_delay = ProviderError::rate_limit("watsonx", None);
+        assert!(rate_error_no_delay.is_retryable());
+
         // Service unavailable should be retryable
-        let service_error =
-            error::WatsonxError::ServiceUnavailableError("Service down".to_string());
+        let service_error = ProviderError::provider_unavailable("watsonx", "Service down");
         assert!(service_error.is_retryable());
         assert!(service_error.retry_delay().is_some());
 
-        // Token errors should be retryable
-        let token_error = error::WatsonxError::TokenError("Token expired".to_string());
-        assert!(token_error.is_retryable());
-        assert!(token_error.retry_delay().is_some());
+        // Network errors should be retryable
+        let network_error = ProviderError::network("watsonx", "Connection failed");
+        assert!(network_error.is_retryable());
+        assert!(network_error.retry_delay().is_some());
 
         // Authentication errors should not be retryable
-        let auth_error = error::WatsonxError::AuthenticationError("Bad key".to_string());
+        let auth_error = ProviderError::authentication("watsonx", "Bad key");
         assert!(!auth_error.is_retryable());
         assert!(auth_error.retry_delay().is_none());
     }

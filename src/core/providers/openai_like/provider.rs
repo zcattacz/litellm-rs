@@ -44,17 +44,11 @@ impl OpenAILikeProvider {
         // Validate configuration
         config
             .validate()
-            .map_err(|e| OpenAILikeError::Configuration {
-                provider: PROVIDER_NAME,
-                message: e,
-            })?;
+            .map_err(|e| OpenAILikeError::configuration(PROVIDER_NAME, e))?;
 
         let pool_manager =
             Arc::new(
-                GlobalPoolManager::new().map_err(|e| OpenAILikeError::Network {
-                    provider: PROVIDER_NAME,
-                    message: e.to_string(),
-                })?,
+                GlobalPoolManager::new().map_err(|e| OpenAILikeError::network(PROVIDER_NAME, e.to_string()))?,
             );
         let model_registry = get_openai_like_registry();
 
@@ -124,10 +118,7 @@ impl OpenAILikeProvider {
             .pool_manager
             .execute_request(&url, HttpMethod::POST, headers, body)
             .await
-            .map_err(|e| OpenAILikeError::Network {
-                provider: PROVIDER_NAME,
-                message: e.to_string(),
-            })?;
+            .map_err(|e| OpenAILikeError::network(PROVIDER_NAME, e.to_string()))?;
 
         // Check for error status codes
         let status = response.status();
@@ -139,16 +130,10 @@ impl OpenAILikeProvider {
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| OpenAILikeError::Network {
-                provider: PROVIDER_NAME,
-                message: e.to_string(),
-            })?;
+            .map_err(|e| OpenAILikeError::network(PROVIDER_NAME, e.to_string()))?;
 
         let response_json: Value = serde_json::from_slice(&response_bytes).map_err(|e| {
-            OpenAILikeError::ResponseParsing {
-                provider: PROVIDER_NAME,
-                message: e.to_string(),
-            }
+            OpenAILikeError::response_parsing(PROVIDER_NAME, e.to_string())
         })?;
 
         // Transform response back to standard format
@@ -187,10 +172,7 @@ impl OpenAILikeProvider {
             req = req.header(key, value);
         }
 
-        let response = req.send().await.map_err(|e| OpenAILikeError::Network {
-            provider: PROVIDER_NAME,
-            message: e.to_string(),
-        })?;
+        let response = req.send().await.map_err(|e| OpenAILikeError::network(PROVIDER_NAME, e.to_string()))?;
 
         // Check for error status codes
         let status = response.status();
@@ -238,36 +220,24 @@ impl OpenAILikeProvider {
 
         if let Some(tools) = request.tools {
             openai_request["tools"] =
-                serde_json::to_value(tools).map_err(|e| OpenAILikeError::Serialization {
-                    provider: PROVIDER_NAME,
-                    message: e.to_string(),
-                })?;
+                serde_json::to_value(tools).map_err(|e| OpenAILikeError::serialization(PROVIDER_NAME, e.to_string()))?;
         }
 
         if let Some(tool_choice) = request.tool_choice {
             openai_request["tool_choice"] =
-                serde_json::to_value(tool_choice).map_err(|e| OpenAILikeError::Serialization {
-                    provider: PROVIDER_NAME,
-                    message: e.to_string(),
-                })?;
+                serde_json::to_value(tool_choice).map_err(|e| OpenAILikeError::serialization(PROVIDER_NAME, e.to_string()))?;
         }
 
         if let Some(response_format) = request.response_format {
             openai_request["response_format"] =
                 serde_json::to_value(response_format).map_err(|e| {
-                    OpenAILikeError::Serialization {
-                        provider: PROVIDER_NAME,
-                        message: e.to_string(),
-                    }
+                    OpenAILikeError::serialization(PROVIDER_NAME, e.to_string())
                 })?;
         }
 
         if let Some(stop) = request.stop {
             openai_request["stop"] =
-                serde_json::to_value(stop).map_err(|e| OpenAILikeError::Serialization {
-                    provider: PROVIDER_NAME,
-                    message: e.to_string(),
-                })?;
+                serde_json::to_value(stop).map_err(|e| OpenAILikeError::serialization(PROVIDER_NAME, e.to_string()))?;
         }
 
         if let Some(user) = request.user {
@@ -288,10 +258,7 @@ impl OpenAILikeProvider {
     /// Transform OpenAI response to standard format
     fn transform_chat_response(&self, response: Value) -> Result<ChatResponse, OpenAILikeError> {
         // Directly deserialize to ChatResponse since it's OpenAI-compatible
-        serde_json::from_value(response).map_err(|e| OpenAILikeError::ResponseParsing {
-            provider: PROVIDER_NAME,
-            message: e.to_string(),
-        })
+        serde_json::from_value(response).map_err(|e| OpenAILikeError::response_parsing(PROVIDER_NAME, e.to_string()))
     }
 
     /// Map HTTP error response to OpenAILikeError
@@ -532,10 +499,7 @@ impl LLMProvider for OpenAILikeProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let response_value: Value =
-            serde_json::from_slice(raw_response).map_err(|e| OpenAILikeError::ResponseParsing {
-                provider: PROVIDER_NAME,
-                message: e.to_string(),
-            })?;
+            serde_json::from_slice(raw_response).map_err(|e| OpenAILikeError::response_parsing(PROVIDER_NAME, e.to_string()))?;
         self.transform_chat_response(response_value)
     }
 

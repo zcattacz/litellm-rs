@@ -17,6 +17,6 @@ mod tests;
 
 // Re-export main types for external use
 pub use config::NovitaConfig;
-pub use error::{NovitaError, NovitaErrorMapper};
+pub use error::NovitaError;
 pub use model_info::{get_available_models, get_model_info};
 pub use provider::NovitaProvider;

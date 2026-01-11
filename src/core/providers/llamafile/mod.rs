@@ -24,7 +24,7 @@ mod tests;
 
 // Re-export main types for external use
 pub use config::LlamafileConfig;
-pub use error::{LlamafileError, LlamafileErrorMapper};
+pub use error::LlamafileError;
 pub use provider::LlamafileProvider;
 
 // Re-export for tests

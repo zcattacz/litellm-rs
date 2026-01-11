@@ -10,8 +10,7 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::OobaboogaConfig;
-use super::error::OobaboogaError;
-use crate::ProviderError;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header_owned};
 use crate::core::traits::error_mapper::types::GenericErrorMapper;
 use crate::core::traits::{
@@ -43,7 +42,7 @@ pub struct OobaboogaProvider {
 
 impl OobaboogaProvider {
     /// Create a new Oobabooga provider instance
-    pub async fn new(config: OobaboogaConfig) -> Result<Self, OobaboogaError> {
+    pub async fn new(config: OobaboogaConfig) -> Result<Self, ProviderError> {
         // Validate configuration
         config
             .validate()
@@ -68,7 +67,7 @@ impl OobaboogaProvider {
     }
 
     /// Create provider with custom API base
-    pub async fn with_base_url(base_url: impl Into<String>) -> Result<Self, OobaboogaError> {
+    pub async fn with_base_url(base_url: impl Into<String>) -> Result<Self, ProviderError> {
         let config = OobaboogaConfig {
             api_base: Some(base_url.into()),
             ..Default::default()
@@ -82,7 +81,7 @@ impl OobaboogaProvider {
         url: &str,
         method: HttpMethod,
         body: Option<serde_json::Value>,
-    ) -> Result<serde_json::Value, OobaboogaError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let auth_headers = self.config.build_auth_headers();
         let headers: Vec<_> = auth_headers
             .into_iter()
@@ -126,7 +125,7 @@ impl OobaboogaProvider {
         &self,
         request: &ChatRequest,
         stream: bool,
-    ) -> Result<serde_json::Value, OobaboogaError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let mut messages = Vec::new();
 
         for msg in &request.messages {
@@ -259,7 +258,7 @@ impl OobaboogaProvider {
         &self,
         response: serde_json::Value,
         model: &str,
-    ) -> Result<ChatResponse, OobaboogaError> {
+    ) -> Result<ChatResponse, ProviderError> {
         // Check for error in response
         if let Some(error) = response.get("error") {
             let error_msg = error.as_str().unwrap_or("Unknown error");
@@ -410,7 +409,7 @@ impl OobaboogaProvider {
 #[async_trait]
 impl LLMProvider for OobaboogaProvider {
     type Config = OobaboogaConfig;
-    type Error = OobaboogaError;
+    type Error = ProviderError;
     type ErrorMapper = GenericErrorMapper;
 
     fn name(&self) -> &'static str {
@@ -765,7 +764,7 @@ impl OobaboogaProvider {
     }
 
     /// List available models from Oobabooga server
-    pub async fn list_models(&self) -> Result<Vec<String>, OobaboogaError> {
+    pub async fn list_models(&self) -> Result<Vec<String>, ProviderError> {
         let url = self
             .config
             .get_models_endpoint()
@@ -790,7 +789,7 @@ impl OobaboogaProvider {
     }
 
     /// Refresh model list from server
-    pub async fn refresh_models(&mut self) -> Result<(), OobaboogaError> {
+    pub async fn refresh_models(&mut self) -> Result<(), ProviderError> {
         let model_ids = self.list_models().await?;
 
         self.models = model_ids

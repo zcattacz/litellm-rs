@@ -11,7 +11,6 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::GitHubConfig;
-use super::error::GitHubError;
 use super::model_info::{get_available_models, get_model_info};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::providers::unified_provider::ProviderError;
@@ -41,7 +40,7 @@ pub struct GitHubProvider {
 
 impl GitHubProvider {
     /// Create a new GitHub provider instance
-    pub async fn new(config: GitHubConfig) -> Result<Self, GitHubError> {
+    pub async fn new(config: GitHubConfig) -> Result<Self, ProviderError> {
         // Validate configuration
         config
             .validate()
@@ -93,7 +92,7 @@ impl GitHubProvider {
     }
 
     /// Create provider with API key only
-    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, GitHubError> {
+    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, ProviderError> {
         let config = GitHubConfig {
             api_key: Some(api_key.into()),
             ..Default::default()
@@ -106,7 +105,7 @@ impl GitHubProvider {
         &self,
         endpoint: &str,
         body: serde_json::Value,
-    ) -> Result<serde_json::Value, GitHubError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let url = format!("{}{}", self.config.get_api_base(), endpoint);
 
         let mut headers = Vec::with_capacity(2);
@@ -149,7 +148,7 @@ impl GitHubProvider {
 #[async_trait]
 impl LLMProvider for GitHubProvider {
     type Config = GitHubConfig;
-    type Error = GitHubError;
+    type Error = ProviderError;
     type ErrorMapper = crate::core::traits::error_mapper::DefaultErrorMapper;
 
     fn name(&self) -> &'static str {
@@ -359,7 +358,7 @@ impl GitHubStream {
         }
     }
 
-    fn parse_sse_line(&self, line: &str) -> Option<Result<ChatChunk, GitHubError>> {
+    fn parse_sse_line(&self, line: &str) -> Option<Result<ChatChunk, ProviderError>> {
         if line.is_empty() || line.starts_with(':') {
             return None;
         }
@@ -386,7 +385,7 @@ impl GitHubStream {
 }
 
 impl Stream for GitHubStream {
-    type Item = Result<ChatChunk, GitHubError>;
+    type Item = Result<ChatChunk, ProviderError>;
 
     fn poll_next(
         mut self: Pin<&mut Self>,

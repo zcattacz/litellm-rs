@@ -15,9 +15,9 @@ use tracing::debug;
 use super::chat::CohereChatHandler;
 use super::config::CohereConfig;
 use super::embed::CohereEmbeddingHandler;
-use super::error::CohereError;
 use super::rerank::{CohereRerankHandler, RerankRequest, RerankResponse};
 use super::streaming::CohereStreamParser;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::providers::base_provider::{
     BaseHttpClient, BaseProviderConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
 };
@@ -42,25 +42,25 @@ const COHERE_CAPABILITIES: &[ProviderCapability] = &[
 /// Cohere error mapper
 pub struct CohereErrorMapper;
 
-impl ErrorMapper<CohereError> for CohereErrorMapper {
-    fn map_http_error(&self, status_code: u16, response_body: &str) -> CohereError {
+impl ErrorMapper<ProviderError> for CohereErrorMapper {
+    fn map_http_error(&self, status_code: u16, response_body: &str) -> ProviderError {
         HttpErrorMapper::map_status_code("cohere", status_code, response_body)
     }
 
-    fn map_json_error(&self, error_response: &Value) -> CohereError {
+    fn map_json_error(&self, error_response: &Value) -> ProviderError {
         HttpErrorMapper::parse_json_error("cohere", error_response)
     }
 
-    fn map_network_error(&self, error: &dyn std::error::Error) -> CohereError {
-        CohereError::network("cohere", error.to_string())
+    fn map_network_error(&self, error: &dyn std::error::Error) -> ProviderError {
+        ProviderError::network("cohere", error.to_string())
     }
 
-    fn map_parsing_error(&self, error: &dyn std::error::Error) -> CohereError {
-        CohereError::response_parsing("cohere", error.to_string())
+    fn map_parsing_error(&self, error: &dyn std::error::Error) -> ProviderError {
+        ProviderError::response_parsing("cohere", error.to_string())
     }
 
-    fn map_timeout_error(&self, timeout_duration: std::time::Duration) -> CohereError {
-        CohereError::timeout(
+    fn map_timeout_error(&self, timeout_duration: std::time::Duration) -> ProviderError {
+        ProviderError::timeout(
             "cohere",
             format!("Request timed out after {:?}", timeout_duration),
         )
@@ -77,10 +77,10 @@ pub struct CohereProvider {
 
 impl CohereProvider {
     /// Create a new Cohere provider instance
-    pub async fn new(config: CohereConfig) -> Result<Self, CohereError> {
+    pub async fn new(config: CohereConfig) -> Result<Self, ProviderError> {
         config
             .validate()
-            .map_err(|e| CohereError::configuration("cohere", e))?;
+            .map_err(|e| ProviderError::configuration("cohere", e))?;
 
         let base_config = BaseProviderConfig {
             api_key: Some(config.api_key.clone()),
@@ -104,7 +104,7 @@ impl CohereProvider {
     }
 
     /// Create provider with API key
-    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, CohereError> {
+    pub async fn with_api_key(api_key: impl Into<String>) -> Result<Self, ProviderError> {
         let config = CohereConfig::new(api_key);
         Self::new(config).await
     }
@@ -304,7 +304,7 @@ impl CohereProvider {
     }
 
     /// Execute a rerank request
-    pub async fn rerank(&self, request: RerankRequest) -> Result<RerankResponse, CohereError> {
+    pub async fn rerank(&self, request: RerankRequest) -> Result<RerankResponse, ProviderError> {
         debug!("Cohere rerank request: model={}", request.model);
 
         let body = CohereRerankHandler::transform_request(&request)?;
@@ -315,7 +315,7 @@ impl CohereProvider {
             .with_bearer_token(&self.config.api_key)
             .with_content_type("application/json")
             .build_reqwest()
-            .map_err(|e| CohereError::invalid_request("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("cohere", e.to_string()))?;
 
         let response = self
             .client
@@ -325,18 +325,18 @@ impl CohereProvider {
             .json(&body)
             .send()
             .await
-            .map_err(|e| CohereError::network("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::network("cohere", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.unwrap_or_default();
-            return Err(CohereError::api_error("cohere", status, body));
+            return Err(ProviderError::api_error("cohere", status, body));
         }
 
         let response_json: Value = response
             .json()
             .await
-            .map_err(|e| CohereError::response_parsing("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::response_parsing("cohere", e.to_string()))?;
 
         CohereRerankHandler::transform_response(response_json)
     }
@@ -345,7 +345,7 @@ impl CohereProvider {
 #[async_trait]
 impl LLMProvider for CohereProvider {
     type Config = CohereConfig;
-    type Error = CohereError;
+    type Error = ProviderError;
     type ErrorMapper = CohereErrorMapper;
 
     fn name(&self) -> &'static str {
@@ -391,7 +391,7 @@ impl LLMProvider for CohereProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         let response_json: Value = serde_json::from_slice(raw_response)
-            .map_err(|e| CohereError::response_parsing("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::response_parsing("cohere", e.to_string()))?;
 
         CohereChatHandler::transform_response(response_json, model)
     }
@@ -408,13 +408,15 @@ impl LLMProvider for CohereProvider {
         debug!("Cohere chat request: model={}", request.model);
 
         if self.is_embedding_model(&request.model) {
-            return Err(super::error::cohere_invalid_request(
+            return Err(ProviderError::invalid_request(
+                "cohere",
                 "Use embeddings endpoint for embedding models",
             ));
         }
 
         if self.is_rerank_model(&request.model) {
-            return Err(super::error::cohere_invalid_request(
+            return Err(ProviderError::invalid_request(
+                "cohere",
                 "Use rerank endpoint for rerank models",
             ));
         }
@@ -427,7 +429,7 @@ impl LLMProvider for CohereProvider {
             .with_bearer_token(&self.config.api_key)
             .with_content_type("application/json")
             .build_reqwest()
-            .map_err(|e| CohereError::invalid_request("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("cohere", e.to_string()))?;
 
         let response = self
             .client
@@ -437,18 +439,18 @@ impl LLMProvider for CohereProvider {
             .json(&body)
             .send()
             .await
-            .map_err(|e| CohereError::network("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::network("cohere", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.unwrap_or_default();
-            return Err(CohereError::api_error("cohere", status, body));
+            return Err(ProviderError::api_error("cohere", status, body));
         }
 
         let response_json: Value = response
             .json()
             .await
-            .map_err(|e| CohereError::response_parsing("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::response_parsing("cohere", e.to_string()))?;
 
         CohereChatHandler::transform_response(response_json, &request.model)
     }
@@ -470,7 +472,7 @@ impl LLMProvider for CohereProvider {
             .with_bearer_token(&self.config.api_key)
             .with_content_type("application/json")
             .build_reqwest()
-            .map_err(|e| CohereError::invalid_request("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("cohere", e.to_string()))?;
 
         let response = self
             .client
@@ -480,12 +482,12 @@ impl LLMProvider for CohereProvider {
             .json(&body)
             .send()
             .await
-            .map_err(|e| CohereError::network("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::network("cohere", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.unwrap_or_default();
-            return Err(CohereError::api_error("cohere", status, body));
+            return Err(ProviderError::api_error("cohere", status, body));
         }
 
         // Create stream parser
@@ -522,7 +524,7 @@ impl LLMProvider for CohereProvider {
                             Some(chunks)
                         }
                         Err(e) => {
-                            Some(vec![Err(super::error::cohere_network_error(e.to_string()))])
+                            Some(vec![Err(ProviderError::network("cohere", e.to_string()))])
                         }
                     })
                 },
@@ -547,7 +549,7 @@ impl LLMProvider for CohereProvider {
             .with_bearer_token(&self.config.api_key)
             .with_content_type("application/json")
             .build_reqwest()
-            .map_err(|e| CohereError::invalid_request("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::invalid_request("cohere", e.to_string()))?;
 
         let response = self
             .client
@@ -557,18 +559,18 @@ impl LLMProvider for CohereProvider {
             .json(&body)
             .send()
             .await
-            .map_err(|e| CohereError::network("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::network("cohere", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.unwrap_or_default();
-            return Err(CohereError::api_error("cohere", status, body));
+            return Err(ProviderError::api_error("cohere", status, body));
         }
 
         let response_json: Value = response
             .json()
             .await
-            .map_err(|e| CohereError::response_parsing("cohere", e.to_string()))?;
+            .map_err(|e| ProviderError::response_parsing("cohere", e.to_string()))?;
 
         // Get input count for usage estimation
         let input_count = match &request.input {
@@ -612,7 +614,7 @@ impl LLMProvider for CohereProvider {
             .models
             .iter()
             .find(|m| m.id == model)
-            .ok_or_else(|| super::error::cohere_model_not_found(model.to_string()))?;
+            .ok_or_else(|| ProviderError::model_not_found("cohere", model.to_string()))?;
 
         let input_cost_per_1k = model_info.input_cost_per_1k_tokens.unwrap_or(0.0);
         let output_cost_per_1k = model_info.output_cost_per_1k_tokens.unwrap_or(0.0);

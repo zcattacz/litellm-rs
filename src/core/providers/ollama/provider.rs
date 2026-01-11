@@ -10,10 +10,9 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::OllamaConfig;
-use super::error::OllamaError;
 use super::model_info::{OllamaModelInfo, OllamaShowResponse, OllamaTagsResponse, get_model_info};
 use super::streaming::OllamaStream;
-use crate::ProviderError;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::traits::error_mapper::types::GenericErrorMapper;
 use crate::core::traits::{
@@ -46,7 +45,7 @@ pub struct OllamaProvider {
 
 impl OllamaProvider {
     /// Create a new Ollama provider instance
-    pub async fn new(config: OllamaConfig) -> Result<Self, OllamaError> {
+    pub async fn new(config: OllamaConfig) -> Result<Self, ProviderError> {
         // Validate configuration
         config
             .validate()
@@ -68,7 +67,7 @@ impl OllamaProvider {
     }
 
     /// Create provider with custom API base
-    pub async fn with_base_url(base_url: impl Into<String>) -> Result<Self, OllamaError> {
+    pub async fn with_base_url(base_url: impl Into<String>) -> Result<Self, ProviderError> {
         let config = OllamaConfig {
             api_base: Some(base_url.into()),
             ..Default::default()
@@ -77,7 +76,7 @@ impl OllamaProvider {
     }
 
     /// Create provider with default configuration (localhost:11434)
-    pub async fn default_local() -> Result<Self, OllamaError> {
+    pub async fn default_local() -> Result<Self, ProviderError> {
         Self::new(OllamaConfig::default()).await
     }
 
@@ -87,7 +86,7 @@ impl OllamaProvider {
         url: &str,
         method: HttpMethod,
         body: Option<serde_json::Value>,
-    ) -> Result<serde_json::Value, OllamaError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let mut headers = Vec::with_capacity(2);
 
         // Add auth header if API key is set
@@ -131,7 +130,7 @@ impl OllamaProvider {
     }
 
     /// List available models from Ollama server
-    pub async fn list_models(&self) -> Result<Vec<OllamaModelInfo>, OllamaError> {
+    pub async fn list_models(&self) -> Result<Vec<OllamaModelInfo>, ProviderError> {
         let url = self.config.get_tags_endpoint();
         let response = self.execute_request(&url, HttpMethod::GET, None).await?;
 
@@ -143,7 +142,7 @@ impl OllamaProvider {
     }
 
     /// Get detailed model information
-    pub async fn show_model(&self, model: &str) -> Result<OllamaShowResponse, OllamaError> {
+    pub async fn show_model(&self, model: &str) -> Result<OllamaShowResponse, ProviderError> {
         let url = self.config.get_show_endpoint();
         let body = serde_json::json!({ "name": model });
 
@@ -161,7 +160,7 @@ impl OllamaProvider {
         &self,
         request: &ChatRequest,
         stream: bool,
-    ) -> Result<serde_json::Value, OllamaError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let mut messages = Vec::new();
 
         for msg in &request.messages {
@@ -329,7 +328,7 @@ impl OllamaProvider {
         &self,
         response: serde_json::Value,
         model: &str,
-    ) -> Result<ChatResponse, OllamaError> {
+    ) -> Result<ChatResponse, ProviderError> {
         let message = response.get("message").ok_or_else(|| {
             ProviderError::api_error("ollama", 500, "Missing message in response".to_string())
         })?;
@@ -447,7 +446,7 @@ impl OllamaProvider {
 #[async_trait]
 impl LLMProvider for OllamaProvider {
     type Config = OllamaConfig;
-    type Error = OllamaError;
+    type Error = ProviderError;
     type ErrorMapper = GenericErrorMapper;
 
     fn name(&self) -> &'static str {
@@ -711,7 +710,7 @@ impl OllamaProvider {
     }
 
     /// Get model info from server
-    pub async fn get_model_info(&self, model: &str) -> Result<OllamaModelInfo, OllamaError> {
+    pub async fn get_model_info(&self, model: &str) -> Result<OllamaModelInfo, ProviderError> {
         // First try to get detailed info from show endpoint
         match self.show_model(model).await {
             Ok(show_response) => {
@@ -740,7 +739,7 @@ impl OllamaProvider {
     }
 
     /// Refresh model list from server
-    pub async fn refresh_models(&mut self) -> Result<(), OllamaError> {
+    pub async fn refresh_models(&mut self) -> Result<(), ProviderError> {
         let ollama_models = self.list_models().await?;
 
         self.models = ollama_models

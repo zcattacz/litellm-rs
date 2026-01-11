@@ -10,9 +10,10 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::OciConfig;
-use super::error::{OciError, OciErrorMapper};
+use super::error::OciErrorMapper;
 use super::model_info::{get_available_models, get_model_info, supports_tools};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header_owned};
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
@@ -50,13 +51,13 @@ impl Clone for OciProvider {
 
 impl OciProvider {
     /// Create a new OCI provider instance
-    pub async fn new(config: OciConfig) -> Result<Self, OciError> {
+    pub async fn new(config: OciConfig) -> Result<Self, ProviderError> {
         // Validate configuration
-        config.validate().map_err(OciError::ConfigurationError)?;
+        config.validate().map_err(|e| ProviderError::configuration("oci", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            OciError::ConfigurationError(format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration("oci", format!("Failed to create pool manager: {}", e))
         })?);
 
         // Build model list from static configuration
@@ -103,7 +104,7 @@ impl OciProvider {
         auth_token: impl Into<String>,
         compartment_id: impl Into<String>,
         region: Option<String>,
-    ) -> Result<Self, OciError> {
+    ) -> Result<Self, ProviderError> {
         let config = OciConfig {
             auth_token: Some(auth_token.into()),
             compartment_id: Some(compartment_id.into()),
@@ -114,10 +115,11 @@ impl OciProvider {
     }
 
     /// Build authorization headers
-    fn build_headers(&self) -> Result<Vec<(String, String)>, OciError> {
+    fn build_headers(&self) -> Result<Vec<(String, String)>, ProviderError> {
         let auth_token = self.config.get_auth_token().ok_or_else(|| {
-            OciError::AuthenticationError(
-                "Auth token not configured. Set OCI_AUTH_TOKEN environment variable.".to_string(),
+            ProviderError::authentication(
+                "oci",
+                "Auth token not configured. Set OCI_AUTH_TOKEN environment variable.",
             )
         })?;
 
@@ -132,11 +134,11 @@ impl OciProvider {
     }
 
     /// Prepare the request payload
-    fn prepare_payload(&self, request: &ChatRequest) -> Result<serde_json::Value, OciError> {
+    fn prepare_payload(&self, request: &ChatRequest) -> Result<serde_json::Value, ProviderError> {
         let compartment_id = self.config.get_compartment_id().ok_or_else(|| {
-            OciError::CompartmentError(
-                "Compartment ID not configured. Set OCI_COMPARTMENT_ID environment variable."
-                    .to_string(),
+            ProviderError::configuration(
+                "oci",
+                "Compartment ID not configured. Set OCI_COMPARTMENT_ID environment variable.",
             )
         })?;
 
@@ -200,7 +202,7 @@ impl OciProvider {
         &self,
         url: &str,
         body: serde_json::Value,
-    ) -> Result<serde_json::Value, OciError> {
+    ) -> Result<serde_json::Value, ProviderError> {
         let headers = self.build_headers()?;
         let header_tuples: Vec<_> = headers
             .iter()
@@ -211,13 +213,13 @@ impl OciProvider {
             .pool_manager
             .execute_request(url, HttpMethod::POST, header_tuples, Some(body))
             .await
-            .map_err(|e| OciError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("oci", e.to_string()))?;
 
         let status = response.status();
         let response_bytes = response
             .bytes()
             .await
-            .map_err(|e| OciError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("oci", e.to_string()))?;
 
         if !status.is_success() {
             let body_str = String::from_utf8_lossy(&response_bytes);
@@ -226,14 +228,14 @@ impl OciProvider {
         }
 
         serde_json::from_slice(&response_bytes)
-            .map_err(|e| OciError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::response_parsing("oci", format!("Failed to parse response: {}", e)))
     }
 }
 
 #[async_trait]
 impl LLMProvider for OciProvider {
     type Config = OciConfig;
-    type Error = OciError;
+    type Error = ProviderError;
     type ErrorMapper = OciErrorMapper;
 
     fn name(&self) -> &'static str {
@@ -313,7 +315,7 @@ impl LLMProvider for OciProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         serde_json::from_slice(raw_response)
-            .map_err(|e| OciError::ApiError(format!("Failed to parse response: {}", e)))
+            .map_err(|e| ProviderError::response_parsing("oci", format!("Failed to parse response: {}", e)))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -365,7 +367,7 @@ impl LLMProvider for OciProvider {
             .json(&payload)
             .send()
             .await
-            .map_err(|e| OciError::NetworkError(e.to_string()))?;
+            .map_err(|e| ProviderError::network("oci", e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
@@ -383,10 +385,9 @@ impl LLMProvider for OciProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(OciError::InvalidRequestError(
-            "Embeddings are available through OCI Generative AI Embeddings API. \
-            Use the oci_embed provider for embeddings."
-                .to_string(),
+        Err(ProviderError::not_supported(
+            "oci",
+            "Embeddings are available through OCI Generative AI Embeddings API. Use the oci_embed provider for embeddings.",
         ))
     }
 
@@ -406,7 +407,7 @@ impl LLMProvider for OciProvider {
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
         let model_info = get_model_info(model)
-            .ok_or_else(|| OciError::ModelNotFoundError(format!("Unknown model: {}", model)))?;
+            .ok_or_else(|| ProviderError::model_not_found("oci", format!("Unknown model: {}", model)))?;
 
         let input_cost = (input_tokens as f64) * (model_info.input_cost_per_million / 1_000_000.0);
         let output_cost =
@@ -416,7 +417,7 @@ impl LLMProvider for OciProvider {
 }
 
 /// Transform OCI response to OpenAI-compatible format
-fn transform_oci_response(response: serde_json::Value) -> Result<ChatResponse, OciError> {
+fn transform_oci_response(response: serde_json::Value) -> Result<ChatResponse, ProviderError> {
     // OCI response format may differ from OpenAI
     // Try direct parsing first, then transform if needed
     if let Ok(chat_response) = serde_json::from_value::<ChatResponse>(response.clone()) {

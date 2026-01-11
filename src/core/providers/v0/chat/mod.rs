@@ -2,7 +2,11 @@
 //!
 //! Handles chat completion requests for V0 provider
 
-use super::{V0Error, V0Provider};
+use super::V0Provider;
+use crate::core::providers::unified_provider::ProviderError;
+
+/// Provider name constant for error messages
+const PROVIDER_NAME: &str = "v0";
 use crate::core::types::{
     requests::{ChatMessage, ChatRequest, MessageRole},
     responses::{ChatChoice, ChatResponse, FinishReason, Usage},
@@ -138,7 +142,7 @@ impl V0ChatHandler {
     pub async fn handle_chat_completion(
         provider: &V0Provider,
         request: ChatRequest,
-    ) -> Result<ChatResponse, V0Error> {
+    ) -> Result<ChatResponse, ProviderError> {
         // Transform the request to V0 format
         let v0_request = Self::transform_request(request)?;
 
@@ -152,7 +156,7 @@ impl V0ChatHandler {
     }
 
     /// Transform standard ChatRequest to V0ChatRequest
-    fn transform_request(request: ChatRequest) -> Result<V0ChatRequest, V0Error> {
+    fn transform_request(request: ChatRequest) -> Result<V0ChatRequest, ProviderError> {
         // Transform messages
         let messages = request
             .messages
@@ -202,7 +206,7 @@ impl V0ChatHandler {
     async fn send_request(
         provider: &V0Provider,
         request: V0ChatRequest,
-    ) -> Result<V0ChatResponse, V0Error> {
+    ) -> Result<V0ChatResponse, ProviderError> {
         let url = provider.get_endpoint("chat/completions");
         let headers = provider.create_headers();
 
@@ -213,30 +217,34 @@ impl V0ChatHandler {
             .json(&request)
             .send()
             .await
-            .map_err(V0Error::HttpError)?;
+            .map_err(|e| ProviderError::network(PROVIDER_NAME, e.to_string()))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
 
             return match status.as_u16() {
-                401 => Err(V0Error::AuthenticationFailed),
-                429 => Err(V0Error::RateLimitExceeded),
-                404 => Err(V0Error::ModelNotFound(request.model)),
-                _ => Err(V0Error::ApiError(format!(
-                    "HTTP {}: {}",
-                    status, error_text
-                ))),
+                401 => Err(ProviderError::authentication(PROVIDER_NAME, "Authentication failed")),
+                429 => Err(ProviderError::rate_limit(PROVIDER_NAME, None)),
+                404 => Err(ProviderError::model_not_found(PROVIDER_NAME, request.model)),
+                _ => Err(ProviderError::api_error(
+                    PROVIDER_NAME,
+                    status.as_u16(),
+                    format!("HTTP {}: {}", status, error_text),
+                )),
             };
         }
 
-        let v0_response: V0ChatResponse = response.json().await.map_err(V0Error::HttpError)?;
+        let v0_response: V0ChatResponse = response
+            .json()
+            .await
+            .map_err(|e| ProviderError::serialization(PROVIDER_NAME, e.to_string()))?;
 
         Ok(v0_response)
     }
 
     /// Transform V0ChatResponse to standard ChatResponse
-    fn transform_response(v0_response: V0ChatResponse) -> Result<ChatResponse, V0Error> {
+    fn transform_response(v0_response: V0ChatResponse) -> Result<ChatResponse, ProviderError> {
         let choices = v0_response
             .choices
             .into_iter()
@@ -300,51 +308,55 @@ impl V0ChatHandler {
     }
 
     /// Validate request parameters
-    pub fn validate_request(request: &ChatRequest) -> Result<(), V0Error> {
+    pub fn validate_request(request: &ChatRequest) -> Result<(), ProviderError> {
         // Check required fields
         if request.messages.is_empty() {
-            return Err(V0Error::InvalidRequest(
-                "Messages cannot be empty".to_string(),
+            return Err(ProviderError::invalid_request(
+                PROVIDER_NAME,
+                "Messages cannot be empty",
             ));
         }
 
         if request.model.is_empty() {
-            return Err(V0Error::InvalidRequest("Model is required".to_string()));
+            return Err(ProviderError::invalid_request(
+                PROVIDER_NAME,
+                "Model is required",
+            ));
         }
 
         // Validate messages
         for (i, message) in request.messages.iter().enumerate() {
             if message.role.is_empty() {
-                return Err(V0Error::InvalidRequest(format!(
-                    "Message {} role cannot be empty",
-                    i
-                )));
+                return Err(ProviderError::invalid_request(
+                    PROVIDER_NAME,
+                    format!("Message {} role cannot be empty", i),
+                ));
             }
 
             match &message.content {
                 Some(crate::core::types::requests::MessageContent::Text(text)) => {
                     if text.is_empty() {
-                        return Err(V0Error::InvalidRequest(format!(
-                            "Message {} content cannot be empty",
-                            i
-                        )));
+                        return Err(ProviderError::invalid_request(
+                            PROVIDER_NAME,
+                            format!("Message {} content cannot be empty", i),
+                        ));
                     }
                 }
                 Some(crate::core::types::requests::MessageContent::Parts(array)) => {
                     if array.is_empty() {
-                        return Err(V0Error::InvalidRequest(format!(
-                            "Message {} content array cannot be empty",
-                            i
-                        )));
+                        return Err(ProviderError::invalid_request(
+                            PROVIDER_NAME,
+                            format!("Message {} content array cannot be empty", i),
+                        ));
                     }
                 }
                 None => {
                     // Content is optional for some roles like tool
                     if message.role == MessageRole::User {
-                        return Err(V0Error::InvalidRequest(format!(
-                            "Message {} content cannot be None for user role",
-                            i
-                        )));
+                        return Err(ProviderError::invalid_request(
+                            PROVIDER_NAME,
+                            format!("Message {} content cannot be None for user role", i),
+                        ));
                     }
                 }
             }

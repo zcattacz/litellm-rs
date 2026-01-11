@@ -152,53 +152,59 @@ mod tests {
     #[test]
     fn test_error_mapping() {
         use crate::core::traits::error_mapper::trait_def::ErrorMapper;
+        use crate::core::providers::unified_provider::ProviderError;
 
         let mapper = error::GradientAIErrorMapper;
 
         // Test 401 error mapping
         let auth_error = mapper.map_http_error(401, "Unauthorized");
         match auth_error {
-            error::GradientAIError::AuthenticationError(_) => {}
-            _ => panic!("Expected AuthenticationError"),
+            ProviderError::Authentication { .. } => {}
+            _ => panic!("Expected Authentication error"),
         }
 
         // Test 429 error mapping
         let rate_error = mapper.map_http_error(429, "Too many requests");
         match rate_error {
-            error::GradientAIError::RateLimitError(_) => {}
-            _ => panic!("Expected RateLimitError"),
+            ProviderError::RateLimit { .. } => {}
+            _ => panic!("Expected RateLimit error"),
         }
 
         // Test 404 error mapping
         let not_found = mapper.map_http_error(404, "Not found");
         match not_found {
-            error::GradientAIError::ModelNotFoundError(_) => {}
-            _ => panic!("Expected ModelNotFoundError"),
+            ProviderError::ModelNotFound { .. } => {}
+            _ => panic!("Expected ModelNotFound error"),
         }
     }
 
     #[test]
     fn test_error_retryability() {
-        use crate::core::types::errors::ProviderErrorTrait;
+        use crate::core::providers::unified_provider::ProviderError;
 
         // Rate limit errors should be retryable
-        let rate_error = error::GradientAIError::RateLimitError("Rate limited".to_string());
+        let rate_error = ProviderError::rate_limit("gradient_ai", Some(60));
         assert!(rate_error.is_retryable());
         assert!(rate_error.retry_delay().is_some());
+        assert_eq!(rate_error.retry_delay(), Some(60));
 
-        // Service unavailable should be retryable
-        let service_error =
-            error::GradientAIError::ServiceUnavailableError("Service down".to_string());
+        // Rate limit without retry_after is still retryable but no delay
+        let rate_error_no_delay = ProviderError::rate_limit("gradient_ai", None);
+        assert!(rate_error_no_delay.is_retryable());
+        assert!(rate_error_no_delay.retry_delay().is_none());
+
+        // Provider unavailable should be retryable
+        let service_error = ProviderError::provider_unavailable("gradient_ai", "Service down");
         assert!(service_error.is_retryable());
         assert!(service_error.retry_delay().is_some());
 
         // Authentication errors should not be retryable
-        let auth_error = error::GradientAIError::AuthenticationError("Bad key".to_string());
+        let auth_error = ProviderError::authentication("gradient_ai", "Bad key");
         assert!(!auth_error.is_retryable());
         assert!(auth_error.retry_delay().is_none());
 
-        // Unsupported params should not be retryable
-        let unsupported_error = error::GradientAIError::UnsupportedParamsError("param".to_string());
+        // Not supported errors should not be retryable
+        let unsupported_error = ProviderError::not_supported("gradient_ai", "feature");
         assert!(!unsupported_error.is_retryable());
     }
 

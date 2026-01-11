@@ -3,6 +3,7 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
+    use crate::core::providers::unified_provider::ProviderError;
     use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
     use crate::core::types::common::ProviderCapability;
 
@@ -109,49 +110,33 @@ mod tests {
     }
 
     #[test]
-    fn test_error_mapping() {
-        use crate::core::traits::error_mapper::trait_def::ErrorMapper;
+    fn test_error_types() {
+        // Test ProviderError factory methods
+        let auth_error = ProviderError::authentication("novita", "test");
+        assert_eq!(auth_error.http_status(), 401);
 
-        let mapper = error::NovitaErrorMapper;
+        let rate_error = ProviderError::rate_limit("novita", None);
+        assert_eq!(rate_error.http_status(), 429);
+        assert!(rate_error.is_retryable());
 
-        // Test 401 error mapping
-        let auth_error = mapper.map_http_error(401, "Unauthorized");
-        match auth_error {
-            error::NovitaError::AuthenticationError(_) => {}
-            _ => panic!("Expected AuthenticationError"),
-        }
-
-        // Test 429 error mapping
-        let rate_error = mapper.map_http_error(429, "Too many requests");
-        match rate_error {
-            error::NovitaError::RateLimitError(_) => {}
-            _ => panic!("Expected RateLimitError"),
-        }
-
-        // Test 404 error mapping
-        let not_found = mapper.map_http_error(404, "Not found");
-        match not_found {
-            error::NovitaError::ModelNotFoundError(_) => {}
-            _ => panic!("Expected ModelNotFoundError"),
-        }
+        let model_error = ProviderError::model_not_found("novita", "gpt-5");
+        assert_eq!(model_error.http_status(), 404);
     }
 
     #[test]
     fn test_error_retryability() {
-        use crate::core::types::errors::ProviderErrorTrait;
-
         // Rate limit errors should be retryable
-        let rate_error = error::NovitaError::RateLimitError("Rate limited".to_string());
+        let rate_error = ProviderError::rate_limit("novita", Some(60));
         assert!(rate_error.is_retryable());
         assert!(rate_error.retry_delay().is_some());
 
         // Service unavailable should be retryable
-        let service_error = error::NovitaError::ServiceUnavailableError("Service down".to_string());
+        let service_error = ProviderError::provider_unavailable("novita", "Service down");
         assert!(service_error.is_retryable());
         assert!(service_error.retry_delay().is_some());
 
         // Authentication errors should not be retryable
-        let auth_error = error::NovitaError::AuthenticationError("Bad key".to_string());
+        let auth_error = ProviderError::authentication("novita", "Bad key");
         assert!(!auth_error.is_retryable());
         assert!(auth_error.retry_delay().is_none());
     }

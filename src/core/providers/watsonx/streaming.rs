@@ -5,6 +5,7 @@
 
 use super::error::WatsonxError;
 use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEStream};
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::types::requests::{MessageContent, MessageRole};
 use crate::core::types::responses::{ChatChunk, ChatDelta, ChatResponse, ChatStreamChoice};
 use bytes::Bytes;
@@ -51,7 +52,13 @@ impl Stream for WatsonxStream {
         match Pin::new(&mut self.inner).poll_next(cx) {
             Poll::Ready(Some(Ok(chunk))) => Poll::Ready(Some(Ok(chunk))),
             Poll::Ready(Some(Err(e))) => {
-                Poll::Ready(Some(Err(WatsonxError::StreamingError(e.to_string()))))
+                Poll::Ready(Some(Err(ProviderError::streaming_error(
+                    "watsonx",
+                    "chat",
+                    None,
+                    None,
+                    e.to_string(),
+                ))))
             }
             Poll::Ready(None) => Poll::Ready(None),
             Poll::Pending => Poll::Pending,
