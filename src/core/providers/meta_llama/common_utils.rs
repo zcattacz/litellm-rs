@@ -3,169 +3,29 @@
 //! This module contains shared utilities, configuration, and client implementation
 //! for the Meta Llama provider.
 
-// use async_trait::async_trait;
 use futures::Stream;
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Duration;
-use thiserror::Error;
 use tracing::{debug, error, warn};
 
 use super::LlamaProviderConfig;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::types::common::HealthStatus;
-use crate::core::types::errors::ProviderErrorTrait;
 
-/// Llama API error types
-#[derive(Debug, Error)]
-pub enum LlamaError {
-    /// API request failed
-    #[error("API request failed: {0}")]
-    ApiRequest(String),
+/// Provider name constant
+const PROVIDER_NAME: &str = "meta";
 
-    /// Authentication failed
-    #[error("Authentication failed: {0}")]
-    Authentication(String),
+/// Llama error type alias (uses unified ProviderError)
+pub type LlamaError = ProviderError;
 
-    /// Rate limit exceeded
-    #[error("Rate limit exceeded: {0}")]
-    RateLimit(String),
-
-    /// Invalid request
-    #[error("Invalid request: {0}")]
-    InvalidRequest(String),
-
-    /// Model not found
-    #[error("Model not found: {0}")]
-    ModelNotFound(String),
-
-    /// Network error
-    #[error("Network error: {0}")]
-    Network(String),
-
-    /// Serialization/deserialization error
-    #[error("Serialization error: {0}")]
-    Serialization(String),
-
-    /// Configuration error
-    #[error("Configuration error: {0}")]
-    Configuration(String),
-
-    /// Timeout error
-    #[error("Request timeout: {0}")]
-    Timeout(String),
-
-    /// Other errors
-    #[error("Other error: {0}")]
-    Other(String),
-}
-
-impl LlamaError {
-    /// Create a not_supported error
-    pub fn not_supported(feature: &str) -> Self {
-        LlamaError::InvalidRequest(format!("Feature '{}' is not supported", feature))
-    }
-}
-
-// BaseLLMError conversion removed - using new error system
-
-impl From<reqwest::Error> for LlamaError {
-    fn from(err: reqwest::Error) -> Self {
-        if err.is_timeout() {
-            LlamaError::Timeout(err.to_string())
-        } else if err.is_connect() {
-            LlamaError::Network(format!("Connection failed: {}", err))
-        } else {
-            LlamaError::Network(err.to_string())
-        }
-    }
-}
-
-impl From<serde_json::Error> for LlamaError {
-    fn from(err: serde_json::Error) -> Self {
-        LlamaError::Serialization(err.to_string())
-    }
-}
-
-impl From<crate::core::cost::types::CostError> for LlamaError {
-    fn from(err: crate::core::cost::types::CostError) -> Self {
-        LlamaError::Other(format!("Cost calculation error: {}", err))
-    }
-}
-
-// ChatError conversion removed - using new error system
-
-impl ProviderErrorTrait for LlamaError {
-    fn error_type(&self) -> &'static str {
-        match self {
-            Self::ApiRequest(_) => "api_request",
-            Self::Authentication(_) => "authentication",
-            Self::RateLimit(_) => "rate_limit",
-            Self::InvalidRequest(_) => "invalid_request",
-            Self::ModelNotFound(_) => "model_not_found",
-            Self::Network(_) => "network",
-            Self::Serialization(_) => "serialization",
-            Self::Configuration(_) => "configuration",
-            Self::Timeout(_) => "timeout",
-            Self::Other(_) => "other",
-        }
-    }
-
-    fn is_retryable(&self) -> bool {
-        matches!(
-            self,
-            Self::Network(_) | Self::RateLimit(_) | Self::Timeout(_)
-        )
-    }
-
-    fn retry_delay(&self) -> Option<u64> {
-        match self {
-            Self::RateLimit(_) => Some(60), // 1 minute for rate limits
-            Self::Network(_) | Self::Timeout(_) => Some(5), // 5 seconds for network/timeout
-            _ => None,
-        }
-    }
-
-    fn http_status(&self) -> u16 {
-        match self {
-            Self::Authentication(_) => 401,
-            Self::RateLimit(_) => 429,
-            Self::InvalidRequest(_) => 400,
-            Self::ModelNotFound(_) => 404,
-            Self::Configuration(_) => 400,
-            Self::Network(_) | Self::Timeout(_) => 503,
-            Self::ApiRequest(_) | Self::Serialization(_) | Self::Other(_) => 500,
-        }
-    }
-
-    fn not_supported(feature: &str) -> Self {
-        Self::Other(format!("Feature not supported: {}", feature))
-    }
-
-    fn authentication_failed(reason: &str) -> Self {
-        Self::Authentication(reason.to_string())
-    }
-
-    fn rate_limited(retry_after: Option<u64>) -> Self {
-        match retry_after {
-            Some(seconds) => {
-                Self::RateLimit(format!("Rate limited, retry after {} seconds", seconds))
-            }
-            None => Self::RateLimit("Rate limited".to_string()),
-        }
-    }
-
-    fn network_error(details: &str) -> Self {
-        Self::Network(details.to_string())
-    }
-
-    fn parsing_error(details: &str) -> Self {
-        Self::Serialization(details.to_string())
-    }
-
-    fn not_implemented(feature: &str) -> Self {
-        Self::Other(format!("Feature not implemented: {}", feature))
+/// Extension methods for creating Llama-specific errors
+impl ProviderError {
+    /// Create a not_supported error for Llama
+    pub fn llama_not_supported(feature: &str) -> Self {
+        ProviderError::invalid_request(PROVIDER_NAME, format!("Feature '{}' is not supported", feature))
     }
 }
 
@@ -204,7 +64,7 @@ impl Default for LlamaConfig {
 
 impl LlamaConfig {
     /// Create from provider config
-    pub fn from_provider_config(config: &LlamaProviderConfig) -> Result<Self, LlamaError> {
+    pub fn from_provider_config(config: &LlamaProviderConfig) -> Result<Self, ProviderError> {
         Ok(Self {
             api_key: config.api_key.clone(),
             api_base: config
@@ -220,21 +80,17 @@ impl LlamaConfig {
     }
 
     /// Validate configuration
-    pub fn validate(&self) -> Result<(), LlamaError> {
+    pub fn validate(&self) -> Result<(), ProviderError> {
         if self.api_key.is_empty() {
-            return Err(LlamaError::Configuration("API key is required".to_string()));
+            return Err(ProviderError::configuration(PROVIDER_NAME, "API key is required"));
         }
 
         if self.api_base.is_empty() {
-            return Err(LlamaError::Configuration(
-                "API base URL is required".to_string(),
-            ));
+            return Err(ProviderError::configuration(PROVIDER_NAME, "API base URL is required"));
         }
 
         if self.timeout_seconds == 0 {
-            return Err(LlamaError::Configuration(
-                "Timeout must be greater than 0".to_string(),
-            ));
+            return Err(ProviderError::configuration(PROVIDER_NAME, "Timeout must be greater than 0"));
         }
 
         Ok(())
@@ -250,14 +106,14 @@ pub struct LlamaClient {
 
 impl LlamaClient {
     /// Create a new Llama client
-    pub fn new(config: LlamaConfig) -> Result<Self, LlamaError> {
+    pub fn new(config: LlamaConfig) -> Result<Self, ProviderError> {
         config.validate()?;
 
         let http_client = Client::builder()
             .timeout(Duration::from_secs(config.timeout_seconds))
             .build()
             .map_err(|e| {
-                LlamaError::Configuration(format!("Failed to create HTTP client: {}", e))
+                ProviderError::configuration(PROVIDER_NAME, format!("Failed to create HTTP client: {}", e))
             })?;
 
         Ok(Self {
@@ -295,7 +151,7 @@ impl LlamaClient {
         api_key: Option<&str>,
         api_base: Option<&str>,
         additional_headers: Option<HashMap<String, String>>,
-    ) -> Result<Value, LlamaError> {
+    ) -> Result<Value, ProviderError> {
         let url = format!(
             "{}/chat/completions",
             api_base.unwrap_or(&self.config.api_base)
@@ -320,7 +176,7 @@ impl LlamaClient {
 
         if status.is_success() {
             serde_json::from_str(&response_text)
-                .map_err(|e| LlamaError::Serialization(format!("Failed to parse response: {}", e)))
+                .map_err(|e| ProviderError::serialization(PROVIDER_NAME, format!("Failed to parse response: {}", e)))
         } else {
             self.handle_error_response(status, &response_text)
         }
@@ -333,7 +189,7 @@ impl LlamaClient {
         api_key: Option<&str>,
         api_base: Option<&str>,
         additional_headers: Option<HashMap<String, String>>,
-    ) -> Result<impl Stream<Item = Result<Value, LlamaError>> + Send + 'static, LlamaError> {
+    ) -> Result<impl Stream<Item = Result<Value, ProviderError>> + Send + 'static, ProviderError> {
         // For streaming, we'll return a simple implementation
         // In production, this would use SSE (Server-Sent Events) parsing
         use futures::stream;
@@ -350,7 +206,7 @@ impl LlamaClient {
         &self,
         status: StatusCode,
         response_text: &str,
-    ) -> Result<Value, LlamaError> {
+    ) -> Result<Value, ProviderError> {
         let error_message = if let Ok(error_json) = serde_json::from_str::<Value>(response_text) {
             error_json
                 .get("error")
@@ -363,19 +219,16 @@ impl LlamaClient {
         };
 
         match status {
-            StatusCode::UNAUTHORIZED => Err(LlamaError::Authentication(error_message)),
-            StatusCode::TOO_MANY_REQUESTS => Err(LlamaError::RateLimit(error_message)),
-            StatusCode::BAD_REQUEST => Err(LlamaError::InvalidRequest(error_message)),
-            StatusCode::NOT_FOUND => Err(LlamaError::ModelNotFound(error_message)),
-            _ => Err(LlamaError::ApiRequest(format!(
-                "Status {}: {}",
-                status, error_message
-            ))),
+            StatusCode::UNAUTHORIZED => Err(ProviderError::authentication(PROVIDER_NAME, error_message)),
+            StatusCode::TOO_MANY_REQUESTS => Err(ProviderError::rate_limit(PROVIDER_NAME, Some(60))),
+            StatusCode::BAD_REQUEST => Err(ProviderError::invalid_request(PROVIDER_NAME, error_message)),
+            StatusCode::NOT_FOUND => Err(ProviderError::model_not_found(PROVIDER_NAME, error_message)),
+            _ => Err(ProviderError::api_error(PROVIDER_NAME, status.as_u16(), error_message)),
         }
     }
 
     /// Check API health
-    pub async fn check_health(&self) -> Result<HealthStatus, LlamaError> {
+    pub async fn check_health(&self) -> Result<HealthStatus, ProviderError> {
         // Try to list models as a health check
         let url = format!("{}/models", self.config.api_base);
 
@@ -443,34 +296,34 @@ impl LlamaUtils {
     }
 
     /// Validate request parameters
-    pub fn validate_params(params: &Value) -> Result<(), LlamaError> {
+    pub fn validate_params(params: &Value) -> Result<(), ProviderError> {
         // Check temperature range
         if let Some(temp) = params.get("temperature").and_then(|t| t.as_f64()) {
             if !(0.0..=2.0).contains(&temp) {
-                return Err(LlamaError::InvalidRequest(format!(
-                    "Temperature must be between 0 and 2, got {}",
-                    temp
-                )));
+                return Err(ProviderError::invalid_request(
+                    PROVIDER_NAME,
+                    format!("Temperature must be between 0 and 2, got {}", temp),
+                ));
             }
         }
 
         // Check top_p range
         if let Some(top_p) = params.get("top_p").and_then(|t| t.as_f64()) {
             if !(0.0..=1.0).contains(&top_p) {
-                return Err(LlamaError::InvalidRequest(format!(
-                    "top_p must be between 0 and 1, got {}",
-                    top_p
-                )));
+                return Err(ProviderError::invalid_request(
+                    PROVIDER_NAME,
+                    format!("top_p must be between 0 and 1, got {}", top_p),
+                ));
             }
         }
 
         // Check max_tokens
         if let Some(max_tokens) = params.get("max_tokens").and_then(|t| t.as_i64()) {
             if max_tokens < 1 {
-                return Err(LlamaError::InvalidRequest(format!(
-                    "max_tokens must be positive, got {}",
-                    max_tokens
-                )));
+                return Err(ProviderError::invalid_request(
+                    PROVIDER_NAME,
+                    format!("max_tokens must be positive, got {}", max_tokens),
+                ));
             }
         }
 
@@ -520,5 +373,17 @@ mod tests {
             "top_p": 1.5
         });
         assert!(LlamaUtils::validate_params(&invalid_top_p).is_err());
+    }
+
+    #[test]
+    fn test_error_types() {
+        let err = ProviderError::authentication(PROVIDER_NAME, "bad key");
+        assert!(matches!(err, ProviderError::Authentication { .. }));
+
+        let err = ProviderError::rate_limit(PROVIDER_NAME, Some(60));
+        assert!(matches!(err, ProviderError::RateLimit { .. }));
+
+        let err = ProviderError::model_not_found(PROVIDER_NAME, "unknown");
+        assert!(matches!(err, ProviderError::ModelNotFound { .. }));
     }
 }

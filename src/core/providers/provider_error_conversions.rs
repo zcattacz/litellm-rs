@@ -65,25 +65,7 @@ impl From<String> for ProviderError {
 }
 
 // Provider-specific error conversions for unified error handling
-// Note: MoonshotError and MistralError are now type aliases for ProviderError, so no From impl needed
-
-impl From<crate::core::providers::meta_llama::common_utils::LlamaError> for ProviderError {
-    fn from(err: crate::core::providers::meta_llama::common_utils::LlamaError) -> Self {
-        use crate::core::providers::meta_llama::common_utils::LlamaError;
-        match err {
-            LlamaError::Authentication(msg) => Self::authentication("meta", msg),
-            LlamaError::RateLimit(_msg) => Self::rate_limit("meta", None),
-            LlamaError::ApiRequest(msg) => Self::api_error("meta", 400, msg),
-            LlamaError::InvalidRequest(msg) => Self::invalid_request("meta", msg),
-            LlamaError::Network(msg) => Self::network("meta", msg),
-            LlamaError::Serialization(msg) => Self::serialization("meta", msg),
-            LlamaError::ModelNotFound(msg) => Self::model_not_found("meta", msg),
-            LlamaError::Timeout(msg) => Self::timeout("meta", msg),
-            LlamaError::Configuration(msg) => Self::invalid_request("meta", msg),
-            LlamaError::Other(msg) => Self::api_error("meta", 500, msg),
-        }
-    }
-}
+// Note: MoonshotError, MistralError, and LlamaError are now type aliases for ProviderError, so no From impl needed
 
 // OpenRouterError is now a type alias for ProviderError, no conversion needed
 
