@@ -6,7 +6,7 @@ pub mod model_info;
 pub mod provider;
 
 pub use config::BytezConfig;
-pub use error_mapper::ErrorMapperImpl;
+pub use error_mapper::BytezErrorMapper;
 pub use provider::BytezProvider;
 
 pub const PROVIDER_NAME: &str = "bytez";

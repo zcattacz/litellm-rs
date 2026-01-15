@@ -66,7 +66,7 @@ impl CometApiProvider {
 impl LLMProvider for CometApiProvider {
     type Config = CometApiConfig;
     type Error = ProviderError;
-    type ErrorMapper = super::error_mapper::ErrorMapperImpl;
+    type ErrorMapper = super::error_mapper::CometApiErrorMapper;
 
     fn name(&self) -> &'static str {
         super::PROVIDER_NAME
@@ -134,7 +134,7 @@ impl LLMProvider for CometApiProvider {
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        super::error_mapper::ErrorMapperImpl
+        super::error_mapper::CometApiErrorMapper
     }
 
     async fn chat_completion(

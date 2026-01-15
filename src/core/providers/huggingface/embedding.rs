@@ -130,13 +130,10 @@ impl HuggingFaceEmbeddingHandler {
         }
 
         // Single embedding response
-        if response.is_array() && !response.as_array().unwrap().is_empty() {
-            let first = &response.as_array().unwrap()[0];
-            if first.is_number() {
+        if let Some(arr) = response.as_array() {
+            if !arr.is_empty() && arr[0].is_number() {
                 // Direct embedding vector
-                let embedding: Vec<f32> = response
-                    .as_array()
-                    .unwrap()
+                let embedding: Vec<f32> = arr
                     .iter()
                     .filter_map(|v| v.as_f64().map(|f| f as f32))
                     .collect();
@@ -180,16 +177,13 @@ impl HuggingFaceEmbeddingHandler {
         arr.iter()
             .enumerate()
             .map(|(idx, item)| {
-                let embedding = if item.is_array() {
+                let embedding = if let Some(nested) = item.as_array() {
                     // Nested array (embedding vector)
-                    let nested = item.as_array().unwrap();
                     if nested.is_empty() {
                         vec![]
-                    } else if nested[0].is_array() {
+                    } else if let Some(first_nested) = nested[0].as_array() {
                         // Double nested (batch of embeddings)
-                        nested[0]
-                            .as_array()
-                            .unwrap()
+                        first_nested
                             .iter()
                             .filter_map(|v| v.as_f64().map(|f| f as f32))
                             .collect()

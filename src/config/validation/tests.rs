@@ -67,8 +67,11 @@ mod tests {
 
         assert!(config.validate().is_ok());
 
-        config.provider_type = "unsupported".to_string();
-        assert!(config.validate().is_err());
+        // Note: Provider type is not validated against a hardcoded list anymore
+        // since we support 100+ provider types dynamically. Validation happens
+        // at runtime when the provider is instantiated.
+        config.provider_type = "custom_provider".to_string();
+        assert!(config.validate().is_ok());
 
         config.provider_type = "openai".to_string();
         config.weight = 0.0;

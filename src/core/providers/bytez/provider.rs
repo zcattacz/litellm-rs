@@ -66,7 +66,7 @@ impl BytezProvider {
 impl LLMProvider for BytezProvider {
     type Config = BytezConfig;
     type Error = ProviderError;
-    type ErrorMapper = super::error_mapper::ErrorMapperImpl;
+    type ErrorMapper = super::error_mapper::BytezErrorMapper;
 
     fn name(&self) -> &'static str {
         super::PROVIDER_NAME
@@ -140,7 +140,7 @@ impl LLMProvider for BytezProvider {
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        super::error_mapper::ErrorMapperImpl
+        super::error_mapper::BytezErrorMapper
     }
 
     async fn chat_completion(

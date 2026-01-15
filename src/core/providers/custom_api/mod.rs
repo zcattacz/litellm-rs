@@ -8,7 +8,7 @@ pub mod model_info;
 pub mod provider;
 
 pub use config::CustomHttpxConfig;
-pub use error_mapper::ErrorMapperImpl;
+pub use error_mapper::CustomApiErrorMapper;
 pub use provider::CustomHttpxProvider;
 
 pub const PROVIDER_NAME: &str = "custom_httpx";

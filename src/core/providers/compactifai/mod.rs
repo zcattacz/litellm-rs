@@ -6,7 +6,7 @@ pub mod model_info;
 pub mod provider;
 
 pub use config::CompactifaiConfig;
-pub use error_mapper::ErrorMapperImpl;
+pub use error_mapper::CompactifAiErrorMapper;
 pub use provider::CompactifaiProvider;
 
 pub const PROVIDER_NAME: &str = "compactifai";

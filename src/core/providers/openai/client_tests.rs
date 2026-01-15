@@ -474,16 +474,17 @@ fn test_error_mapper_invalid_request() {
 }
 
 #[test]
-fn test_error_mapper_other() {
+fn test_error_mapper_api_error() {
     let mapper = OpenAIErrorMapper;
     use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 
     let error = mapper.map_http_error(500, "Server error");
     match error {
-        OpenAIError::Other { provider, .. } => {
+        OpenAIError::ApiError { provider, status, .. } => {
             assert_eq!(provider, "openai");
+            assert_eq!(status, 500);
         }
-        _ => panic!("Expected Other error"),
+        _ => panic!("Expected ApiError error"),
     }
 }
 

@@ -66,7 +66,7 @@ impl CompactifaiProvider {
 impl LLMProvider for CompactifaiProvider {
     type Config = CompactifaiConfig;
     type Error = ProviderError;
-    type ErrorMapper = super::error_mapper::ErrorMapperImpl;
+    type ErrorMapper = super::error_mapper::CompactifAiErrorMapper;
 
     fn name(&self) -> &'static str {
         super::PROVIDER_NAME
@@ -134,7 +134,7 @@ impl LLMProvider for CompactifaiProvider {
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        super::error_mapper::ErrorMapperImpl
+        super::error_mapper::CompactifAiErrorMapper
     }
 
     async fn chat_completion(

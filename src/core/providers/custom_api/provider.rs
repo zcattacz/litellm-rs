@@ -71,7 +71,7 @@ impl CustomHttpxProvider {
 impl LLMProvider for CustomHttpxProvider {
     type Config = CustomHttpxConfig;
     type Error = ProviderError;
-    type ErrorMapper = super::error_mapper::ErrorMapperImpl;
+    type ErrorMapper = super::error_mapper::CustomApiErrorMapper;
 
     fn name(&self) -> &'static str {
         super::PROVIDER_NAME
@@ -142,7 +142,7 @@ impl LLMProvider for CustomHttpxProvider {
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
-        super::error_mapper::ErrorMapperImpl
+        super::error_mapper::CustomApiErrorMapper
     }
 
     async fn chat_completion(

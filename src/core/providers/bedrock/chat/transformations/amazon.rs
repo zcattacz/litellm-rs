@@ -154,7 +154,7 @@ pub fn transform_nova_request(
         inference_config["stopSequences"] = json!(stop);
     }
 
-    if !inference_config.as_object().unwrap().is_empty() {
+    if inference_config.as_object().map(|o| !o.is_empty()).unwrap_or(false) {
         body["inferenceConfig"] = inference_config;
     }
 

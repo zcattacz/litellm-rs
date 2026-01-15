@@ -11,6 +11,16 @@ use crate::core::providers::unified_provider::ProviderError;
 use crate::core::types::responses::{ChatChoice, ChatResponse, Usage};
 use crate::core::types::{ChatMessage, FinishReason, MessageContent, MessageRole};
 
+/// Safely convert an f32 to a serde_json::Number, defaulting to 0 for NaN/Inf values
+fn safe_f64_to_number(value: f32) -> serde_json::Number {
+    let f64_val: f64 = value.into();
+    if f64_val.is_finite() {
+        serde_json::Number::from_f64(f64_val).unwrap_or_else(|| 0.into())
+    } else {
+        0.into()
+    }
+}
+
 /// Transform a chat request to Bedrock format based on model family
 pub fn transform_chat_request(
     model: &str,
@@ -35,12 +45,12 @@ pub fn transform_chat_request(
 
             if let Some(temp) = temperature {
                 body["temperature"] =
-                    Value::Number(serde_json::Number::from_f64(temp.into()).unwrap());
+                    Value::Number(safe_f64_to_number(temp));
             }
 
             if let Some(top_p_val) = top_p {
                 body["top_p"] =
-                    Value::Number(serde_json::Number::from_f64(top_p_val.into()).unwrap());
+                    Value::Number(safe_f64_to_number(top_p_val));
             }
 
             Ok(body)
@@ -57,12 +67,12 @@ pub fn transform_chat_request(
 
             if let Some(temp) = temperature {
                 body["textGenerationConfig"]["temperature"] =
-                    Value::Number(serde_json::Number::from_f64(temp.into()).unwrap());
+                    Value::Number(safe_f64_to_number(temp));
             }
 
             if let Some(top_p_val) = top_p {
                 body["textGenerationConfig"]["topP"] =
-                    Value::Number(serde_json::Number::from_f64(top_p_val.into()).unwrap());
+                    Value::Number(safe_f64_to_number(top_p_val));
             }
 
             Ok(body)
@@ -76,7 +86,7 @@ pub fn transform_chat_request(
 
             if let Some(temp) = temperature {
                 body["temperature"] =
-                    Value::Number(serde_json::Number::from_f64(temp.into()).unwrap());
+                    Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)
@@ -90,7 +100,7 @@ pub fn transform_chat_request(
 
             if let Some(temp) = temperature {
                 body["temperature"] =
-                    Value::Number(serde_json::Number::from_f64(temp.into()).unwrap());
+                    Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)
@@ -105,7 +115,7 @@ pub fn transform_chat_request(
 
             if let Some(temp) = temperature {
                 body["temperature"] =
-                    Value::Number(serde_json::Number::from_f64(temp.into()).unwrap());
+                    Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)
@@ -120,7 +130,7 @@ pub fn transform_chat_request(
 
             if let Some(temp) = temperature {
                 body["temperature"] =
-                    Value::Number(serde_json::Number::from_f64(temp.into()).unwrap());
+                    Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)
@@ -135,7 +145,7 @@ pub fn transform_chat_request(
 
             if let Some(temp) = temperature {
                 body["temperature"] =
-                    Value::Number(serde_json::Number::from_f64(temp.into()).unwrap());
+                    Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)
@@ -150,7 +160,7 @@ pub fn transform_chat_request(
 
             if let Some(temp) = temperature {
                 body["temperature"] =
-                    Value::Number(serde_json::Number::from_f64(temp.into()).unwrap());
+                    Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)

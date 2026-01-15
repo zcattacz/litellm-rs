@@ -36,23 +36,8 @@ impl Validate for CircuitBreakerConfig {
     }
 }
 
-impl Validate for RetryConfig {
-    fn validate(&self) -> Result<(), String> {
-        if self.base_delay == 0 {
-            return Err("Retry base delay must be greater than 0".to_string());
-        }
-
-        if self.max_delay <= self.base_delay {
-            return Err("Retry max delay must be greater than base delay".to_string());
-        }
-
-        if self.backoff_multiplier <= 1.0 {
-            return Err("Retry backoff multiplier must be greater than 1.0".to_string());
-        }
-
-        Ok(())
-    }
-}
+// Note: RetryConfig validation is implemented in config_validators.rs
+// to avoid duplicate implementations and maintain consistency.
 
 impl Validate for LoadBalancerConfig {
     fn validate(&self) -> Result<(), String> {
@@ -176,13 +161,8 @@ mod tests {
         config.base_delay = 100;
         config.max_delay = 100;
 
-        let result = validate_config(&config);
-        assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .contains("max delay must be greater than base delay")
-        );
+        // Equal base_delay and max_delay is now valid
+        assert!(validate_config(&config).is_ok());
     }
 
     #[test]
@@ -196,7 +176,7 @@ mod tests {
         assert!(
             result
                 .unwrap_err()
-                .contains("max delay must be greater than base delay")
+                .contains("base delay cannot be greater than max delay")
         );
     }
 
@@ -214,26 +194,35 @@ mod tests {
         let mut config = create_valid_retry_config();
         config.backoff_multiplier = 1.0;
 
+        // backoff_multiplier = 1.0 is now valid (just needs to be > 0.0)
+        assert!(validate_config(&config).is_ok());
+    }
+
+    #[test]
+    fn test_retry_backoff_multiplier_zero() {
+        let mut config = create_valid_retry_config();
+        config.backoff_multiplier = 0.0;
+
         let result = validate_config(&config);
         assert!(result.is_err());
         assert!(
             result
                 .unwrap_err()
-                .contains("backoff multiplier must be greater than 1.0")
+                .contains("backoff multiplier must be greater than 0")
         );
     }
 
     #[test]
-    fn test_retry_backoff_multiplier_less_than_one() {
+    fn test_retry_backoff_multiplier_negative() {
         let mut config = create_valid_retry_config();
-        config.backoff_multiplier = 0.5;
+        config.backoff_multiplier = -0.5;
 
         let result = validate_config(&config);
         assert!(result.is_err());
         assert!(
             result
                 .unwrap_err()
-                .contains("backoff multiplier must be greater than 1.0")
+                .contains("backoff multiplier must be greater than 0")
         );
     }
 

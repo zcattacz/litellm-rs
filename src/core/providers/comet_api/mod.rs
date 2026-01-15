@@ -6,7 +6,7 @@ pub mod model_info;
 pub mod provider;
 
 pub use config::CometApiConfig;
-pub use error_mapper::ErrorMapperImpl;
+pub use error_mapper::CometApiErrorMapper;
 pub use provider::CometApiProvider;
 
 pub const PROVIDER_NAME: &str = "cometapi";
