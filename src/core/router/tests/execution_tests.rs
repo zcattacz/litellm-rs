@@ -337,3 +337,83 @@ async fn test_execute_records_metrics() {
         assert!(d.state.avg_latency_us.load(Ordering::Relaxed) > 0);
     }
 }
+
+// ==================== Additional Edge Case Tests ====================
+
+#[tokio::test]
+async fn test_execute_with_rate_limit_error() {
+    let config = RouterConfig {
+        num_retries: 2,
+        retry_after_secs: 0,
+        ..Default::default()
+    };
+    let router = Router::new(config);
+    let deployment = create_test_deployment("test-1", "gpt-4").await;
+    router.add_deployment(deployment);
+
+    let attempt_count = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
+    let attempt_count_clone = attempt_count.clone();
+
+    let result = router
+        .execute_with_retry("gpt-4", move |_deployment_id| {
+            let attempt_count = attempt_count_clone.clone();
+            async move {
+                let current = attempt_count.fetch_add(1, Ordering::Relaxed);
+                if current < 2 {
+                    Err(ProviderError::rate_limit("test", Some(1)))
+                } else {
+                    Ok(("success after rate limit".to_string(), 100u64))
+                }
+            }
+        })
+        .await;
+
+    assert!(result.is_ok());
+    let (_value, _deployment_id, attempts, _latency) = result.unwrap();
+    assert_eq!(attempts, 3);
+}
+
+#[tokio::test]
+async fn test_execute_deployment_selection_failure() {
+    let router = Router::default();
+
+    // No deployments added
+    let result = router
+        .execute_with_retry("nonexistent-model", |_deployment_id| async move {
+            Ok(("should not reach here".to_string(), 100u64))
+        })
+        .await;
+
+    assert!(result.is_err());
+    let (_error, attempts) = result.unwrap_err();
+    assert_eq!(attempts, 1); // Should fail immediately on deployment selection
+}
+
+#[tokio::test]
+async fn test_execute_max_retries_exceeded() {
+    let config = RouterConfig {
+        num_retries: 3,
+        retry_after_secs: 0,
+        ..Default::default()
+    };
+    let router = Router::new(config);
+    let deployment = create_test_deployment("test-1", "gpt-4").await;
+    router.add_deployment(deployment);
+
+    let attempt_count = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
+    let attempt_count_clone = attempt_count.clone();
+
+    let result = router
+        .execute_with_retry("gpt-4", move |_deployment_id| {
+            let attempt_count = attempt_count_clone.clone();
+            async move {
+                attempt_count.fetch_add(1, Ordering::Relaxed);
+                Err::<(String, u64), _>(ProviderError::timeout("test", "Always timeout"))
+            }
+        })
+        .await;
+
+    assert!(result.is_err());
+    let (_error, attempts) = result.unwrap_err();
+    assert_eq!(attempts, 4); // Initial attempt + 3 retries
+}

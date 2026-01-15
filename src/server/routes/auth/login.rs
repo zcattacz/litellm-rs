@@ -120,3 +120,69 @@ pub async fn login(
 
     Ok(HttpResponse::Ok().json(ApiResponse::success(response)))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uuid::Uuid;
+
+    // NOTE: Full integration tests require mocking AppState, AuthSystem, and StorageLayer
+    // TODO: Add full integration tests with proper mocking infrastructure
+
+    #[test]
+    fn test_login_request_deserialization() {
+        let json = r#"{"username": "testuser", "password": "pass123"}"#;
+        let request: LoginRequest = serde_json::from_str(json).expect("Failed to deserialize");
+
+        assert_eq!(request.username, "testuser");
+        assert_eq!(request.password, "pass123");
+    }
+
+    #[test]
+    fn test_login_request_missing_fields() {
+        let json = r#"{"username": "testuser"}"#;
+        let result: Result<LoginRequest, _> = serde_json::from_str(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_login_response_serialization() {
+        let response = LoginResponse {
+            access_token: "access_token_here".to_string(),
+            refresh_token: "refresh_token_here".to_string(),
+            token_type: "Bearer".to_string(),
+            expires_in: 3600,
+            user: UserInfo {
+                id: Uuid::new_v4(),
+                username: "testuser".to_string(),
+                email: "test@example.com".to_string(),
+                full_name: Some("Test User".to_string()),
+                role: "User".to_string(),
+                email_verified: true,
+            },
+        };
+
+        let json = serde_json::to_string(&response).expect("Failed to serialize");
+        assert!(json.contains("access_token"));
+        assert!(json.contains("refresh_token"));
+        assert!(json.contains("Bearer"));
+        assert!(json.contains("testuser"));
+    }
+
+    #[test]
+    fn test_user_info_structure() {
+        let user_info = UserInfo {
+            id: Uuid::new_v4(),
+            username: "john_doe".to_string(),
+            email: "john@example.com".to_string(),
+            full_name: Some("John Doe".to_string()),
+            role: "Admin".to_string(),
+            email_verified: true,
+        };
+
+        assert_eq!(user_info.username, "john_doe");
+        assert_eq!(user_info.role, "Admin");
+        assert!(user_info.email_verified);
+        assert!(user_info.full_name.is_some());
+    }
+}
