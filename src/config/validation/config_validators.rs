@@ -110,24 +110,9 @@ impl Validate for ProviderConfig {
             return Err(format!("Provider {} type cannot be empty", self.name));
         }
 
-        // Validate supported provider types
-        let supported_types = [
-            "openai",
-            "anthropic",
-            "azure",
-            "google",
-            "bedrock",
-            "cohere",
-            "huggingface",
-            "ollama",
-            "custom",
-        ];
-        if !supported_types.contains(&self.provider_type.as_str()) {
-            return Err(format!(
-                "Unsupported provider type: {}. Supported types: {:?}",
-                self.provider_type, supported_types
-            ));
-        }
+        // Note: We support 100+ provider types dynamically, so we don't validate
+        // against a hardcoded list. Provider type validation happens at runtime
+        // when the provider is instantiated.
 
         if self.api_key.is_empty() {
             return Err(format!("Provider {} API key cannot be empty", self.name));
@@ -180,6 +165,61 @@ impl Validate for ProviderConfig {
                 "Provider {} max concurrent requests must be greater than 0",
                 self.name
             ));
+        }
+
+        // Validate retry configuration
+        self.retry.validate()?;
+
+        // Validate health check configuration
+        self.health_check.validate()?;
+
+        Ok(())
+    }
+}
+
+impl Validate for RetryConfig {
+    fn validate(&self) -> Result<(), String> {
+        if self.base_delay == 0 {
+            return Err("Retry base delay must be greater than 0".to_string());
+        }
+
+        if self.max_delay == 0 {
+            return Err("Retry max delay must be greater than 0".to_string());
+        }
+
+        if self.base_delay > self.max_delay {
+            return Err("Retry base delay cannot be greater than max delay".to_string());
+        }
+
+        if self.backoff_multiplier <= 0.0 {
+            return Err("Retry backoff multiplier must be greater than 0".to_string());
+        }
+
+        // Validate jitter is between 0.0 and 1.0
+        if self.jitter < 0.0 || self.jitter > 1.0 {
+            return Err("Retry jitter must be between 0.0 and 1.0".to_string());
+        }
+
+        Ok(())
+    }
+}
+
+impl Validate for HealthCheckConfig {
+    fn validate(&self) -> Result<(), String> {
+        if self.interval == 0 {
+            return Err("Health check interval must be greater than 0".to_string());
+        }
+
+        if self.failure_threshold == 0 {
+            return Err("Health check failure threshold must be greater than 0".to_string());
+        }
+
+        if self.recovery_timeout == 0 {
+            return Err("Health check recovery timeout must be greater than 0".to_string());
+        }
+
+        if self.expected_codes.is_empty() {
+            return Err("Health check expected codes cannot be empty".to_string());
         }
 
         Ok(())
