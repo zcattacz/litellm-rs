@@ -7,9 +7,10 @@
 //! Reference: https://milvus.io/docs/index.md
 
 /// Supported metric types for similarity search in Milvus
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum MetricType {
     /// Euclidean distance (L2)
+    #[default]
     L2,
     /// Inner product
     IP,
@@ -34,7 +35,7 @@ impl MetricType {
     }
 
     /// Parse from string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_uppercase().as_str() {
             "L2" | "EUCLIDEAN" => Some(MetricType::L2),
             "IP" | "INNER_PRODUCT" => Some(MetricType::IP),
@@ -46,14 +47,8 @@ impl MetricType {
     }
 }
 
-impl Default for MetricType {
-    fn default() -> Self {
-        MetricType::L2
-    }
-}
-
 /// Supported index types for vector storage
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum IndexType {
     /// Flat index (brute force, exact search)
     Flat,
@@ -64,6 +59,7 @@ pub enum IndexType {
     /// IVF with Product Quantization
     IvfPq,
     /// Hierarchical Navigable Small World graph
+    #[default]
     Hnsw,
     /// Approximate Nearest Neighbor OH Yeah
     Annoy,
@@ -86,7 +82,7 @@ impl IndexType {
     }
 
     /// Parse from string
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_uppercase().as_str() {
             "FLAT" => Some(IndexType::Flat),
             "IVF_FLAT" => Some(IndexType::IvfFlat),
@@ -97,12 +93,6 @@ impl IndexType {
             "DISKANN" => Some(IndexType::DiskAnn),
             _ => None,
         }
-    }
-}
-
-impl Default for IndexType {
-    fn default() -> Self {
-        IndexType::Hnsw
     }
 }
 

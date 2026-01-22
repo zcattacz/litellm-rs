@@ -5,9 +5,10 @@
 use serde::{Deserialize, Serialize};
 
 /// Common embedding model dimensions
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum EmbeddingModel {
     /// OpenAI text-embedding-3-small (1536 dimensions)
+    #[default]
     OpenAISmall,
     /// OpenAI text-embedding-3-large (3072 dimensions)
     OpenAILarge,
@@ -123,12 +124,6 @@ impl EmbeddingModel {
     }
 }
 
-impl Default for EmbeddingModel {
-    fn default() -> Self {
-        EmbeddingModel::OpenAISmall
-    }
-}
-
 /// Vector point for storage in pgvector
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VectorPoint {
@@ -200,7 +195,7 @@ impl SearchResult {
 }
 
 /// Statistics about the vector table
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TableStats {
     /// Total number of vectors stored
     pub total_vectors: u64,
@@ -212,18 +207,6 @@ pub struct TableStats {
     pub table_size_bytes: Option<u64>,
     /// Index size in bytes
     pub index_size_bytes: Option<u64>,
-}
-
-impl Default for TableStats {
-    fn default() -> Self {
-        Self {
-            total_vectors: 0,
-            dimension: 0,
-            index_type: None,
-            table_size_bytes: None,
-            index_size_bytes: None,
-        }
-    }
 }
 
 /// Options for similarity search

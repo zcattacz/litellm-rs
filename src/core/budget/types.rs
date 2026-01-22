@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Reset period for budgets
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ResetPeriod {
     /// Reset daily at midnight UTC
@@ -16,15 +16,10 @@ pub enum ResetPeriod {
     /// Reset weekly on Sunday at midnight UTC
     Weekly,
     /// Reset monthly on the 1st at midnight UTC
+    #[default]
     Monthly,
     /// Never reset (lifetime budget)
     Never,
-}
-
-impl Default for ResetPeriod {
-    fn default() -> Self {
-        Self::Monthly
-    }
 }
 
 impl fmt::Display for ResetPeriod {
@@ -122,21 +117,16 @@ impl BudgetScope {
 }
 
 /// Budget status indicating the current state
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum BudgetStatus {
     /// Budget is within normal limits
+    #[default]
     Ok,
     /// Budget has reached soft limit (warning threshold)
     Warning,
     /// Budget has been exceeded
     Exceeded,
-}
-
-impl Default for BudgetStatus {
-    fn default() -> Self {
-        Self::Ok
-    }
 }
 
 impl fmt::Display for BudgetStatus {
@@ -291,21 +281,16 @@ impl Budget {
 }
 
 /// Alert severity levels
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum AlertSeverity {
     /// Informational alert
+    #[default]
     Info,
     /// Warning alert (soft limit reached)
     Warning,
     /// Critical alert (budget exceeded)
     Critical,
-}
-
-impl Default for AlertSeverity {
-    fn default() -> Self {
-        Self::Info
-    }
 }
 
 /// Budget alert for notifications

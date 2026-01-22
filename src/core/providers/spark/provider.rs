@@ -133,7 +133,7 @@ impl SparkProvider {
         let result = mac.finalize();
         let code_bytes = result.into_bytes();
 
-        Ok(STANDARD.encode(&code_bytes))
+        Ok(STANDARD.encode(code_bytes))
     }
 }
 
@@ -366,9 +366,10 @@ impl SparkProviderBuilder {
         if let Some(ref mut config) = self.config {
             config.app_id = Some(app_id.into());
         } else {
-            let mut new_config = SparkConfig::default();
-            new_config.app_id = Some(app_id.into());
-            self.config = Some(new_config);
+            self.config = Some(SparkConfig {
+                app_id: Some(app_id.into()),
+                ..SparkConfig::default()
+            });
         }
         self
     }
@@ -378,9 +379,10 @@ impl SparkProviderBuilder {
         if let Some(ref mut config) = self.config {
             config.api_key = Some(api_key.into());
         } else {
-            let mut new_config = SparkConfig::default();
-            new_config.api_key = Some(api_key.into());
-            self.config = Some(new_config);
+            self.config = Some(SparkConfig {
+                api_key: Some(api_key.into()),
+                ..SparkConfig::default()
+            });
         }
         self
     }
@@ -390,9 +392,10 @@ impl SparkProviderBuilder {
         if let Some(ref mut config) = self.config {
             config.api_secret = Some(api_secret.into());
         } else {
-            let mut new_config = SparkConfig::default();
-            new_config.api_secret = Some(api_secret.into());
-            self.config = Some(new_config);
+            self.config = Some(SparkConfig {
+                api_secret: Some(api_secret.into()),
+                ..SparkConfig::default()
+            });
         }
         self
     }

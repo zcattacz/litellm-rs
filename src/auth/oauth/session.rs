@@ -136,7 +136,7 @@ impl OAuthSession {
 
     /// Extend the session expiration
     pub fn extend(&mut self, additional_seconds: u64) {
-        self.expires_at = self.expires_at + chrono::Duration::seconds(additional_seconds as i64);
+        self.expires_at += chrono::Duration::seconds(additional_seconds as i64);
     }
 
     /// Update the access token

@@ -139,7 +139,7 @@ pub struct ModelBudgetConfig {
 }
 
 /// Reset period configuration
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ResetPeriodConfig {
     /// Never reset
@@ -149,13 +149,8 @@ pub enum ResetPeriodConfig {
     /// Reset weekly on Sunday at midnight UTC
     Weekly,
     /// Reset monthly on the 1st at midnight UTC
+    #[default]
     Monthly,
-}
-
-impl Default for ResetPeriodConfig {
-    fn default() -> Self {
-        Self::Monthly
-    }
 }
 
 fn default_reset_period() -> ResetPeriodConfig {

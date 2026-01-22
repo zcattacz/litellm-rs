@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 
 /// Lambda Labs model identifier
+#[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum LambdaModel {
     // Hermes 3 models (based on Llama 3.1)

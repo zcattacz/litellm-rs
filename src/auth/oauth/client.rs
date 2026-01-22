@@ -33,7 +33,7 @@ impl std::fmt::Debug for OAuthClient {
 impl OAuthClient {
     /// Create a new OAuth client
     pub fn new(config: OAuthConfig) -> Result<Self> {
-        config.validate().map_err(|e| GatewayError::Config(e))?;
+        config.validate().map_err(GatewayError::Config)?;
 
         let http_client = Client::builder()
             .timeout(Duration::from_millis(config.timeout_ms))

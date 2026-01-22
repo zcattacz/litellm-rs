@@ -47,9 +47,10 @@ impl Default for CustomHttpxConfig {
 
 impl CustomHttpxConfig {
     pub fn new(endpoint_url: impl Into<String>) -> Self {
-        let mut config = Self::default();
-        config.endpoint_url = endpoint_url.into();
-        config
+        Self {
+            endpoint_url: endpoint_url.into(),
+            ..Self::default()
+        }
     }
 
     pub fn from_env() -> Result<Self, String> {

@@ -5,10 +5,10 @@
 
 use std::sync::Arc;
 
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use super::config::{DistanceMetric, IndexType, PgVectorConfig, PROVIDER_NAME};
-use super::models::{SearchOptions, SearchResult, TableStats, VectorPoint};
+use super::models::{SearchOptions, SearchResult, VectorPoint};
 use crate::core::providers::unified_provider::ProviderError;
 
 /// PostgreSQL pgvector provider for vector storage and similarity search

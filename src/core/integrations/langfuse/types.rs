@@ -141,19 +141,14 @@ impl Default for Trace {
 }
 
 /// Log level for events
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Level {
     Debug,
+    #[default]
     Default,
     Warning,
     Error,
-}
-
-impl Default for Level {
-    fn default() -> Self {
-        Self::Default
-    }
 }
 
 /// Usage information for token counting

@@ -29,7 +29,7 @@ fn extract_or_generate_trace_id(req: &ServiceRequest) -> String {
         .get(TRACE_ID_HEADER)
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string())
-        .unwrap_or_else(|| super::types::generate_id())
+        .unwrap_or_else(super::types::generate_id)
 }
 
 /// Extract optional header value
@@ -186,7 +186,7 @@ where
         // Skip tracing for excluded paths
         if !self.should_trace(&path) || self.client.is_none() {
             let fut = self.service.call(req);
-            return Box::pin(async move { fut.await });
+            return Box::pin(fut);
         }
 
         let client = self.client.clone().unwrap();

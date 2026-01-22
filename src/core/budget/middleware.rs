@@ -83,8 +83,7 @@ fn default_scope_extractor(req: &ServiceRequest) -> Option<BudgetScope> {
     // Try to get API key from Authorization header
     if let Some(auth_header) = req.headers().get("Authorization") {
         if let Ok(auth_str) = auth_header.to_str() {
-            if auth_str.starts_with("Bearer ") {
-                let api_key = &auth_str[7..];
+            if let Some(api_key) = auth_str.strip_prefix("Bearer ") {
                 // Use first 16 chars as identifier for privacy
                 let key_id = if api_key.len() > 16 {
                     &api_key[..16]
