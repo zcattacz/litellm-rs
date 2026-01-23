@@ -44,6 +44,8 @@ pub enum GeminiModelFamily {
     /// Gemini 3.0 series (2025 - Latest)
     Gemini3Pro,
     Gemini3ProDeepThink,
+    Gemini3Flash,
+    Gemini3ProImage,
 
     /// Gemini 2.5 series (2025)
     Gemini25Pro,
@@ -256,6 +258,118 @@ impl GeminiModelRegistry {
                     max_audio_seconds: Some(9600),
                     rpm_limit: Some(500),
                     tpm_limit: Some(2_000_000),
+                },
+            },
+        );
+
+        // Gemini 3 Flash Preview
+        self.register_model(
+            "gemini-3-flash-preview",
+            ModelSpec {
+                model_info: ModelInfo {
+                    id: "gemini-3-flash-preview".to_string(),
+                    name: "Gemini 3 Flash Preview".to_string(),
+                    provider: "gemini".to_string(),
+                    max_context_length: 1_048_576,
+                    max_output_length: Some(65536),
+                    supports_streaming: true,
+                    supports_tools: true,
+                    supports_multimodal: true,
+                    input_cost_per_1k_tokens: Some(0.0005),
+                    output_cost_per_1k_tokens: Some(0.003),
+                    currency: "USD".to_string(),
+                    capabilities: vec![
+                        crate::core::types::common::ProviderCapability::ChatCompletion,
+                        crate::core::types::common::ProviderCapability::ChatCompletionStream,
+                        crate::core::types::common::ProviderCapability::ToolCalling,
+                    ],
+                    created_at: None,
+                    updated_at: None,
+                    metadata: std::collections::HashMap::new(),
+                },
+                family: GeminiModelFamily::Gemini3Flash,
+                features: vec![
+                    ModelFeature::MultimodalSupport,
+                    ModelFeature::ToolCalling,
+                    ModelFeature::FunctionCalling,
+                    ModelFeature::StreamingSupport,
+                    ModelFeature::ContextCaching,
+                    ModelFeature::SystemInstructions,
+                    ModelFeature::BatchProcessing,
+                    ModelFeature::JsonMode,
+                    ModelFeature::CodeExecution,
+                    ModelFeature::SearchGrounding,
+                    ModelFeature::VideoUnderstanding,
+                    ModelFeature::AudioUnderstanding,
+                ],
+                pricing: ModelPricing {
+                    input_price: 0.5,   // $0.50 per 1M tokens
+                    output_price: 3.0,  // $3 per 1M tokens
+                    cached_input_price: Some(0.125),
+                    image_price: Some(0.002),
+                    video_price_per_second: Some(0.002),
+                    audio_price_per_second: Some(0.0002),
+                },
+                limits: ModelLimits {
+                    max_context_length: 1_048_576,
+                    max_output_tokens: 65536,
+                    max_images: Some(3000),
+                    max_video_seconds: Some(3600),
+                    max_audio_seconds: Some(9600),
+                    rpm_limit: Some(2000),
+                    tpm_limit: Some(8_000_000),
+                },
+            },
+        );
+
+        // Gemini 3 Pro Image Preview
+        self.register_model(
+            "gemini-3-pro-image-preview",
+            ModelSpec {
+                model_info: ModelInfo {
+                    id: "gemini-3-pro-image-preview".to_string(),
+                    name: "Gemini 3 Pro Image Preview".to_string(),
+                    provider: "gemini".to_string(),
+                    max_context_length: 65536,
+                    max_output_length: Some(8192),
+                    supports_streaming: true,
+                    supports_tools: true,
+                    supports_multimodal: true,
+                    input_cost_per_1k_tokens: Some(0.002),
+                    output_cost_per_1k_tokens: Some(0.012),
+                    currency: "USD".to_string(),
+                    capabilities: vec![
+                        crate::core::types::common::ProviderCapability::ChatCompletion,
+                        crate::core::types::common::ProviderCapability::ChatCompletionStream,
+                        crate::core::types::common::ProviderCapability::ImageGeneration,
+                    ],
+                    created_at: None,
+                    updated_at: None,
+                    metadata: std::collections::HashMap::new(),
+                },
+                family: GeminiModelFamily::Gemini3ProImage,
+                features: vec![
+                    ModelFeature::MultimodalSupport,
+                    ModelFeature::StreamingSupport,
+                    ModelFeature::SystemInstructions,
+                    ModelFeature::JsonMode,
+                ],
+                pricing: ModelPricing {
+                    input_price: 2.0,   // $2 per 1M tokens
+                    output_price: 12.0, // $12 per 1M tokens
+                    cached_input_price: Some(0.5),
+                    image_price: Some(0.04), // Image generation pricing
+                    video_price_per_second: None,
+                    audio_price_per_second: None,
+                },
+                limits: ModelLimits {
+                    max_context_length: 65536,
+                    max_output_tokens: 8192,
+                    max_images: Some(16),
+                    max_video_seconds: None,
+                    max_audio_seconds: None,
+                    rpm_limit: Some(500),
+                    tpm_limit: Some(1_000_000),
                 },
             },
         );
@@ -828,6 +942,10 @@ impl GeminiModelRegistry {
         // Gemini 3.0 series (check first as most specific)
         if model_lower.contains("gemini-3") && model_lower.contains("deep-think") {
             Some(GeminiModelFamily::Gemini3ProDeepThink)
+        } else if model_lower.contains("gemini-3") && model_lower.contains("image") {
+            Some(GeminiModelFamily::Gemini3ProImage)
+        } else if model_lower.contains("gemini-3-flash") || model_lower.contains("gemini-3.0-flash") {
+            Some(GeminiModelFamily::Gemini3Flash)
         } else if model_lower.contains("gemini-3-pro") || model_lower.contains("gemini-3.0-pro") {
             Some(GeminiModelFamily::Gemini3Pro)
         }

@@ -145,7 +145,26 @@ impl DeepSeekModelRegistry {
     fn add_default_models(&mut self) {
         // Model data: (id, name, context_len, output_len, input_cost, output_cost, has_reasoning)
         let default_models: Vec<ModelDefinition> = vec![
-            // DeepSeek V3 (December 2024 - Latest)
+            // DeepSeek V3.2 (2025 - Latest)
+            (
+                "deepseek-v3.2",
+                "DeepSeek V3.2",
+                163_840,
+                Some(16_384),
+                0.00025, // $0.25/1M input
+                0.00038, // $0.38/1M output
+                false,
+            ),
+            (
+                "deepseek-v3.2-speciale",
+                "DeepSeek V3.2 Speciale",
+                163_840,
+                Some(16_384),
+                0.00027, // $0.27/1M input
+                0.00041, // $0.41/1M output
+                false,
+            ),
+            // DeepSeek V3 (December 2024)
             (
                 "deepseek-chat",
                 "DeepSeek V3",

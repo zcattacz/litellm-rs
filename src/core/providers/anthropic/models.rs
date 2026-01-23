@@ -142,8 +142,8 @@ impl AnthropicModelRegistry {
                     supports_streaming: true,
                     supports_tools: true,
                     supports_multimodal: true,
-                    input_cost_per_1k_tokens: Some(0.015),
-                    output_cost_per_1k_tokens: Some(0.075),
+                    input_cost_per_1k_tokens: Some(0.005),  // $5/1M input
+                    output_cost_per_1k_tokens: Some(0.025), // $25/1M output
                     currency: "USD".to_string(),
                     capabilities: vec![
                         crate::core::types::common::ProviderCapability::ChatCompletion,
@@ -167,10 +167,10 @@ impl AnthropicModelRegistry {
                     ModelFeature::ComputerUse,
                 ],
                 pricing: ModelPricing {
-                    input_price: 15.0,
-                    output_price: 75.0,
-                    cache_write_price: Some(18.75),
-                    cache_read_price: Some(1.50),
+                    input_price: 5.0,   // $5/1M input (updated from OpenRouter)
+                    output_price: 25.0, // $25/1M output (updated from OpenRouter)
+                    cache_write_price: Some(6.25),  // 1.25x input
+                    cache_read_price: Some(0.50),   // 0.1x input
                     batch_discount: Some(0.5),
                 },
                 limits: ModelLimits {

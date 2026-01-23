@@ -225,6 +225,16 @@ health: ## Check gateway health
 logs: ## Show gateway logs (if running in Docker)
 	docker-compose logs -f gateway
 
+sync-models: ## Fetch latest models from OpenRouter and generate report
+	@echo "Fetching latest models from OpenRouter..."
+	@python3 scripts/sync_models.py
+
+sync-models-json: ## Fetch latest models as JSON
+	@python3 scripts/sync_models.py --output json
+
+sync-models-provider: ## Fetch models for specific provider (usage: make sync-models-provider PROVIDER=openai)
+	@python3 scripts/sync_models.py --provider $(PROVIDER)
+
 # =============================================================================
 # RELEASE
 # =============================================================================
