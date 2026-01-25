@@ -87,8 +87,8 @@ impl TransformerRegistry {
     where
         T: Transform<(), ()> + 'static,
     {
-        // In actual implementation, transformers would be stored
-        todo!("Implement transformer registration")
+        // Placeholder: transformer registration not yet implemented
+        // Transformers are currently managed through static configuration
     }
 }
 

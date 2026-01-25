@@ -382,9 +382,9 @@ mod tests {
         assert_eq!(MetricType::IP.as_str(), "IP");
         assert_eq!(MetricType::Cosine.as_str(), "COSINE");
 
-        assert_eq!(MetricType::from_str("L2"), Some(MetricType::L2));
-        assert_eq!(MetricType::from_str("COSINE"), Some(MetricType::Cosine));
-        assert_eq!(MetricType::from_str("invalid"), None);
+        assert_eq!(MetricType::parse("L2"), Some(MetricType::L2));
+        assert_eq!(MetricType::parse("COSINE"), Some(MetricType::Cosine));
+        assert_eq!(MetricType::parse("invalid"), None);
     }
 
     #[test]
@@ -393,9 +393,9 @@ mod tests {
         assert_eq!(IndexType::Flat.as_str(), "FLAT");
         assert_eq!(IndexType::IvfFlat.as_str(), "IVF_FLAT");
 
-        assert_eq!(IndexType::from_str("HNSW"), Some(IndexType::Hnsw));
-        assert_eq!(IndexType::from_str("IVF_FLAT"), Some(IndexType::IvfFlat));
-        assert_eq!(IndexType::from_str("invalid"), None);
+        assert_eq!(IndexType::parse("HNSW"), Some(IndexType::Hnsw));
+        assert_eq!(IndexType::parse("IVF_FLAT"), Some(IndexType::IvfFlat));
+        assert_eq!(IndexType::parse("invalid"), None);
     }
 
     #[test]

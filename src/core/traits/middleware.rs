@@ -173,9 +173,9 @@ where
     Resp: Send + Sync,
 {
     async fn call(&self, _request: Req) -> Result<Resp, Box<dyn std::error::Error + Send + Sync>> {
-        // There's an issue here - FnOnce can only be called once, but trait methods may be called multiple times
-        // Actual implementation needs more complex design
-        todo!("Implement proper FnOnce handling")
+        // FnOnce can only be called once, but trait methods may be called multiple times
+        // This requires a more complex design with interior mutability
+        Err("FinalHandler: FnOnce handling not yet implemented".into())
     }
 }
 
@@ -194,8 +194,8 @@ where
     Resp: Send + Sync + 'static,
 {
     async fn call(&self, _request: Req) -> Result<Resp, Box<dyn std::error::Error + Send + Sync>> {
-        // This also needs redesign due to lifetime issues
-        todo!("Implement proper next handler")
+        // This requires redesign due to lifetime issues with recursive middleware chains
+        Err("NextHandler: next handler not yet implemented".into())
     }
 }
 
