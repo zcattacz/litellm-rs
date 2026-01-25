@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use tracing::{debug, info};
 
-use super::config::{DistanceMetric, IndexType, PgVectorConfig, PROVIDER_NAME};
+use super::config::{DistanceMetric, IndexType, PROVIDER_NAME, PgVectorConfig};
 use super::models::{SearchOptions, SearchResult, VectorPoint};
 use crate::core::providers::unified_provider::ProviderError;
 
@@ -204,11 +204,7 @@ ON CONFLICT (id) DO UPDATE SET
             select_columns.push("embedding::text as vector".to_string());
         }
 
-        let mut sql = format!(
-            "SELECT {} FROM {}",
-            select_columns.join(", "),
-            full_table
-        );
+        let mut sql = format!("SELECT {} FROM {}", select_columns.join(", "), full_table);
 
         // Add WHERE clause for threshold and metadata filter
         let mut conditions = Vec::new();
@@ -218,7 +214,9 @@ ON CONFLICT (id) DO UPDATE SET
                 DistanceMetric::Cosine => {
                     format!("(embedding {} $1::vector) <= {}", operator, 1.0 - threshold)
                 }
-                DistanceMetric::L2 => format!("(embedding {} $1::vector) <= {}", operator, threshold),
+                DistanceMetric::L2 => {
+                    format!("(embedding {} $1::vector) <= {}", operator, threshold)
+                }
                 DistanceMetric::InnerProduct => {
                     format!("(embedding {} $1::vector) >= {}", operator, -threshold)
                 }
@@ -682,7 +680,7 @@ mod tests {
         );
         assert_eq!(StatementParam::Json(None).to_sql_string(), "NULL");
         assert_eq!(StatementParam::Int(42).to_sql_string(), "42");
-        assert_eq!(StatementParam::Float(3.14).to_sql_string(), "3.14");
+        assert_eq!(StatementParam::Float(3.15).to_sql_string(), "3.15");
     }
 
     #[test]
