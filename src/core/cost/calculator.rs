@@ -195,9 +195,14 @@ pub fn compare_model_costs(
 
     for (model, provider) in models {
         if let Ok(breakdown) = generic_cost_per_token(model, &usage, provider) {
-            let cost_per_token = breakdown.total_cost / (input_tokens + output_tokens) as f64;
+            let total_tokens = input_tokens + output_tokens;
+            let cost_per_token = if total_tokens > 0 {
+                breakdown.total_cost / total_tokens as f64
+            } else {
+                0.0
+            };
             let efficiency_score = if breakdown.total_cost > 0.0 {
-                (input_tokens + output_tokens) as f64 / breakdown.total_cost
+                total_tokens as f64 / breakdown.total_cost
             } else {
                 0.0
             };

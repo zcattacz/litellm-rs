@@ -2,7 +2,7 @@
 
 use super::types::RoutingData;
 use crate::core::types::common::RequestContext;
-use crate::utils::error::Result;
+use crate::utils::error::{GatewayError, Result};
 use parking_lot::RwLock;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tracing::debug;
@@ -13,6 +13,11 @@ pub(super) struct SelectionMethods;
 impl SelectionMethods {
     /// Round-robin provider selection
     pub fn select_round_robin(providers: &[String], counter: &AtomicUsize) -> Result<String> {
+        if providers.is_empty() {
+            return Err(GatewayError::Validation(
+                "No providers available for round-robin selection".to_string(),
+            ));
+        }
         let index = counter.fetch_add(1, Ordering::Relaxed) % providers.len();
         debug!(
             "Round-robin selected provider at index {}: {}",
@@ -26,6 +31,11 @@ impl SelectionMethods {
         providers: &[String],
         routing_data: &RwLock<RoutingData>,
     ) -> Result<String> {
+        if providers.is_empty() {
+            return Err(GatewayError::Validation(
+                "No providers available for latency-based selection".to_string(),
+            ));
+        }
         let data = routing_data.read();
 
         let mut best_provider = &providers[0];
@@ -52,6 +62,11 @@ impl SelectionMethods {
         model: &str,
         routing_data: &RwLock<RoutingData>,
     ) -> Result<String> {
+        if providers.is_empty() {
+            return Err(GatewayError::Validation(
+                "No providers available for cost-based selection".to_string(),
+            ));
+        }
         let data = routing_data.read();
 
         let mut best_provider = &providers[0];
@@ -81,6 +96,11 @@ impl SelectionMethods {
 
     /// Random provider selection
     pub fn select_random(providers: &[String]) -> Result<String> {
+        if providers.is_empty() {
+            return Err(GatewayError::Validation(
+                "No providers available for random selection".to_string(),
+            ));
+        }
         use rand::Rng;
         let mut rng = rand::thread_rng();
         let index = rng.gen_range(0..providers.len());
@@ -97,6 +117,11 @@ impl SelectionMethods {
         routing_data: &RwLock<RoutingData>,
         counter: &AtomicUsize,
     ) -> Result<String> {
+        if providers.is_empty() {
+            return Err(GatewayError::Validation(
+                "No providers available for weighted selection".to_string(),
+            ));
+        }
         // Collect weights and calculate total within lock scope
         let (total_weight, weights): (f64, Vec<(String, f64)>) = {
             let data = routing_data.read();
@@ -138,6 +163,11 @@ impl SelectionMethods {
         providers: &[String],
         routing_data: &RwLock<RoutingData>,
     ) -> Result<String> {
+        if providers.is_empty() {
+            return Err(GatewayError::Validation(
+                "No providers available for priority-based selection".to_string(),
+            ));
+        }
         let data = routing_data.read();
 
         let mut best_provider = &providers[0];
@@ -160,6 +190,11 @@ impl SelectionMethods {
 
     /// A/B test provider selection
     pub fn select_ab_test(providers: &[String], split_ratio: f64) -> Result<String> {
+        if providers.is_empty() {
+            return Err(GatewayError::Validation(
+                "No providers available for A/B test selection".to_string(),
+            ));
+        }
         if providers.len() < 2 {
             return Ok(providers[0].clone());
         }
@@ -198,6 +233,11 @@ impl SelectionMethods {
         providers: &[String],
         routing_data: &RwLock<RoutingData>,
     ) -> Result<String> {
+        if providers.is_empty() {
+            return Err(GatewayError::Validation(
+                "No providers available for usage-based selection".to_string(),
+            ));
+        }
         let data = routing_data.read();
 
         let mut best_provider = &providers[0];
@@ -229,6 +269,11 @@ impl SelectionMethods {
         providers: &[String],
         routing_data: &RwLock<RoutingData>,
     ) -> Result<String> {
+        if providers.is_empty() {
+            return Err(GatewayError::Validation(
+                "No providers available for least-busy selection".to_string(),
+            ));
+        }
         let data = routing_data.read();
 
         let mut best_provider = &providers[0];

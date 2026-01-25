@@ -65,19 +65,46 @@ pub struct PooledObject<T> {
 }
 
 impl<T> PooledObject<T> {
-    /// Get a reference to the inner object
+    /// Get a reference to the inner object.
+    ///
+    /// # Panics
+    /// Panics if the object has already been taken via `take()`.
     pub fn get_ref(&self) -> &T {
         self.obj.as_ref().expect("Object already taken")
     }
 
-    /// Get a mutable reference to the inner object
+    /// Try to get a reference to the inner object.
+    /// Returns `None` if the object has already been taken.
+    pub fn try_get_ref(&self) -> Option<&T> {
+        self.obj.as_ref()
+    }
+
+    /// Get a mutable reference to the inner object.
+    ///
+    /// # Panics
+    /// Panics if the object has already been taken via `take()`.
     pub fn get_mut(&mut self) -> &mut T {
         self.obj.as_mut().expect("Object already taken")
     }
 
-    /// Take the object out of the pool wrapper (prevents return to pool)
+    /// Try to get a mutable reference to the inner object.
+    /// Returns `None` if the object has already been taken.
+    pub fn try_get_mut(&mut self) -> Option<&mut T> {
+        self.obj.as_mut()
+    }
+
+    /// Take the object out of the pool wrapper (prevents return to pool).
+    ///
+    /// # Panics
+    /// Panics if the object has already been taken.
     pub fn take(mut self) -> T {
         self.obj.take().expect("Object already taken")
+    }
+
+    /// Try to take the object out of the pool wrapper.
+    /// Returns `None` if the object has already been taken.
+    pub fn try_take(&mut self) -> Option<T> {
+        self.obj.take()
     }
 }
 

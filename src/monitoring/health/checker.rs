@@ -112,7 +112,11 @@ impl HealthChecker {
         let healthy_components = components.values().filter(|c| c.healthy).count();
         let total_components = components.len();
         let overall_healthy = healthy_components == total_components;
-        let health_percentage = (healthy_components as f64 / total_components as f64) * 100.0;
+        let health_percentage = if total_components > 0 {
+            (healthy_components as f64 / total_components as f64) * 100.0
+        } else {
+            100.0 // No components means healthy by default
+        };
 
         let health_status = HealthStatus {
             overall_healthy,

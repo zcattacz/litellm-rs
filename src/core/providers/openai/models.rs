@@ -95,28 +95,20 @@ pub enum OpenAIModelFamily {
     GPT4O,
     GPT4OMini,
     GPT35,
-    GPT5,          // GPT-5 models (2025)
-    GPT5Mini,      // GPT-5 Mini models (2025)
-    GPT5Nano,      // GPT-5 Nano models (2025)
-    GPT51,         // GPT-5.1 models (Nov 2025)
-    GPT51Thinking, // GPT-5.1 Thinking mode (Nov 2025)
-    GPT52,         // GPT-5.2 models (2025)
-    GPT52Pro,      // GPT-5.2 Pro models (2025)
-    GPT52Codex,    // GPT-5.2 Codex models (2025)
-    O1,            // O1 reasoning models
-    O1Pro,         // O1 Pro reasoning models
-    O3,            // O3 reasoning models (2025)
-    O3Mini,        // O3 Mini reasoning models
-    O4Mini,        // O4 Mini reasoning models (2025)
+    O1,     // O1 reasoning models
+    O1Pro,  // O1 Pro reasoning models
+    O3,     // O3 reasoning models (2025)
+    O3Mini, // O3 Mini reasoning models
+    O4Mini, // O4 Mini reasoning models (2025)
     DALLE2,
     DALLE3,
     Whisper,
     TTS,
     Embedding,
     Moderation,
-    GPT4OAudio,  // GPT-4O with audio capabilities
-    GPTAudio,    // GPT Audio models (2025)
-    Realtime,    // Realtime API models
+    GPT4OAudio, // GPT-4O with audio capabilities
+    GPTAudio,   // GPT Audio models (2025)
+    Realtime,   // Realtime API models
 }
 
 /// Model-specific configuration
@@ -310,24 +302,6 @@ impl OpenAIModelRegistry {
             OpenAIModelFamily::GPT4
         } else if model_id.starts_with("gpt-3.5") {
             OpenAIModelFamily::GPT35
-        }
-        // GPT-5 series (check specific variants first, most specific first)
-        else if model_id.starts_with("gpt-5.2-pro") {
-            OpenAIModelFamily::GPT52Pro
-        } else if model_id.starts_with("gpt-5.2-codex") {
-            OpenAIModelFamily::GPT52Codex
-        } else if model_id.starts_with("gpt-5.2") || model_id.contains("gpt-5.2") {
-            OpenAIModelFamily::GPT52
-        } else if model_id.starts_with("gpt-5.1-thinking") || model_id.contains("5.1-thinking") {
-            OpenAIModelFamily::GPT51Thinking
-        } else if model_id.starts_with("gpt-5.1") || model_id.contains("gpt-5.1") {
-            OpenAIModelFamily::GPT51
-        } else if model_id.starts_with("gpt-5-nano") {
-            OpenAIModelFamily::GPT5Nano
-        } else if model_id.starts_with("gpt-5-mini") {
-            OpenAIModelFamily::GPT5Mini
-        } else if model_id.starts_with("gpt-5") {
-            OpenAIModelFamily::GPT5
         }
         // GPT Audio models
         else if model_id.starts_with("gpt-audio") {
@@ -586,153 +560,6 @@ impl OpenAIModelRegistry {
                 0.0011,
                 0.0044,
             ),
-            // ==================== GPT-5 Series (2025) ====================
-            // GPT-5 (August 2025)
-            (
-                "gpt-5",
-                "GPT-5",
-                OpenAIModelFamily::GPT5,
-                272000,
-                Some(128000),
-                0.00125, // $1.25/1M input
-                0.010,   // $10/1M output
-            ),
-            (
-                "gpt-5-2025-08-01",
-                "GPT-5 (Aug 2025)",
-                OpenAIModelFamily::GPT5,
-                272000,
-                Some(128000),
-                0.00125,
-                0.010,
-            ),
-            // GPT-5 Mini
-            (
-                "gpt-5-mini",
-                "GPT-5 Mini",
-                OpenAIModelFamily::GPT5Mini,
-                272000,
-                Some(64000),
-                0.00025, // $0.25/1M input
-                0.002,   // $2/1M output
-            ),
-            // GPT-5 Nano
-            (
-                "gpt-5-nano",
-                "GPT-5 Nano",
-                OpenAIModelFamily::GPT5Nano,
-                128000,
-                Some(32000),
-                0.00005, // $0.05/1M input
-                0.0004,  // $0.40/1M output
-            ),
-            // GPT-5.1 (November 2025)
-            (
-                "gpt-5.1",
-                "GPT-5.1",
-                OpenAIModelFamily::GPT51,
-                272000,
-                Some(128000),
-                0.00125, // $1.25/1M input
-                0.010,   // $10/1M output
-            ),
-            (
-                "gpt-5.1-2025-11-01",
-                "GPT-5.1 (Nov 2025)",
-                OpenAIModelFamily::GPT51,
-                272000,
-                Some(128000),
-                0.00125,
-                0.010,
-            ),
-            // GPT-5.1 Thinking (Reasoning mode)
-            (
-                "gpt-5.1-thinking",
-                "GPT-5.1 Thinking",
-                OpenAIModelFamily::GPT51Thinking,
-                400000,
-                Some(196000),
-                0.00250, // $2.50/1M input (thinking mode)
-                0.020,   // $20/1M output (thinking mode)
-            ),
-            // ==================== GPT-5.2 Series (2025 - Latest) ====================
-            // GPT-5.2 Pro (Flagship)
-            (
-                "gpt-5.2-pro",
-                "GPT-5.2 Pro",
-                OpenAIModelFamily::GPT52Pro,
-                400000,
-                Some(128000),
-                0.021,  // $21/1M input
-                0.168,  // $168/1M output
-            ),
-            // GPT-5.2 (Standard)
-            (
-                "gpt-5.2",
-                "GPT-5.2",
-                OpenAIModelFamily::GPT52,
-                400000,
-                Some(128000),
-                0.00175, // $1.75/1M input
-                0.014,   // $14/1M output
-            ),
-            // GPT-5.2 Chat
-            (
-                "gpt-5.2-chat",
-                "GPT-5.2 Chat",
-                OpenAIModelFamily::GPT52,
-                128000,
-                Some(16384),
-                0.00175, // $1.75/1M input
-                0.014,   // $14/1M output
-            ),
-            // GPT-5.2 Codex (Code-optimized)
-            (
-                "gpt-5.2-codex",
-                "GPT-5.2 Codex",
-                OpenAIModelFamily::GPT52Codex,
-                400000,
-                Some(128000),
-                0.00175, // $1.75/1M input
-                0.014,   // $14/1M output
-            ),
-            // GPT-5.1 Codex variants
-            (
-                "gpt-5.1-codex",
-                "GPT-5.1 Codex",
-                OpenAIModelFamily::GPT51,
-                400000,
-                Some(128000),
-                0.00125, // $1.25/1M input
-                0.010,   // $10/1M output
-            ),
-            (
-                "gpt-5.1-codex-mini",
-                "GPT-5.1 Codex Mini",
-                OpenAIModelFamily::GPT51,
-                400000,
-                Some(64000),
-                0.00025, // $0.25/1M input
-                0.002,   // $2/1M output
-            ),
-            (
-                "gpt-5.1-codex-max",
-                "GPT-5.1 Codex Max",
-                OpenAIModelFamily::GPT51,
-                400000,
-                Some(128000),
-                0.00125, // $1.25/1M input
-                0.010,   // $10/1M output
-            ),
-            (
-                "gpt-5.1-chat",
-                "GPT-5.1 Chat",
-                OpenAIModelFamily::GPT51,
-                128000,
-                Some(16384),
-                0.00125, // $1.25/1M input
-                0.010,   // $10/1M output
-            ),
             // ==================== GPT Audio Models (2025) ====================
             (
                 "gpt-audio",
@@ -892,14 +719,6 @@ impl OpenAIModelRegistry {
                         | OpenAIModelFamily::GPT4O
                         | OpenAIModelFamily::GPT4OMini
                         | OpenAIModelFamily::GPT35
-                        | OpenAIModelFamily::GPT5
-                        | OpenAIModelFamily::GPT5Mini
-                        | OpenAIModelFamily::GPT5Nano
-                        | OpenAIModelFamily::GPT51
-                        | OpenAIModelFamily::GPT51Thinking
-                        | OpenAIModelFamily::GPT52
-                        | OpenAIModelFamily::GPT52Pro
-                        | OpenAIModelFamily::GPT52Codex
                         | OpenAIModelFamily::O1
                         | OpenAIModelFamily::O1Pro
                         | OpenAIModelFamily::O3
@@ -913,13 +732,6 @@ impl OpenAIModelRegistry {
                     OpenAIModelFamily::GPT4O
                         | OpenAIModelFamily::GPT4OMini
                         | OpenAIModelFamily::GPT4OAudio
-                        | OpenAIModelFamily::GPT5
-                        | OpenAIModelFamily::GPT5Mini
-                        | OpenAIModelFamily::GPT51
-                        | OpenAIModelFamily::GPT51Thinking
-                        | OpenAIModelFamily::GPT52
-                        | OpenAIModelFamily::GPT52Pro
-                        | OpenAIModelFamily::GPT52Codex
                         | OpenAIModelFamily::GPTAudio
                         | OpenAIModelFamily::O1
                         | OpenAIModelFamily::O1Pro
