@@ -4,8 +4,8 @@
 //! This provider adapts DeepL's translation API to the LLMProvider interface
 //! by treating translation requests as special chat completions.
 
-use async_trait::async_trait;
 use crate::core::traits::provider::ProviderConfig;
+use async_trait::async_trait;
 use futures::Stream;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -54,15 +54,18 @@ pub struct DeepLProvider {
 
 impl DeepLProvider {
     pub fn new(config: DeepLConfig) -> Result<Self, ProviderError> {
-        config.validate().map_err(|e| {
-            ProviderError::configuration("deepl", e)
-        })?;
+        config
+            .validate()
+            .map_err(|e| ProviderError::configuration("deepl", e))?;
 
         let http_client = reqwest::Client::builder()
             .timeout(config.timeout())
             .build()
             .map_err(|e| {
-                ProviderError::initialization("deepl", format!("Failed to create HTTP client: {}", e))
+                ProviderError::initialization(
+                    "deepl",
+                    format!("Failed to create HTTP client: {}", e),
+                )
             })?;
 
         Ok(Self {
@@ -81,7 +84,10 @@ impl DeepLProvider {
         let mut headers = HashMap::new();
 
         if let Some(api_key) = &self.config.base.api_key {
-            headers.insert("Authorization".to_string(), format!("DeepL-Auth-Key {}", api_key));
+            headers.insert(
+                "Authorization".to_string(),
+                format!("DeepL-Auth-Key {}", api_key),
+            );
         }
 
         headers.insert("Content-Type".to_string(), "application/json".to_string());
@@ -91,14 +97,21 @@ impl DeepLProvider {
     /// Extract translation parameters from chat request
     /// Expected message format: "Translate to {target_lang}: {text}"
     /// Or with source language: "Translate from {source_lang} to {target_lang}: {text}"
-    fn extract_translation_params(&self, request: &ChatRequest) -> Result<(String, Option<String>, String), ProviderError> {
+    fn extract_translation_params(
+        &self,
+        request: &ChatRequest,
+    ) -> Result<(String, Option<String>, String), ProviderError> {
         // Get the last user message
-        let user_message = request.messages.iter()
+        let user_message = request
+            .messages
+            .iter()
             .rev()
             .find(|m| m.role == MessageRole::User)
             .ok_or_else(|| ProviderError::invalid_request("deepl", "No user message found"))?;
 
-        let content = user_message.content.as_ref()
+        let content = user_message
+            .content
+            .as_ref()
             .ok_or_else(|| ProviderError::invalid_request("deepl", "Message content is empty"))?;
 
         // Extract text from MessageContent
@@ -107,61 +120,83 @@ impl DeepLProvider {
             MessageContent::Parts(parts) => {
                 // Find text part
                 use crate::core::types::content::ContentPart;
-                parts.iter()
+                parts
+                    .iter()
                     .find_map(|p| match p {
                         ContentPart::Text { text } => Some(text.as_str()),
                         _ => None,
                     })
-                    .ok_or_else(|| ProviderError::invalid_request("deepl", "No text content found in message"))?
+                    .ok_or_else(|| {
+                        ProviderError::invalid_request("deepl", "No text content found in message")
+                    })?
             }
         };
 
         // Parse translation instruction
         let parts: Vec<&str> = text.split(':').collect();
         if parts.len() < 2 {
-            return Err(ProviderError::invalid_request("deepl", "Invalid translation format. Expected: 'Translate to {lang}: {text}'"));
+            return Err(ProviderError::invalid_request(
+                "deepl",
+                "Invalid translation format. Expected: 'Translate to {lang}: {text}'",
+            ));
         }
 
         let instruction = parts[0].trim();
         let text_to_translate = parts[1..].join(":").trim().to_string();
 
-        let (source_lang, target_lang) = if instruction.contains("from") && instruction.contains("to") {
-            // Parse "Translate from EN to DE"
-            let lang_parts: Vec<&str> = instruction.split_whitespace().collect();
-            let from_idx = lang_parts.iter().position(|&s| s == "from").ok_or_else(||
-                ProviderError::invalid_request("deepl", "Invalid translation format"))?;
-            let to_idx = lang_parts.iter().position(|&s| s == "to").ok_or_else(||
-                ProviderError::invalid_request("deepl", "Invalid translation format"))?;
+        let (source_lang, target_lang) =
+            if instruction.contains("from") && instruction.contains("to") {
+                // Parse "Translate from EN to DE"
+                let lang_parts: Vec<&str> = instruction.split_whitespace().collect();
+                let from_idx = lang_parts
+                    .iter()
+                    .position(|&s| s == "from")
+                    .ok_or_else(|| {
+                        ProviderError::invalid_request("deepl", "Invalid translation format")
+                    })?;
+                let to_idx = lang_parts.iter().position(|&s| s == "to").ok_or_else(|| {
+                    ProviderError::invalid_request("deepl", "Invalid translation format")
+                })?;
 
-            let source = if from_idx + 1 < lang_parts.len() {
-                Some(lang_parts[from_idx + 1].to_uppercase())
+                let source = if from_idx + 1 < lang_parts.len() {
+                    Some(lang_parts[from_idx + 1].to_uppercase())
+                } else {
+                    None
+                };
+
+                let target = if to_idx + 1 < lang_parts.len() {
+                    lang_parts[to_idx + 1].to_uppercase()
+                } else {
+                    return Err(ProviderError::invalid_request(
+                        "deepl",
+                        "Target language not specified",
+                    ));
+                };
+
+                (source, target)
+            } else if instruction.contains("to") {
+                // Parse "Translate to DE"
+                let lang_parts: Vec<&str> = instruction.split_whitespace().collect();
+                let to_idx = lang_parts.iter().position(|&s| s == "to").ok_or_else(|| {
+                    ProviderError::invalid_request("deepl", "Invalid translation format")
+                })?;
+
+                let target = if to_idx + 1 < lang_parts.len() {
+                    lang_parts[to_idx + 1].to_uppercase()
+                } else {
+                    return Err(ProviderError::invalid_request(
+                        "deepl",
+                        "Target language not specified",
+                    ));
+                };
+
+                (None, target)
             } else {
-                None
+                return Err(ProviderError::invalid_request(
+                    "deepl",
+                    "Invalid translation format. Expected: 'Translate to {lang}: {text}'",
+                ));
             };
-
-            let target = if to_idx + 1 < lang_parts.len() {
-                lang_parts[to_idx + 1].to_uppercase()
-            } else {
-                return Err(ProviderError::invalid_request("deepl", "Target language not specified"));
-            };
-
-            (source, target)
-        } else if instruction.contains("to") {
-            // Parse "Translate to DE"
-            let lang_parts: Vec<&str> = instruction.split_whitespace().collect();
-            let to_idx = lang_parts.iter().position(|&s| s == "to").ok_or_else(||
-                ProviderError::invalid_request("deepl", "Invalid translation format"))?;
-
-            let target = if to_idx + 1 < lang_parts.len() {
-                lang_parts[to_idx + 1].to_uppercase()
-            } else {
-                return Err(ProviderError::invalid_request("deepl", "Target language not specified"));
-            };
-
-            (None, target)
-        } else {
-            return Err(ProviderError::invalid_request("deepl", "Invalid translation format. Expected: 'Translate to {lang}: {text}'"));
-        };
 
         Ok((target_lang, source_lang, text_to_translate))
     }
@@ -178,9 +213,7 @@ impl LLMProvider for DeepLProvider {
     }
 
     fn capabilities(&self) -> &'static [ProviderCapability] {
-        &[
-            ProviderCapability::AudioTranslation,
-        ]
+        &[ProviderCapability::AudioTranslation]
     }
 
     fn models(&self) -> &[ModelInfo] {
@@ -230,7 +263,9 @@ impl LLMProvider for DeepLProvider {
             .map_err(|e| ProviderError::serialization("deepl", e.to_string()))?;
 
         // Convert DeepL response to ChatResponse format
-        let translation = deepl_response.translations.first()
+        let translation = deepl_response
+            .translations
+            .first()
             .ok_or_else(|| ProviderError::api_error("deepl", 500, "No translation returned"))?;
 
         // Create a chat response with the translation
@@ -267,8 +302,14 @@ impl LLMProvider for DeepLProvider {
         request: ChatRequest,
         context: RequestContext,
     ) -> Result<ChatResponse, Self::Error> {
-        let url = format!("{}/translate",
-            self.config.base.api_base.as_ref().unwrap_or(&super::DEFAULT_BASE_URL.to_string()));
+        let url = format!(
+            "{}/translate",
+            self.config
+                .base
+                .api_base
+                .as_ref()
+                .unwrap_or(&super::DEFAULT_BASE_URL.to_string())
+        );
 
         let body = self.transform_request(request.clone(), context).await?;
         let headers = self.build_headers();
@@ -297,24 +338,37 @@ impl LLMProvider for DeepLProvider {
             });
         }
 
-        let response_bytes = response.bytes().await
+        let response_bytes = response
+            .bytes()
+            .await
             .map_err(|e| ProviderError::network("deepl", e.to_string()))?;
 
-        self.transform_response(&response_bytes, &request.model, "").await
+        self.transform_response(&response_bytes, &request.model, "")
+            .await
     }
 
     async fn chat_completion_stream(
         &self,
         _request: ChatRequest,
         _context: RequestContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error> {
-        Err(ProviderError::not_implemented("deepl", "Streaming is not supported for translation"))
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error>
+    {
+        Err(ProviderError::not_implemented(
+            "deepl",
+            "Streaming is not supported for translation",
+        ))
     }
 
     async fn health_check(&self) -> HealthStatus {
         // Try to get usage information as a health check
-        let url = format!("{}/usage",
-            self.config.base.api_base.as_ref().unwrap_or(&super::DEFAULT_BASE_URL.to_string()));
+        let url = format!(
+            "{}/usage",
+            self.config
+                .base
+                .api_base
+                .as_ref()
+                .unwrap_or(&super::DEFAULT_BASE_URL.to_string())
+        );
 
         let headers = self.build_headers();
         let mut req_builder = self.http_client.get(&url);
@@ -335,12 +389,16 @@ impl LLMProvider for DeepLProvider {
         input_tokens: u32,
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
-        let model_info = self.supported_models.iter()
+        let model_info = self
+            .supported_models
+            .iter()
             .find(|m| m.id == model)
             .ok_or_else(|| ProviderError::model_not_found("deepl", model.to_string()))?;
 
-        let input_cost = model_info.input_cost_per_1k_tokens.unwrap_or(0.0) * input_tokens as f64 / 1000.0;
-        let output_cost = model_info.output_cost_per_1k_tokens.unwrap_or(0.0) * output_tokens as f64 / 1000.0;
+        let input_cost =
+            model_info.input_cost_per_1k_tokens.unwrap_or(0.0) * input_tokens as f64 / 1000.0;
+        let output_cost =
+            model_info.output_cost_per_1k_tokens.unwrap_or(0.0) * output_tokens as f64 / 1000.0;
 
         Ok(input_cost + output_cost)
     }

@@ -40,10 +40,7 @@ impl MorphProvider {
             .map_err(|e| ProviderError::configuration("morph", e))?;
 
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ProviderError::configuration(
-                "morph",
-                format!("Failed to create pool manager: {}", e),
-            )
+            ProviderError::configuration("morph", format!("Failed to create pool manager: {}", e))
         })?);
 
         let models = get_available_models()

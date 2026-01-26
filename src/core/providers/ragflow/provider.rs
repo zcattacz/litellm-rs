@@ -39,10 +39,7 @@ impl RagflowProvider {
             .map_err(|e| ProviderError::configuration("ragflow", e))?;
 
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ProviderError::configuration(
-                "ragflow",
-                format!("Failed to create pool manager: {}", e),
-            )
+            ProviderError::configuration("ragflow", format!("Failed to create pool manager: {}", e))
         })?);
 
         let models = get_available_models()

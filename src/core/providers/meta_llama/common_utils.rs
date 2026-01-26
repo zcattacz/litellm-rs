@@ -25,7 +25,10 @@ pub type LlamaError = ProviderError;
 impl ProviderError {
     /// Create a not_supported error for Llama
     pub fn llama_not_supported(feature: &str) -> Self {
-        ProviderError::invalid_request(PROVIDER_NAME, format!("Feature '{}' is not supported", feature))
+        ProviderError::invalid_request(
+            PROVIDER_NAME,
+            format!("Feature '{}' is not supported", feature),
+        )
     }
 }
 
@@ -82,15 +85,24 @@ impl LlamaConfig {
     /// Validate configuration
     pub fn validate(&self) -> Result<(), ProviderError> {
         if self.api_key.is_empty() {
-            return Err(ProviderError::configuration(PROVIDER_NAME, "API key is required"));
+            return Err(ProviderError::configuration(
+                PROVIDER_NAME,
+                "API key is required",
+            ));
         }
 
         if self.api_base.is_empty() {
-            return Err(ProviderError::configuration(PROVIDER_NAME, "API base URL is required"));
+            return Err(ProviderError::configuration(
+                PROVIDER_NAME,
+                "API base URL is required",
+            ));
         }
 
         if self.timeout_seconds == 0 {
-            return Err(ProviderError::configuration(PROVIDER_NAME, "Timeout must be greater than 0"));
+            return Err(ProviderError::configuration(
+                PROVIDER_NAME,
+                "Timeout must be greater than 0",
+            ));
         }
 
         Ok(())
@@ -113,7 +125,10 @@ impl LlamaClient {
             .timeout(Duration::from_secs(config.timeout_seconds))
             .build()
             .map_err(|e| {
-                ProviderError::configuration(PROVIDER_NAME, format!("Failed to create HTTP client: {}", e))
+                ProviderError::configuration(
+                    PROVIDER_NAME,
+                    format!("Failed to create HTTP client: {}", e),
+                )
             })?;
 
         Ok(Self {
@@ -175,8 +190,12 @@ impl LlamaClient {
         let response_text = response.text().await?;
 
         if status.is_success() {
-            serde_json::from_str(&response_text)
-                .map_err(|e| ProviderError::serialization(PROVIDER_NAME, format!("Failed to parse response: {}", e)))
+            serde_json::from_str(&response_text).map_err(|e| {
+                ProviderError::serialization(
+                    PROVIDER_NAME,
+                    format!("Failed to parse response: {}", e),
+                )
+            })
         } else {
             self.handle_error_response(status, &response_text)
         }
@@ -189,7 +208,8 @@ impl LlamaClient {
         api_key: Option<&str>,
         api_base: Option<&str>,
         additional_headers: Option<HashMap<String, String>>,
-    ) -> Result<impl Stream<Item = Result<Value, ProviderError>> + Send + 'static, ProviderError> {
+    ) -> Result<impl Stream<Item = Result<Value, ProviderError>> + Send + 'static, ProviderError>
+    {
         // For streaming, we'll return a simple implementation
         // In production, this would use SSE (Server-Sent Events) parsing
         use futures::stream;
@@ -219,11 +239,23 @@ impl LlamaClient {
         };
 
         match status {
-            StatusCode::UNAUTHORIZED => Err(ProviderError::authentication(PROVIDER_NAME, error_message)),
-            StatusCode::TOO_MANY_REQUESTS => Err(ProviderError::rate_limit(PROVIDER_NAME, Some(60))),
-            StatusCode::BAD_REQUEST => Err(ProviderError::invalid_request(PROVIDER_NAME, error_message)),
-            StatusCode::NOT_FOUND => Err(ProviderError::model_not_found(PROVIDER_NAME, error_message)),
-            _ => Err(ProviderError::api_error(PROVIDER_NAME, status.as_u16(), error_message)),
+            StatusCode::UNAUTHORIZED => {
+                Err(ProviderError::authentication(PROVIDER_NAME, error_message))
+            }
+            StatusCode::TOO_MANY_REQUESTS => {
+                Err(ProviderError::rate_limit(PROVIDER_NAME, Some(60)))
+            }
+            StatusCode::BAD_REQUEST => {
+                Err(ProviderError::invalid_request(PROVIDER_NAME, error_message))
+            }
+            StatusCode::NOT_FOUND => {
+                Err(ProviderError::model_not_found(PROVIDER_NAME, error_message))
+            }
+            _ => Err(ProviderError::api_error(
+                PROVIDER_NAME,
+                status.as_u16(),
+                error_message,
+            )),
         }
     }
 

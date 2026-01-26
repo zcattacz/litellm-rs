@@ -17,11 +17,10 @@
 //! - `DELETE /v1/budget/models/{name}`     - Remove model budget
 
 use crate::core::budget::{
-    BudgetStatus, ModelLimitConfig,
-    ProviderLimitConfig, ResetPeriod, UnifiedBudgetLimits, Currency,
+    BudgetStatus, Currency, ModelLimitConfig, ProviderLimitConfig, ResetPeriod, UnifiedBudgetLimits,
 };
 use crate::server::routes::ApiResponse;
-use actix_web::{web, HttpResponse, Result as ActixResult};
+use actix_web::{HttpResponse, Result as ActixResult, web};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::{error, info, warn};
@@ -191,18 +190,21 @@ pub async fn set_provider_budget(
 ) -> ActixResult<HttpResponse> {
     // Validate request
     if request.provider.trim().is_empty() {
-        return Ok(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error("Provider name cannot be empty".to_string())));
+        return Ok(HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "Provider name cannot be empty".to_string(),
+        )));
     }
 
     if request.max_budget <= 0.0 {
-        return Ok(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error("max_budget must be greater than 0".to_string())));
+        return Ok(HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "max_budget must be greater than 0".to_string(),
+        )));
     }
 
     if request.soft_limit_percentage < 0.0 || request.soft_limit_percentage > 1.0 {
-        return Ok(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error("soft_limit_percentage must be between 0.0 and 1.0".to_string())));
+        return Ok(HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "soft_limit_percentage must be between 0.0 and 1.0".to_string(),
+        )));
     }
 
     let config = ProviderLimitConfig {
@@ -213,7 +215,9 @@ pub async fn set_provider_budget(
         enabled: request.enabled,
     };
 
-    budget_limits.providers.set_provider_limit(&request.provider, config);
+    budget_limits
+        .providers
+        .set_provider_limit(&request.provider, config);
 
     info!(
         "Set provider budget for '{}': ${:.2} ({})",
@@ -221,7 +225,10 @@ pub async fn set_provider_budget(
     );
 
     // Return the created/updated budget
-    match budget_limits.providers.get_provider_usage(&request.provider) {
+    match budget_limits
+        .providers
+        .get_provider_usage(&request.provider)
+    {
         Some(usage) => {
             let response = ProviderBudgetResponse {
                 provider: usage.provider_name,
@@ -240,8 +247,11 @@ pub async fn set_provider_budget(
         }
         None => {
             error!("Failed to retrieve provider budget after creation");
-            Ok(HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error("Failed to retrieve budget".to_string())))
+            Ok(
+                HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                    "Failed to retrieve budget".to_string(),
+                )),
+            )
         }
     }
 }
@@ -257,7 +267,9 @@ pub async fn list_provider_budgets(
         .map(|usage| {
             // Get the budget to get currency and enabled status
             let budgets = budget_limits.providers.list_provider_budgets();
-            let budget = budgets.iter().find(|b| b.provider_name == usage.provider_name);
+            let budget = budgets
+                .iter()
+                .find(|b| b.provider_name == usage.provider_name);
 
             ProviderBudgetResponse {
                 provider: usage.provider_name,
@@ -312,8 +324,12 @@ pub async fn get_provider_budget(
         }
         None => {
             warn!("Provider budget not found: {}", provider_name);
-            Ok(HttpResponse::NotFound()
-                .json(ApiResponse::<()>::error(format!("Provider budget not found: {}", provider_name))))
+            Ok(
+                HttpResponse::NotFound().json(ApiResponse::<()>::error(format!(
+                    "Provider budget not found: {}",
+                    provider_name
+                ))),
+            )
         }
     }
 }
@@ -325,7 +341,10 @@ pub async fn delete_provider_budget(
 ) -> ActixResult<HttpResponse> {
     let provider_name = path.into_inner();
 
-    if budget_limits.providers.remove_provider_limit(&provider_name) {
+    if budget_limits
+        .providers
+        .remove_provider_limit(&provider_name)
+    {
         info!("Removed provider budget for '{}'", provider_name);
         let response = DeleteBudgetResponse {
             success: true,
@@ -334,8 +353,12 @@ pub async fn delete_provider_budget(
         Ok(HttpResponse::Ok().json(ApiResponse::success(response)))
     } else {
         warn!("Provider budget not found for deletion: {}", provider_name);
-        Ok(HttpResponse::NotFound()
-            .json(ApiResponse::<()>::error(format!("Provider budget not found: {}", provider_name))))
+        Ok(
+            HttpResponse::NotFound().json(ApiResponse::<()>::error(format!(
+                "Provider budget not found: {}",
+                provider_name
+            ))),
+        )
     }
 }
 
@@ -346,7 +369,10 @@ pub async fn reset_provider_budget(
 ) -> ActixResult<HttpResponse> {
     let provider_name = path.into_inner();
 
-    if budget_limits.providers.reset_provider_budget(&provider_name) {
+    if budget_limits
+        .providers
+        .reset_provider_budget(&provider_name)
+    {
         info!("Reset provider budget for '{}'", provider_name);
 
         match budget_limits.providers.get_provider_usage(&provider_name) {
@@ -369,15 +395,20 @@ pub async fn reset_provider_budget(
                 };
                 Ok(HttpResponse::Ok().json(ApiResponse::success(response)))
             }
-            None => {
-                Ok(HttpResponse::InternalServerError()
-                    .json(ApiResponse::<()>::error("Failed to retrieve budget after reset".to_string())))
-            }
+            None => Ok(
+                HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                    "Failed to retrieve budget after reset".to_string(),
+                )),
+            ),
         }
     } else {
         warn!("Provider budget not found for reset: {}", provider_name);
-        Ok(HttpResponse::NotFound()
-            .json(ApiResponse::<()>::error(format!("Provider budget not found: {}", provider_name))))
+        Ok(
+            HttpResponse::NotFound().json(ApiResponse::<()>::error(format!(
+                "Provider budget not found: {}",
+                provider_name
+            ))),
+        )
     }
 }
 
@@ -390,18 +421,21 @@ pub async fn set_model_budget(
 ) -> ActixResult<HttpResponse> {
     // Validate request
     if request.model.trim().is_empty() {
-        return Ok(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error("Model name cannot be empty".to_string())));
+        return Ok(HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "Model name cannot be empty".to_string(),
+        )));
     }
 
     if request.max_budget <= 0.0 {
-        return Ok(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error("max_budget must be greater than 0".to_string())));
+        return Ok(HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "max_budget must be greater than 0".to_string(),
+        )));
     }
 
     if request.soft_limit_percentage < 0.0 || request.soft_limit_percentage > 1.0 {
-        return Ok(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error("soft_limit_percentage must be between 0.0 and 1.0".to_string())));
+        return Ok(HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "soft_limit_percentage must be between 0.0 and 1.0".to_string(),
+        )));
     }
 
     let config = ModelLimitConfig {
@@ -439,8 +473,11 @@ pub async fn set_model_budget(
         }
         None => {
             error!("Failed to retrieve model budget after creation");
-            Ok(HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error("Failed to retrieve budget".to_string())))
+            Ok(
+                HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                    "Failed to retrieve budget".to_string(),
+                )),
+            )
         }
     }
 }
@@ -510,8 +547,12 @@ pub async fn get_model_budget(
         }
         None => {
             warn!("Model budget not found: {}", model_name);
-            Ok(HttpResponse::NotFound()
-                .json(ApiResponse::<()>::error(format!("Model budget not found: {}", model_name))))
+            Ok(
+                HttpResponse::NotFound().json(ApiResponse::<()>::error(format!(
+                    "Model budget not found: {}",
+                    model_name
+                ))),
+            )
         }
     }
 }
@@ -532,8 +573,12 @@ pub async fn delete_model_budget(
         Ok(HttpResponse::Ok().json(ApiResponse::success(response)))
     } else {
         warn!("Model budget not found for deletion: {}", model_name);
-        Ok(HttpResponse::NotFound()
-            .json(ApiResponse::<()>::error(format!("Model budget not found: {}", model_name))))
+        Ok(
+            HttpResponse::NotFound().json(ApiResponse::<()>::error(format!(
+                "Model budget not found: {}",
+                model_name
+            ))),
+        )
     }
 }
 
@@ -567,15 +612,20 @@ pub async fn reset_model_budget(
                 };
                 Ok(HttpResponse::Ok().json(ApiResponse::success(response)))
             }
-            None => {
-                Ok(HttpResponse::InternalServerError()
-                    .json(ApiResponse::<()>::error("Failed to retrieve budget after reset".to_string())))
-            }
+            None => Ok(
+                HttpResponse::InternalServerError().json(ApiResponse::<()>::error(
+                    "Failed to retrieve budget after reset".to_string(),
+                )),
+            ),
         }
     } else {
         warn!("Model budget not found for reset: {}", model_name);
-        Ok(HttpResponse::NotFound()
-            .json(ApiResponse::<()>::error(format!("Model budget not found: {}", model_name))))
+        Ok(
+            HttpResponse::NotFound().json(ApiResponse::<()>::error(format!(
+                "Model budget not found: {}",
+                model_name
+            ))),
+        )
     }
 }
 
@@ -627,8 +677,14 @@ pub fn configure_budget_routes(cfg: &mut web::ServiceConfig) {
             .route("/providers", web::post().to(set_provider_budget))
             .route("/providers", web::get().to(list_provider_budgets))
             .route("/providers/{name}", web::get().to(get_provider_budget))
-            .route("/providers/{name}", web::delete().to(delete_provider_budget))
-            .route("/providers/{name}/reset", web::post().to(reset_provider_budget))
+            .route(
+                "/providers/{name}",
+                web::delete().to(delete_provider_budget),
+            )
+            .route(
+                "/providers/{name}/reset",
+                web::post().to(reset_provider_budget),
+            )
             // Model budget routes
             .route("/models", web::post().to(set_model_budget))
             .route("/models", web::get().to(list_model_budgets))
@@ -636,14 +692,14 @@ pub fn configure_budget_routes(cfg: &mut web::ServiceConfig) {
             .route("/models/{name}", web::delete().to(delete_model_budget))
             .route("/models/{name}/reset", web::post().to(reset_model_budget))
             // Summary
-            .route("/summary", web::get().to(get_budget_summary))
+            .route("/summary", web::get().to(get_budget_summary)),
     );
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_web::{test, App};
+    use actix_web::{App, test};
 
     #[actix_web::test]
     async fn test_set_provider_budget() {
@@ -651,7 +707,7 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(budget_limits))
-                .configure(configure_budget_routes)
+                .configure(configure_budget_routes),
         )
         .await;
 
@@ -679,7 +735,7 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(budget_limits))
-                .configure(configure_budget_routes)
+                .configure(configure_budget_routes),
         )
         .await;
 
@@ -735,7 +791,7 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(budget_limits))
-                .configure(configure_budget_routes)
+                .configure(configure_budget_routes),
         )
         .await;
 
@@ -758,7 +814,7 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(budget_limits))
-                .configure(configure_budget_routes)
+                .configure(configure_budget_routes),
         )
         .await;
 
@@ -776,7 +832,7 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(budget_limits))
-                .configure(configure_budget_routes)
+                .configure(configure_budget_routes),
         )
         .await;
 
@@ -799,7 +855,7 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(budget_limits))
-                .configure(configure_budget_routes)
+                .configure(configure_budget_routes),
         )
         .await;
 
@@ -817,7 +873,7 @@ mod tests {
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(budget_limits))
-                .configure(configure_budget_routes)
+                .configure(configure_budget_routes),
         )
         .await;
 
@@ -842,15 +898,14 @@ mod tests {
     #[actix_web::test]
     async fn test_list_model_budgets() {
         let budget_limits = Arc::new(UnifiedBudgetLimits::new());
-        budget_limits.models.set_model_limit(
-            "gpt-4",
-            ModelLimitConfig::new(500.0, ResetPeriod::Monthly),
-        );
+        budget_limits
+            .models
+            .set_model_limit("gpt-4", ModelLimitConfig::new(500.0, ResetPeriod::Monthly));
 
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(budget_limits))
-                .configure(configure_budget_routes)
+                .configure(configure_budget_routes),
         )
         .await;
 
@@ -869,15 +924,14 @@ mod tests {
             "openai",
             ProviderLimitConfig::new(1000.0, ResetPeriod::Monthly),
         );
-        budget_limits.models.set_model_limit(
-            "gpt-4",
-            ModelLimitConfig::new(500.0, ResetPeriod::Monthly),
-        );
+        budget_limits
+            .models
+            .set_model_limit("gpt-4", ModelLimitConfig::new(500.0, ResetPeriod::Monthly));
 
         let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(budget_limits))
-                .configure(configure_budget_routes)
+                .configure(configure_budget_routes),
         )
         .await;
 

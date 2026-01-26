@@ -165,7 +165,10 @@ pub trait SessionStore: Send + Sync {
     async fn set_state(&self, state: OAuthState) -> Result<(), SessionError>;
 
     /// Retrieve and remove an OAuth state
-    async fn get_and_delete_state(&self, state_id: &str) -> Result<Option<OAuthState>, SessionError>;
+    async fn get_and_delete_state(
+        &self,
+        state_id: &str,
+    ) -> Result<Option<OAuthState>, SessionError>;
 
     /// Get all sessions for a user
     async fn get_user_sessions(&self, user_email: &str) -> Result<Vec<OAuthSession>, SessionError>;
@@ -289,7 +292,10 @@ impl SessionStore for InMemorySessionStore {
         Ok(())
     }
 
-    async fn get_and_delete_state(&self, state_id: &str) -> Result<Option<OAuthState>, SessionError> {
+    async fn get_and_delete_state(
+        &self,
+        state_id: &str,
+    ) -> Result<Option<OAuthState>, SessionError> {
         match self.states.remove(state_id) {
             Some((_, state)) => {
                 if state.is_expired() {
@@ -306,7 +312,9 @@ impl SessionStore for InMemorySessionStore {
         let sessions: Vec<OAuthSession> = self
             .sessions
             .iter()
-            .filter(|entry| entry.value().user_info.email == user_email && !entry.value().is_expired())
+            .filter(|entry| {
+                entry.value().user_info.email == user_email && !entry.value().is_expired()
+            })
             .map(|entry| entry.value().clone())
             .collect();
         Ok(sessions)
@@ -372,8 +380,8 @@ pub struct RedisSessionStore {
 impl RedisSessionStore {
     /// Create a new Redis session store
     pub fn new(redis_url: &str) -> Result<Self, SessionError> {
-        let client = redis::Client::open(redis_url)
-            .map_err(|e| SessionError::Connection(e.to_string()))?;
+        let client =
+            redis::Client::open(redis_url).map_err(|e| SessionError::Connection(e.to_string()))?;
 
         Ok(Self {
             client,
@@ -545,7 +553,10 @@ impl SessionStore for RedisSessionStore {
         Ok(())
     }
 
-    async fn get_and_delete_state(&self, state_id: &str) -> Result<Option<OAuthState>, SessionError> {
+    async fn get_and_delete_state(
+        &self,
+        state_id: &str,
+    ) -> Result<Option<OAuthState>, SessionError> {
         use redis::AsyncCommands;
 
         let mut conn = self
@@ -647,8 +658,7 @@ mod tests {
     use super::*;
 
     fn create_test_user_info() -> UserInfo {
-        UserInfo::new("123", "test@example.com", "google")
-            .with_name("Test User")
+        UserInfo::new("123", "test@example.com", "google").with_name("Test User")
     }
 
     fn create_test_session() -> OAuthSession {
@@ -681,7 +691,10 @@ mod tests {
         )
         .with_refresh_token("refresh_token")
         .with_id_token("id_token")
-        .with_client_info(Some("127.0.0.1".to_string()), Some("Mozilla/5.0".to_string()))
+        .with_client_info(
+            Some("127.0.0.1".to_string()),
+            Some("Mozilla/5.0".to_string()),
+        )
         .with_internal_user_id(Uuid::new_v4())
         .with_role("admin");
 
@@ -785,7 +798,10 @@ mod tests {
         let user_sessions = store.get_user_sessions("user@example.com").await.unwrap();
         assert_eq!(user_sessions.len(), 2);
 
-        let deleted = store.delete_user_sessions("user@example.com").await.unwrap();
+        let deleted = store
+            .delete_user_sessions("user@example.com")
+            .await
+            .unwrap();
         assert_eq!(deleted, 2);
 
         let after_delete = store.get_user_sessions("user@example.com").await.unwrap();
@@ -824,7 +840,10 @@ mod tests {
         store.set_state(expired_state.clone()).await.unwrap();
 
         // Expired state should return None
-        let retrieved = store.get_and_delete_state(&expired_state.state).await.unwrap();
+        let retrieved = store
+            .get_and_delete_state(&expired_state.state)
+            .await
+            .unwrap();
         assert!(retrieved.is_none());
     }
 
@@ -841,6 +860,10 @@ mod tests {
     fn test_session_error_display() {
         assert_eq!(SessionError::NotFound.to_string(), "Session not found");
         assert_eq!(SessionError::Expired.to_string(), "Session expired");
-        assert!(SessionError::Storage("test".to_string()).to_string().contains("test"));
+        assert!(
+            SessionError::Storage("test".to_string())
+                .to_string()
+                .contains("test")
+        );
     }
 }

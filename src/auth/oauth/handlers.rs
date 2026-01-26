@@ -198,7 +198,11 @@ pub async fn oauth_login(
     if let Some(ip) = req.connection_info().peer_addr() {
         state = state.with_data("client_ip", ip.to_string());
     }
-    if let Some(ua) = req.headers().get("User-Agent").and_then(|h| h.to_str().ok()) {
+    if let Some(ua) = req
+        .headers()
+        .get("User-Agent")
+        .and_then(|h| h.to_str().ok())
+    {
         state = state.with_data("user_agent", ua.to_string());
     }
 
@@ -235,7 +239,10 @@ pub async fn oauth_callback(
         warn!(
             "OAuth error from provider: {} - {}",
             error,
-            query.error_description.as_deref().unwrap_or("No description")
+            query
+                .error_description
+                .as_deref()
+                .unwrap_or("No description")
         );
         return Ok(HttpResponse::BadRequest().json(ErrorResponse::new(
             error.clone(),
@@ -287,10 +294,9 @@ pub async fn oauth_callback(
     // Validate callback parameters
     if let Err(e) = client.validate_callback(&query, &stored_state) {
         warn!("OAuth callback validation failed: {}", e);
-        return Ok(HttpResponse::BadRequest().json(ErrorResponse::new(
-            "validation_error",
-            e.to_string(),
-        )));
+        return Ok(
+            HttpResponse::BadRequest().json(ErrorResponse::new("validation_error", e.to_string()))
+        );
     }
 
     // Exchange code for tokens
@@ -590,9 +596,13 @@ mod tests {
 
     #[test]
     fn test_login_query_deserialization() {
-        let json = r#"{"redirect_uri": "https://app.example.com", "login_hint": "user@example.com"}"#;
+        let json =
+            r#"{"redirect_uri": "https://app.example.com", "login_hint": "user@example.com"}"#;
         let query: LoginQuery = serde_json::from_str(json).unwrap();
-        assert_eq!(query.redirect_uri, Some("https://app.example.com".to_string()));
+        assert_eq!(
+            query.redirect_uri,
+            Some("https://app.example.com".to_string())
+        );
         assert_eq!(query.login_hint, Some("user@example.com".to_string()));
     }
 

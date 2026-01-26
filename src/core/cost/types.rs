@@ -257,16 +257,20 @@ impl CostTracker {
 
     /// Get most expensive request
     pub fn most_expensive_request(&self) -> Option<&CostBreakdown> {
-        self.request_costs
-            .iter()
-            .max_by(|a, b| a.total_cost.partial_cmp(&b.total_cost).unwrap_or(std::cmp::Ordering::Equal))
+        self.request_costs.iter().max_by(|a, b| {
+            a.total_cost
+                .partial_cmp(&b.total_cost)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
     }
 
     /// Get cheapest request
     pub fn cheapest_request(&self) -> Option<&CostBreakdown> {
-        self.request_costs
-            .iter()
-            .min_by(|a, b| a.total_cost.partial_cmp(&b.total_cost).unwrap_or(std::cmp::Ordering::Equal))
+        self.request_costs.iter().min_by(|a, b| {
+            a.total_cost
+                .partial_cmp(&b.total_cost)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
     }
 
     /// Get cost summary

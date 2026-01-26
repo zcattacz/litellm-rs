@@ -28,8 +28,7 @@ impl ProviderConfig for PoeConfig {
     fn validate(&self) -> Result<(), String> {
         if self.api_key.is_none() && std::env::var("POE_API_KEY").is_err() {
             return Err(
-                "Poe API key not provided and POE_API_KEY environment variable not set"
-                    .to_string(),
+                "Poe API key not provided and POE_API_KEY environment variable not set".to_string(),
             );
         }
         if self.timeout == 0 {

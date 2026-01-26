@@ -17,15 +17,21 @@ mod integration_tests {
         // Add multiple providers
         config.add_provider(
             "google",
-            OAuthConfig::google("google_client_id", "https://app.example.com/oauth/google/callback")
-                .with_client_secret("google_secret")
-                .add_scope("calendar.readonly"),
+            OAuthConfig::google(
+                "google_client_id",
+                "https://app.example.com/oauth/google/callback",
+            )
+            .with_client_secret("google_secret")
+            .add_scope("calendar.readonly"),
         );
 
         config.add_provider(
             "github",
-            OAuthConfig::github("github_client_id", "https://app.example.com/oauth/github/callback")
-                .with_client_secret("github_secret"),
+            OAuthConfig::github(
+                "github_client_id",
+                "https://app.example.com/oauth/github/callback",
+            )
+            .with_client_secret("github_secret"),
         );
 
         config.add_provider(
@@ -79,10 +85,18 @@ mod integration_tests {
             .with_email_verified(true);
 
         // Create session
-        let session = OAuthSession::new(user_info.clone(), "access_token_123".to_string(), 3600, 7200)
-            .with_refresh_token("refresh_token_456")
-            .with_role("user")
-            .with_client_info(Some("127.0.0.1".to_string()), Some("TestBrowser".to_string()));
+        let session = OAuthSession::new(
+            user_info.clone(),
+            "access_token_123".to_string(),
+            3600,
+            7200,
+        )
+        .with_refresh_token("refresh_token_456")
+        .with_role("user")
+        .with_client_info(
+            Some("127.0.0.1".to_string()),
+            Some("TestBrowser".to_string()),
+        );
 
         let session_id = session.session_id.clone();
 
@@ -142,8 +156,7 @@ mod integration_tests {
         // Create multiple sessions for same user
         for i in 0..3 {
             let user_info = UserInfo::new(format!("user{}", i), email, "google");
-            let session =
-                OAuthSession::new(user_info, format!("token{}", i), 3600, 7200);
+            let session = OAuthSession::new(user_info, format!("token{}", i), 3600, 7200);
             store.set(session).await.unwrap();
         }
 
@@ -302,10 +315,22 @@ mod integration_tests {
 
     #[test]
     fn test_oauth_provider_from_string() {
-        assert_eq!("google".parse::<OAuthProvider>().unwrap(), OAuthProvider::Google);
-        assert_eq!("GOOGLE".parse::<OAuthProvider>().unwrap(), OAuthProvider::Google);
-        assert_eq!("azure".parse::<OAuthProvider>().unwrap(), OAuthProvider::Microsoft);
-        assert_eq!("entra".parse::<OAuthProvider>().unwrap(), OAuthProvider::Microsoft);
+        assert_eq!(
+            "google".parse::<OAuthProvider>().unwrap(),
+            OAuthProvider::Google
+        );
+        assert_eq!(
+            "GOOGLE".parse::<OAuthProvider>().unwrap(),
+            OAuthProvider::Google
+        );
+        assert_eq!(
+            "azure".parse::<OAuthProvider>().unwrap(),
+            OAuthProvider::Microsoft
+        );
+        assert_eq!(
+            "entra".parse::<OAuthProvider>().unwrap(),
+            OAuthProvider::Microsoft
+        );
         assert!("unknown_provider".parse::<OAuthProvider>().is_err());
     }
 

@@ -115,8 +115,10 @@ impl BaichuanProvider {
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
         if let Some(api_key) = &self.config.api_key {
-            let auth_value = HeaderValue::from_str(&format!("Bearer {}", api_key))
-                .map_err(|e| ProviderError::configuration(PROVIDER_NAME, format!("Invalid API key: {}", e)))?;
+            let auth_value =
+                HeaderValue::from_str(&format!("Bearer {}", api_key)).map_err(|e| {
+                    ProviderError::configuration(PROVIDER_NAME, format!("Invalid API key: {}", e))
+                })?;
             headers.insert(AUTHORIZATION, auth_value);
         }
 
@@ -290,7 +292,10 @@ impl LLMProvider for BaichuanProvider {
         _model: &str,
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
-        Err(ProviderError::not_implemented(PROVIDER_NAME, "Response transformation not yet implemented"))
+        Err(ProviderError::not_implemented(
+            PROVIDER_NAME,
+            "Response transformation not yet implemented",
+        ))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -307,8 +312,10 @@ impl LLMProvider for BaichuanProvider {
         let model_info = models.iter().find(|m| m.id == model);
 
         if let Some(info) = model_info {
-            let input_cost = info.input_cost_per_1k_tokens.unwrap_or(0.0) * (input_tokens as f64 / 1000.0);
-            let output_cost = info.output_cost_per_1k_tokens.unwrap_or(0.0) * (output_tokens as f64 / 1000.0);
+            let input_cost =
+                info.input_cost_per_1k_tokens.unwrap_or(0.0) * (input_tokens as f64 / 1000.0);
+            let output_cost =
+                info.output_cost_per_1k_tokens.unwrap_or(0.0) * (output_tokens as f64 / 1000.0);
             Ok(input_cost + output_cost)
         } else {
             Ok(0.0)
@@ -332,7 +339,10 @@ impl LLMProvider for BaichuanProvider {
         _request: ChatRequest,
         _context: RequestContext,
     ) -> Result<ChatResponse, Self::Error> {
-        Err(ProviderError::not_implemented(PROVIDER_NAME, "Chat completion not yet implemented"))
+        Err(ProviderError::not_implemented(
+            PROVIDER_NAME,
+            "Chat completion not yet implemented",
+        ))
     }
 
     async fn chat_completion_stream(
@@ -341,7 +351,10 @@ impl LLMProvider for BaichuanProvider {
         _context: RequestContext,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error>
     {
-        Err(ProviderError::not_implemented(PROVIDER_NAME, "Streaming not yet implemented"))
+        Err(ProviderError::not_implemented(
+            PROVIDER_NAME,
+            "Streaming not yet implemented",
+        ))
     }
 
     async fn embeddings(
@@ -357,7 +370,10 @@ impl LLMProvider for BaichuanProvider {
         _request: ImageGenerationRequest,
         _context: RequestContext,
     ) -> Result<ImageGenerationResponse, Self::Error> {
-        Err(ProviderError::not_supported(PROVIDER_NAME, "Image generation"))
+        Err(ProviderError::not_supported(
+            PROVIDER_NAME,
+            "Image generation",
+        ))
     }
 }
 
@@ -439,7 +455,10 @@ mod tests {
         assert_eq!(turbo.max_context_length, 32000);
         assert_eq!(turbo.currency, "CNY");
 
-        let turbo_192k = models.iter().find(|m| m.id == "Baichuan2-Turbo-192k").unwrap();
+        let turbo_192k = models
+            .iter()
+            .find(|m| m.id == "Baichuan2-Turbo-192k")
+            .unwrap();
         assert_eq!(turbo_192k.max_context_length, 192000);
 
         let model_53b = models.iter().find(|m| m.id == "Baichuan2-53B").unwrap();
@@ -455,11 +474,17 @@ mod tests {
         let provider = BaichuanProvider::new(config).unwrap();
 
         // Test Baichuan2-Turbo cost calculation
-        let cost = provider.calculate_cost("Baichuan2-Turbo", 1000, 1000).await.unwrap();
+        let cost = provider
+            .calculate_cost("Baichuan2-Turbo", 1000, 1000)
+            .await
+            .unwrap();
         assert_eq!(cost, 0.016); // (0.008 * 1) + (0.008 * 1)
 
         // Test Baichuan2-Turbo-192k cost calculation
-        let cost = provider.calculate_cost("Baichuan2-Turbo-192k", 1000, 1000).await.unwrap();
+        let cost = provider
+            .calculate_cost("Baichuan2-Turbo-192k", 1000, 1000)
+            .await
+            .unwrap();
         assert_eq!(cost, 0.032); // (0.016 * 1) + (0.016 * 1)
     }
 

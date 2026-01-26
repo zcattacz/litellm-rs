@@ -225,11 +225,8 @@ mod tests {
 
         // Decode and verify
         let encoded = auth.strip_prefix("Basic ").unwrap();
-        let decoded = base64::Engine::decode(
-            &base64::engine::general_purpose::STANDARD,
-            encoded,
-        )
-        .unwrap();
+        let decoded =
+            base64::Engine::decode(&base64::engine::general_purpose::STANDARD, encoded).unwrap();
         let credentials = String::from_utf8(decoded).unwrap();
         assert_eq!(credentials, "pk-test:sk-test");
     }

@@ -5,11 +5,11 @@ use super::types::{
     ListKeysQuery, ListKeysResponse, PaginationInfo, RevokeKeyResponse, RotateKeyResponse,
     UpdateKeyRequest, VerifyKeyRequest, VerifyKeyResponse,
 };
-use crate::core::keys::{CreateKeyConfig, KeyStatus, UpdateKeyConfig};
 use crate::core::keys::KeyManager;
+use crate::core::keys::{CreateKeyConfig, KeyStatus, UpdateKeyConfig};
 use crate::server::routes::ApiResponse;
 use crate::server::state::AppState;
-use actix_web::{web, HttpResponse, Result as ActixResult};
+use actix_web::{HttpResponse, Result as ActixResult, web};
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
@@ -88,7 +88,9 @@ pub async fn list_keys(
     } else if let Some(team_id) = query.team_id {
         key_manager.list_team_keys(team_id).await
     } else {
-        key_manager.list_keys(query.status, Some(limit), Some(offset)).await
+        key_manager
+            .list_keys(query.status, Some(limit), Some(offset))
+            .await
     };
 
     match keys {
@@ -247,10 +249,7 @@ pub async fn rotate_key(
                     actix_web::error::ErrorInternalServerError("New key not found after rotation")
                 })?;
 
-            info!(
-                "API key rotated successfully: {} -> {}",
-                key_id, new_key_id
-            );
+            info!("API key rotated successfully: {} -> {}", key_id, new_key_id);
 
             let response = RotateKeyResponse {
                 old_key_id: key_id,
@@ -337,9 +336,7 @@ pub async fn verify_key(
 ///
 /// Note: This is a placeholder. In a real implementation, the KeyManager
 /// would be stored in AppState or created with the appropriate repository.
-fn get_key_manager(
-    _state: &web::Data<AppState>,
-) -> ActixResult<KeyManager> {
+fn get_key_manager(_state: &web::Data<AppState>) -> ActixResult<KeyManager> {
     // In production, this would retrieve the KeyManager from AppState
     // For now, we create a new one with an in-memory repository
     use crate::core::keys::InMemoryKeyRepository;

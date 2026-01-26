@@ -140,7 +140,9 @@ pub fn create_multipart_form(
     let file_part = multipart::Part::bytes(request.file.clone())
         .file_name(filename)
         .mime_str(mime_type)
-        .map_err(|e| ProviderError::invalid_request(PROVIDER_NAME, format!("Invalid MIME type: {}", e)))?;
+        .map_err(|e| {
+            ProviderError::invalid_request(PROVIDER_NAME, format!("Invalid MIME type: {}", e))
+        })?;
     form = form.part("file", file_part);
 
     // Add model_id

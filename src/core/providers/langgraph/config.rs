@@ -241,10 +241,7 @@ mod tests {
         let config = LangGraphConfig::with_api_key("test-key");
 
         assert_eq!(config.api_key(), Some("test-key"));
-        assert_eq!(
-            config.api_base(),
-            Some("https://api.smith.langchain.com")
-        );
+        assert_eq!(config.api_base(), Some("https://api.smith.langchain.com"));
         assert_eq!(config.timeout(), Duration::from_secs(120));
         assert_eq!(config.max_retries(), 3);
     }

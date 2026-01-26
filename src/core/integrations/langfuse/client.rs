@@ -102,10 +102,7 @@ impl LangfuseClient {
 
         // Debug mode - log instead of sending
         if self.config.debug {
-            debug!(
-                "Langfuse debug mode - would send {} events",
-                batch.len()
-            );
+            debug!("Langfuse debug mode - would send {} events", batch.len());
             for event in &batch.batch {
                 debug!("Event: {:?}", event);
             }

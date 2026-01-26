@@ -270,11 +270,7 @@ pub struct CostCalculator;
 
 impl CostCalculator {
     /// Calculate cost for a request
-    pub fn calculate_cost(
-        model_id: &str,
-        input_tokens: u32,
-        output_tokens: u32,
-    ) -> Option<f64> {
+    pub fn calculate_cost(model_id: &str, input_tokens: u32, output_tokens: u32) -> Option<f64> {
         let registry = get_spark_registry();
         let spec = registry.get_model_spec(model_id)?;
 

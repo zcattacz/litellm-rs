@@ -122,8 +122,10 @@ impl DeepInfraProvider {
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
         if let Some(api_key) = &self.config.api_key {
-            let auth_value = HeaderValue::from_str(&format!("Bearer {}", api_key))
-                .map_err(|e| ProviderError::configuration("deepinfra", format!("Invalid API key: {}", e)))?;
+            let auth_value =
+                HeaderValue::from_str(&format!("Bearer {}", api_key)).map_err(|e| {
+                    ProviderError::configuration("deepinfra", format!("Invalid API key: {}", e))
+                })?;
             headers.insert(AUTHORIZATION, auth_value);
         }
 
@@ -290,11 +292,14 @@ impl LLMProvider for DeepInfraProvider {
         model: &str,
         request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
-        let response_text = std::str::from_utf8(raw_response)
-            .map_err(|e| ProviderError::serialization("deepinfra", format!("Invalid UTF-8: {}", e)))?;
+        let response_text = std::str::from_utf8(raw_response).map_err(|e| {
+            ProviderError::serialization("deepinfra", format!("Invalid UTF-8: {}", e))
+        })?;
 
-        let _response_json: serde_json::Value = serde_json::from_str(response_text)
-            .map_err(|e| ProviderError::serialization("deepinfra", format!("Invalid JSON: {}", e)))?;
+        let _response_json: serde_json::Value =
+            serde_json::from_str(response_text).map_err(|e| {
+                ProviderError::serialization("deepinfra", format!("Invalid JSON: {}", e))
+            })?;
 
         // Basic response structure - would need full implementation
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -366,7 +371,10 @@ impl LLMProvider for DeepInfraProvider {
 
         // Transform to ChatResponse
         let chat_response: ChatResponse = serde_json::from_value(response_json).map_err(|e| {
-            ProviderError::serialization("deepinfra", format!("Failed to parse ChatResponse: {}", e))
+            ProviderError::serialization(
+                "deepinfra",
+                format!("Failed to parse ChatResponse: {}", e),
+            )
         })?;
 
         Ok(chat_response)
@@ -399,7 +407,10 @@ impl LLMProvider for DeepInfraProvider {
         _request: ImageGenerationRequest,
         _context: RequestContext,
     ) -> Result<ImageGenerationResponse, Self::Error> {
-        Err(ProviderError::not_supported("deepinfra", "Image generation"))
+        Err(ProviderError::not_supported(
+            "deepinfra",
+            "Image generation",
+        ))
     }
 }
 
@@ -565,7 +576,9 @@ mod tests {
             Some(1)
         );
         assert!(
-            ProviderError::rate_limit("deepinfra", Some(60)).retry_delay().is_some()
+            ProviderError::rate_limit("deepinfra", Some(60))
+                .retry_delay()
+                .is_some()
         );
         assert_eq!(
             ProviderError::api_error("deepinfra", 429, "").retry_delay(),
@@ -607,7 +620,10 @@ mod tests {
             ProviderError::invalid_request("deepinfra", "").http_status(),
             400
         );
-        assert_eq!(ProviderError::rate_limit("deepinfra", None).http_status(), 429);
+        assert_eq!(
+            ProviderError::rate_limit("deepinfra", None).http_status(),
+            429
+        );
         assert_eq!(
             ProviderError::model_not_found("deepinfra", "").http_status(),
             404

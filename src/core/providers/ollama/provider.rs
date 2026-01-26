@@ -12,8 +12,8 @@ use tracing::debug;
 use super::config::OllamaConfig;
 use super::model_info::{OllamaModelInfo, OllamaShowResponse, OllamaTagsResponse, get_model_info};
 use super::streaming::OllamaStream;
-use crate::core::providers::unified_provider::ProviderError;
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::error_mapper::types::GenericErrorMapper;
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,

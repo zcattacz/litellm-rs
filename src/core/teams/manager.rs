@@ -253,10 +253,7 @@ impl TeamManager {
             .get_member(team_id, user_id)
             .await?
             .ok_or_else(|| {
-                GatewayError::NotFound(format!(
-                    "Member {} not found in team {}",
-                    user_id, team_id
-                ))
+                GatewayError::NotFound(format!("Member {} not found in team {}", user_id, team_id))
             })
     }
 
@@ -276,7 +273,10 @@ impl TeamManager {
         let _member = self.get_member(team_id, user_id).await?;
 
         // Prevent removing the last owner
-        if matches!(request.role, TeamRole::Member | TeamRole::Viewer | TeamRole::Manager) {
+        if matches!(
+            request.role,
+            TeamRole::Member | TeamRole::Viewer | TeamRole::Manager
+        ) {
             let members = self.repository.list_members(team_id).await?;
             let owner_count = members
                 .iter()
@@ -398,9 +398,9 @@ impl TeamManager {
 
         match member {
             Some(m) => {
-                let has_role = required_roles.iter().any(|r| {
-                    std::mem::discriminant(r) == std::mem::discriminant(&m.role)
-                });
+                let has_role = required_roles
+                    .iter()
+                    .any(|r| std::mem::discriminant(r) == std::mem::discriminant(&m.role));
                 Ok(has_role)
             }
             None => Ok(false),
@@ -559,7 +559,10 @@ mod tests {
             status: None,
         };
 
-        let updated = manager.update_team(created.id(), update_request).await.unwrap();
+        let updated = manager
+            .update_team(created.id(), update_request)
+            .await
+            .unwrap();
         assert_eq!(updated.display_name, Some("Updated Display".to_string()));
         assert_eq!(updated.description, Some("Updated description".to_string()));
     }
@@ -620,7 +623,10 @@ mod tests {
             role: TeamRole::Member,
         };
 
-        let member = manager.add_member(team.id(), add_request, None).await.unwrap();
+        let member = manager
+            .add_member(team.id(), add_request, None)
+            .await
+            .unwrap();
         assert_eq!(member.user_id, user_id);
         assert!(matches!(member.role, TeamRole::Member));
     }
@@ -643,7 +649,10 @@ mod tests {
             user_id,
             role: TeamRole::Member,
         };
-        manager.add_member(team.id(), add_request, None).await.unwrap();
+        manager
+            .add_member(team.id(), add_request, None)
+            .await
+            .unwrap();
 
         let update_request = UpdateRoleRequest {
             role: TeamRole::Admin,
@@ -675,7 +684,10 @@ mod tests {
             user_id: owner_id,
             role: TeamRole::Owner,
         };
-        manager.add_member(team.id(), owner_request, None).await.unwrap();
+        manager
+            .add_member(team.id(), owner_request, None)
+            .await
+            .unwrap();
 
         // Add regular member
         let member_id = Uuid::new_v4();
@@ -683,7 +695,10 @@ mod tests {
             user_id: member_id,
             role: TeamRole::Member,
         };
-        manager.add_member(team.id(), member_request, None).await.unwrap();
+        manager
+            .add_member(team.id(), member_request, None)
+            .await
+            .unwrap();
 
         // Remove regular member
         manager.remove_member(team.id(), member_id).await.unwrap();
@@ -710,7 +725,10 @@ mod tests {
             user_id: owner_id,
             role: TeamRole::Owner,
         };
-        manager.add_member(team.id(), add_request, None).await.unwrap();
+        manager
+            .add_member(team.id(), add_request, None)
+            .await
+            .unwrap();
 
         // Try to remove the only owner
         let result = manager.remove_member(team.id(), owner_id).await;
@@ -735,7 +753,10 @@ mod tests {
                 user_id: Uuid::new_v4(),
                 role: TeamRole::Member,
             };
-            manager.add_member(team.id(), add_request, None).await.unwrap();
+            manager
+                .add_member(team.id(), add_request, None)
+                .await
+                .unwrap();
         }
 
         let members = manager.list_members(team.id()).await.unwrap();
@@ -759,7 +780,10 @@ mod tests {
             user_id: Uuid::new_v4(),
             role: TeamRole::Member,
         };
-        manager.add_member(team.id(), add_request, None).await.unwrap();
+        manager
+            .add_member(team.id(), add_request, None)
+            .await
+            .unwrap();
 
         let usage = manager.get_team_usage(team.id()).await.unwrap();
         assert_eq!(usage.team_name, "usage-test");
@@ -786,13 +810,19 @@ mod tests {
             user_id: admin_id,
             role: TeamRole::Admin,
         };
-        manager.add_member(team.id(), admin_request, None).await.unwrap();
+        manager
+            .add_member(team.id(), admin_request, None)
+            .await
+            .unwrap();
 
         let member_request = AddMemberRequest {
             user_id: member_id,
             role: TeamRole::Member,
         };
-        manager.add_member(team.id(), member_request, None).await.unwrap();
+        manager
+            .add_member(team.id(), member_request, None)
+            .await
+            .unwrap();
 
         assert!(manager.is_team_admin(team.id(), admin_id).await.unwrap());
         assert!(!manager.is_team_admin(team.id(), member_id).await.unwrap());

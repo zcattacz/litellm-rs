@@ -73,7 +73,11 @@ pub struct UserInfo {
 
 impl UserInfo {
     /// Create a new UserInfo with required fields
-    pub fn new(id: impl Into<String>, email: impl Into<String>, provider: impl Into<String>) -> Self {
+    pub fn new(
+        id: impl Into<String>,
+        email: impl Into<String>,
+        provider: impl Into<String>,
+    ) -> Self {
         Self {
             id: id.into(),
             email: email.into(),
@@ -199,7 +203,9 @@ impl OAuthState {
 
     /// Get the PKCE code challenge
     pub fn code_challenge(&self) -> Option<String> {
-        self.code_verifier.as_ref().map(|v| generate_pkce_challenge(v))
+        self.code_verifier
+            .as_ref()
+            .map(|v| generate_pkce_challenge(v))
     }
 }
 
@@ -445,7 +451,10 @@ mod tests {
         assert_eq!(user.email, "test@example.com");
         assert_eq!(user.provider, "google");
         assert_eq!(user.name, Some("Test User".to_string()));
-        assert_eq!(user.picture, Some("https://example.com/pic.jpg".to_string()));
+        assert_eq!(
+            user.picture,
+            Some("https://example.com/pic.jpg".to_string())
+        );
         assert!(user.email_verified);
         assert!(user.extra_claims.contains_key("locale"));
     }
@@ -488,7 +497,10 @@ mod tests {
             .with_ttl(300)
             .with_data("flow", "login");
 
-        assert_eq!(state.redirect_uri, Some("https://app.example.com/callback".to_string()));
+        assert_eq!(
+            state.redirect_uri,
+            Some("https://app.example.com/callback".to_string())
+        );
         assert_eq!(state.ttl_seconds, 300);
         assert_eq!(state.extra_data.get("flow"), Some(&"login".to_string()));
     }

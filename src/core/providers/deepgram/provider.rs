@@ -38,7 +38,10 @@ impl DeepgramProvider {
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ProviderError::configuration(PROVIDER_NAME, format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration(
+                PROVIDER_NAME,
+                format!("Failed to create pool manager: {}", e),
+            )
         })?);
 
         // Build model list
@@ -247,16 +250,21 @@ impl DeepgramProvider {
         }
 
         // Parse response
-        let response_text = response
-            .text()
-            .await
-            .map_err(|e| ProviderError::response_parsing(PROVIDER_NAME, format!("Failed to read response: {}", e)))?;
+        let response_text = response.text().await.map_err(|e| {
+            ProviderError::response_parsing(
+                PROVIDER_NAME,
+                format!("Failed to read response: {}", e),
+            )
+        })?;
 
         let deepgram_response: DeepgramResponse =
             serde_json::from_str(&response_text).map_err(|e| {
                 ProviderError::response_parsing(
                     PROVIDER_NAME,
-                    format!("Failed to parse response: {}\nResponse: {}", e, response_text),
+                    format!(
+                        "Failed to parse response: {}\nResponse: {}",
+                        e, response_text
+                    ),
                 )
             })?;
 
@@ -302,7 +310,11 @@ impl DeepgramProvider {
             429 => ProviderError::rate_limit(PROVIDER_NAME, Some(60)),
             500 => ProviderError::api_error(PROVIDER_NAME, 500, "Internal server error"),
             502 | 503 => ProviderError::api_error(PROVIDER_NAME, status, "Service unavailable"),
-            _ => ProviderError::api_error(PROVIDER_NAME, status, format!("HTTP error {}: {}", status, message)),
+            _ => ProviderError::api_error(
+                PROVIDER_NAME,
+                status,
+                format!("HTTP error {}: {}", status, message),
+            ),
         }
     }
 

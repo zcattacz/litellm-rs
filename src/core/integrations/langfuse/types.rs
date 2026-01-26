@@ -688,7 +688,10 @@ mod tests {
         let generation = Generation::new("trace-123").error("API rate limited");
 
         assert_eq!(generation.level, Level::Error);
-        assert_eq!(generation.status_message, Some("API rate limited".to_string()));
+        assert_eq!(
+            generation.status_message,
+            Some("API rate limited".to_string())
+        );
         assert!(generation.end_time.is_some());
     }
 
@@ -783,10 +786,7 @@ mod tests {
 
     #[test]
     fn test_trace_serialization() {
-        let trace = Trace::new()
-            .name("test")
-            .user_id("user")
-            .tag("prod");
+        let trace = Trace::new().name("test").user_id("user").tag("prod");
 
         let json = serde_json::to_value(&trace).unwrap();
         assert!(json.get("id").is_some());

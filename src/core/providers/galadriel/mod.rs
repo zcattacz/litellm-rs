@@ -389,7 +389,10 @@ impl LLMProvider for GaladrielProvider {
                 {
                     Ok(response) if response.status().is_success() => HealthStatus::Healthy,
                     Ok(response) => {
-                        debug!("Galadriel health check failed: status={}", response.status());
+                        debug!(
+                            "Galadriel health check failed: status={}",
+                            response.status()
+                        );
                         HealthStatus::Unhealthy
                     }
                     Err(e) => {

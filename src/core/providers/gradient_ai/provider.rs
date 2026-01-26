@@ -11,9 +11,9 @@ use tracing::debug;
 
 use super::config::GradientAIConfig;
 use super::error::GradientAIErrorMapper;
-use crate::core::providers::unified_provider::ProviderError;
 use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEStream};
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
 };
@@ -70,7 +70,10 @@ impl GradientAIProvider {
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ProviderError::configuration("gradient_ai", format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration(
+                "gradient_ai",
+                format!("Failed to create pool manager: {}", e),
+            )
         })?);
 
         // Build default model list
@@ -170,8 +173,13 @@ impl GradientAIProvider {
             .await
             .map_err(|e| ProviderError::network("gradient_ai", e.to_string()))?;
 
-        serde_json::from_slice(&response_bytes)
-            .map_err(|e| ProviderError::api_error("gradient_ai", 500, format!("Failed to parse response: {}", e)))
+        serde_json::from_slice(&response_bytes).map_err(|e| {
+            ProviderError::api_error(
+                "gradient_ai",
+                500,
+                format!("Failed to parse response: {}", e),
+            )
+        })
     }
 }
 
@@ -221,8 +229,13 @@ impl LLMProvider for GradientAIProvider {
         _model: &str,
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
-        serde_json::from_slice(raw_response)
-            .map_err(|e| ProviderError::api_error("gradient_ai", 500, format!("Failed to parse response: {}", e)))
+        serde_json::from_slice(raw_response).map_err(|e| {
+            ProviderError::api_error(
+                "gradient_ai",
+                500,
+                format!("Failed to parse response: {}", e),
+            )
+        })
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -241,8 +254,13 @@ impl LLMProvider for GradientAIProvider {
 
         let response = self.execute_request(&url, request_body).await?;
 
-        serde_json::from_value(response)
-            .map_err(|e| ProviderError::api_error("gradient_ai", 500, format!("Failed to parse chat response: {}", e)))
+        serde_json::from_value(response).map_err(|e| {
+            ProviderError::api_error(
+                "gradient_ai",
+                500,
+                format!("Failed to parse chat response: {}", e),
+            )
+        })
     }
 
     async fn chat_completion_stream(
@@ -255,9 +273,10 @@ impl LLMProvider for GradientAIProvider {
 
         request.stream = true;
 
-        let api_key = self.config.get_api_key().ok_or_else(|| {
-            ProviderError::authentication("gradient_ai", "API key is required")
-        })?;
+        let api_key = self
+            .config
+            .get_api_key()
+            .ok_or_else(|| ProviderError::authentication("gradient_ai", "API key is required"))?;
 
         let url = self.config.get_complete_url();
         let request_body = self.build_request_body(&request);
@@ -301,7 +320,16 @@ impl LLMProvider for GradientAIProvider {
             use futures::StreamExt;
             match stream.next().await {
                 Some(Ok(chunk)) => Some((Ok(chunk), stream)),
-                Some(Err(e)) => Some((Err(ProviderError::streaming_error("gradient_ai", "chat", None, None, e.to_string())), stream)),
+                Some(Err(e)) => Some((
+                    Err(ProviderError::streaming_error(
+                        "gradient_ai",
+                        "chat",
+                        None,
+                        None,
+                        e.to_string(),
+                    )),
+                    stream,
+                )),
                 None => None,
             }
         });

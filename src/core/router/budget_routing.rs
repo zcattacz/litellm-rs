@@ -109,7 +109,12 @@ impl BudgetAwareRouter {
     }
 
     /// Check if a request can be made with the given provider and model
-    pub fn can_make_request(&self, provider: &str, model: &str, estimated_cost: f64) -> RequestBudgetCheck {
+    pub fn can_make_request(
+        &self,
+        provider: &str,
+        model: &str,
+        estimated_cost: f64,
+    ) -> RequestBudgetCheck {
         let provider_check = self.check_provider(provider, estimated_cost);
         let model_check = self.check_model(model, estimated_cost);
 
@@ -131,9 +136,14 @@ impl BudgetAwareRouter {
 
     /// Check provider budget
     fn check_provider(&self, provider: &str, estimated_cost: f64) -> BudgetCheckResult {
-        let can_spend = self.budget_limits.providers.can_provider_spend(provider, estimated_cost);
+        let can_spend = self
+            .budget_limits
+            .providers
+            .can_provider_spend(provider, estimated_cost);
         let status = self.budget_limits.providers.check_provider_budget(provider);
-        let remaining = self.budget_limits.providers
+        let remaining = self
+            .budget_limits
+            .providers
             .get_provider_usage(provider)
             .map(|u| u.remaining)
             .unwrap_or(f64::INFINITY);
@@ -147,9 +157,14 @@ impl BudgetAwareRouter {
 
     /// Check model budget
     fn check_model(&self, model: &str, estimated_cost: f64) -> BudgetCheckResult {
-        let can_spend = self.budget_limits.models.can_model_spend(model, estimated_cost);
+        let can_spend = self
+            .budget_limits
+            .models
+            .can_model_spend(model, estimated_cost);
         let status = self.budget_limits.models.check_model_budget(model);
-        let remaining = self.budget_limits.models
+        let remaining = self
+            .budget_limits
+            .models
             .get_model_usage(model)
             .map(|u| u.remaining)
             .unwrap_or(f64::INFINITY);
@@ -185,7 +200,9 @@ impl BudgetAwareRouter {
         let mut provider_budgets: Vec<(String, f64)> = providers
             .into_iter()
             .filter_map(|p| {
-                let remaining = self.budget_limits.providers
+                let remaining = self
+                    .budget_limits
+                    .providers
                     .get_provider_usage(&p)
                     .map(|u| u.remaining)
                     .unwrap_or(f64::INFINITY);
@@ -233,11 +250,19 @@ pub struct RequestBudgetCheck {
 /// Extension trait for adding budget awareness to routers
 pub trait BudgetAwareRouting {
     /// Filter providers based on budget availability
-    fn filter_by_budget(&self, providers: Vec<String>, budget_router: &BudgetAwareRouter) -> Vec<String>;
+    fn filter_by_budget(
+        &self,
+        providers: Vec<String>,
+        budget_router: &BudgetAwareRouter,
+    ) -> Vec<String>;
 }
 
 impl<T> BudgetAwareRouting for T {
-    fn filter_by_budget(&self, providers: Vec<String>, budget_router: &BudgetAwareRouter) -> Vec<String> {
+    fn filter_by_budget(
+        &self,
+        providers: Vec<String>,
+        budget_router: &BudgetAwareRouter,
+    ) -> Vec<String> {
         budget_router.filter_available_providers(providers)
     }
 }
@@ -245,7 +270,7 @@ impl<T> BudgetAwareRouting for T {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::budget::{ProviderLimitConfig, ModelLimitConfig, ResetPeriod};
+    use crate::core::budget::{ModelLimitConfig, ProviderLimitConfig, ResetPeriod};
 
     fn create_test_router() -> BudgetAwareRouter {
         let limits = Arc::new(UnifiedBudgetLimits::new());
@@ -315,10 +340,9 @@ mod tests {
             "openai",
             ProviderLimitConfig::new(100.0, ResetPeriod::Monthly),
         );
-        limits.models.set_model_limit(
-            "gpt-4",
-            ModelLimitConfig::new(50.0, ResetPeriod::Monthly),
-        );
+        limits
+            .models
+            .set_model_limit("gpt-4", ModelLimitConfig::new(50.0, ResetPeriod::Monthly));
 
         let router = BudgetAwareRouter::new(limits.clone());
 
@@ -343,10 +367,9 @@ mod tests {
             "openai",
             ProviderLimitConfig::new(100.0, ResetPeriod::Monthly),
         );
-        limits.models.set_model_limit(
-            "gpt-4",
-            ModelLimitConfig::new(100.0, ResetPeriod::Monthly),
-        );
+        limits
+            .models
+            .set_model_limit("gpt-4", ModelLimitConfig::new(100.0, ResetPeriod::Monthly));
 
         let router = BudgetAwareRouter::new(limits.clone());
         router.record_spend("openai", "gpt-4", 25.0);
@@ -407,9 +430,9 @@ mod tests {
         );
 
         // Different spend amounts
-        limits.providers.record_provider_spend("openai", 80.0);    // 20 remaining
+        limits.providers.record_provider_spend("openai", 80.0); // 20 remaining
         limits.providers.record_provider_spend("anthropic", 30.0); // 70 remaining
-        limits.providers.record_provider_spend("google", 50.0);    // 50 remaining
+        limits.providers.record_provider_spend("google", 50.0); // 50 remaining
 
         let router = BudgetAwareRouter::new(limits);
 
@@ -423,17 +446,16 @@ mod tests {
 
         // Should be sorted by remaining budget (highest first)
         assert_eq!(sorted[0], "anthropic"); // 70 remaining
-        assert_eq!(sorted[1], "google");    // 50 remaining
-        assert_eq!(sorted[2], "openai");    // 20 remaining
+        assert_eq!(sorted[1], "google"); // 50 remaining
+        assert_eq!(sorted[2], "openai"); // 20 remaining
     }
 
     #[test]
     fn test_filter_available_models() {
         let limits = Arc::new(UnifiedBudgetLimits::new());
-        limits.models.set_model_limit(
-            "gpt-4",
-            ModelLimitConfig::new(100.0, ResetPeriod::Monthly),
-        );
+        limits
+            .models
+            .set_model_limit("gpt-4", ModelLimitConfig::new(100.0, ResetPeriod::Monthly));
         limits.models.set_model_limit(
             "gpt-3.5-turbo",
             ModelLimitConfig::new(100.0, ResetPeriod::Monthly),

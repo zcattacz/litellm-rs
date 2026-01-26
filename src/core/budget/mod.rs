@@ -77,8 +77,8 @@ mod tests;
 pub use alerts::{AlertConfig, AlertStats, BudgetAlertManager, WebhookConfig};
 pub use manager::{BudgetManager, BudgetManagerConfig, BudgetSummary};
 pub use middleware::{
-    BudgetCheckMiddleware, BudgetCheckMiddlewareService, BudgetMiddleware,
-    BudgetMiddlewareService, BudgetRecorder, BudgetRecorderExt,
+    BudgetCheckMiddleware, BudgetCheckMiddlewareService, BudgetMiddleware, BudgetMiddlewareService,
+    BudgetRecorder, BudgetRecorderExt,
 };
 pub use provider_limits::{
     ModelBudgetManager, ModelLimitConfig, ProviderBudgetManager, ProviderLimitConfig,

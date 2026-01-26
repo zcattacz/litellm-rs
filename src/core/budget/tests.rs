@@ -208,14 +208,7 @@ async fn test_budget_recorder() {
 
     // Simulate a request that uses GPT-4
     recorder
-        .record_request_spend(
-            Some("user-1"),
-            None,
-            None,
-            Some("gpt-4"),
-            None,
-            0.05,
-        )
+        .record_request_spend(Some("user-1"), None, None, Some("gpt-4"), None, 0.05)
         .await;
 
     // Check all scopes were updated

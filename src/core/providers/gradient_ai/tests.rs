@@ -151,8 +151,8 @@ mod tests {
 
     #[test]
     fn test_error_mapping() {
-        use crate::core::traits::error_mapper::trait_def::ErrorMapper;
         use crate::core::providers::unified_provider::ProviderError;
+        use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 
         let mapper = error::GradientAIErrorMapper;
 

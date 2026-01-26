@@ -109,8 +109,10 @@ impl VercelAIProvider {
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
         if let Some(api_key) = &self.config.api_key {
-            let auth_value = HeaderValue::from_str(&format!("Bearer {}", api_key))
-                .map_err(|e| ProviderError::configuration("vercel_ai", format!("Invalid API key: {}", e)))?;
+            let auth_value =
+                HeaderValue::from_str(&format!("Bearer {}", api_key)).map_err(|e| {
+                    ProviderError::configuration("vercel_ai", format!("Invalid API key: {}", e))
+                })?;
             headers.insert(AUTHORIZATION, auth_value);
         }
 
@@ -223,7 +225,10 @@ impl LLMProvider for VercelAIProvider {
         _model: &str,
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
-        Err(ProviderError::not_implemented("vercel_ai", "Response transformation not yet implemented"))
+        Err(ProviderError::not_implemented(
+            "vercel_ai",
+            "Response transformation not yet implemented",
+        ))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -256,7 +261,10 @@ impl LLMProvider for VercelAIProvider {
         _request: ChatRequest,
         _context: RequestContext,
     ) -> Result<ChatResponse, Self::Error> {
-        Err(ProviderError::not_implemented("vercel_ai", "Chat completion not yet implemented"))
+        Err(ProviderError::not_implemented(
+            "vercel_ai",
+            "Chat completion not yet implemented",
+        ))
     }
 
     async fn chat_completion_stream(
@@ -265,7 +273,10 @@ impl LLMProvider for VercelAIProvider {
         _context: RequestContext,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error>
     {
-        Err(ProviderError::not_implemented("vercel_ai", "Streaming not yet implemented"))
+        Err(ProviderError::not_implemented(
+            "vercel_ai",
+            "Streaming not yet implemented",
+        ))
     }
 
     async fn embeddings(
@@ -281,7 +292,10 @@ impl LLMProvider for VercelAIProvider {
         _request: ImageGenerationRequest,
         _context: RequestContext,
     ) -> Result<ImageGenerationResponse, Self::Error> {
-        Err(ProviderError::not_supported("vercel_ai", "Image generation"))
+        Err(ProviderError::not_supported(
+            "vercel_ai",
+            "Image generation",
+        ))
     }
 }
 

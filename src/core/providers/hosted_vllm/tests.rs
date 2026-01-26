@@ -197,9 +197,16 @@ mod provider_tests {
             .unwrap();
 
         let capabilities = provider.capabilities();
-        assert!(capabilities.contains(&crate::core::types::common::ProviderCapability::ChatCompletion));
-        assert!(capabilities.contains(&crate::core::types::common::ProviderCapability::ChatCompletionStream));
-        assert!(capabilities.contains(&crate::core::types::common::ProviderCapability::ToolCalling));
+        assert!(
+            capabilities.contains(&crate::core::types::common::ProviderCapability::ChatCompletion)
+        );
+        assert!(
+            capabilities
+                .contains(&crate::core::types::common::ProviderCapability::ChatCompletionStream)
+        );
+        assert!(
+            capabilities.contains(&crate::core::types::common::ProviderCapability::ToolCalling)
+        );
     }
 
     #[tokio::test]
@@ -294,10 +301,7 @@ mod streaming_tests {
 
         // First chunk should have role
         let first = chunks[0].as_ref().unwrap();
-        assert_eq!(
-            first.choices[0].delta.role,
-            Some(MessageRole::Assistant)
-        );
+        assert_eq!(first.choices[0].delta.role, Some(MessageRole::Assistant));
 
         // Last chunk should have finish_reason
         let last = chunks.last().unwrap().as_ref().unwrap();

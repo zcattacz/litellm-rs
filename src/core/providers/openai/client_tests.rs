@@ -480,7 +480,9 @@ fn test_error_mapper_api_error() {
 
     let error = mapper.map_http_error(500, "Server error");
     match error {
-        OpenAIError::ApiError { provider, status, .. } => {
+        OpenAIError::ApiError {
+            provider, status, ..
+        } => {
             assert_eq!(provider, "openai");
             assert_eq!(status, 500);
         }

@@ -5,9 +5,9 @@
 
 use super::manager::BudgetManager;
 use super::types::BudgetScope;
-use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
+use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready};
 use actix_web::web;
-use futures::future::{ok, Ready};
+use futures::future::{Ready, ok};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -278,7 +278,8 @@ where
                                     "usage_percentage": check_result.usage_percentage
                                 }
                             }
-                        }).to_string()
+                        })
+                        .to_string(),
                     ));
                 }
 
@@ -497,14 +498,7 @@ mod tests {
 
         // Record spend across multiple scopes
         recorder
-            .record_request_spend(
-                Some("user-1"),
-                None,
-                None,
-                Some("gpt-4"),
-                None,
-                5.0,
-            )
+            .record_request_spend(Some("user-1"), None, None, Some("gpt-4"), None, 5.0)
             .await;
 
         // Check that all scopes were updated

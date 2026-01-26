@@ -227,8 +227,8 @@ impl LLMProvider for LemonadeProvider {
         let mut mapped = HashMap::new();
         for (key, value) in params {
             match key.as_str() {
-                "temperature" | "top_p" | "max_tokens" | "stream" | "stop"
-                | "presence_penalty" | "frequency_penalty" => {
+                "temperature" | "top_p" | "max_tokens" | "stream" | "stop" | "presence_penalty"
+                | "frequency_penalty" => {
                     mapped.insert(key, value);
                 }
                 _ => {}

@@ -12,13 +12,7 @@ impl DockerModelRunnerClient {
     }
 
     pub fn supported_openai_params() -> &'static [&'static str] {
-        &[
-            "temperature",
-            "max_tokens",
-            "top_p",
-            "stream",
-            "stop",
-        ]
+        &["temperature", "max_tokens", "top_p", "stream", "stop"]
     }
 
     pub fn transform_chat_request(request: ChatRequest) -> Value {

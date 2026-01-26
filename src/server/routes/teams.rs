@@ -15,12 +15,12 @@
 //! - `GET    /v1/teams/{id}/usage`                - Get team usage statistics
 
 use crate::core::teams::{
-    AddMemberRequest, CreateTeamRequest, InMemoryTeamRepository, Team, TeamManager,
-    TeamRole, UpdateRoleRequest, UpdateTeamRequest,
+    AddMemberRequest, CreateTeamRequest, InMemoryTeamRepository, Team, TeamManager, TeamRole,
+    UpdateRoleRequest, UpdateTeamRequest,
 };
-use crate::server::routes::{errors, ApiResponse, PaginatedResponse, PaginationQuery};
+use crate::server::routes::{ApiResponse, PaginatedResponse, PaginationQuery, errors};
 use crate::server::state::AppState;
-use actix_web::{web, HttpResponse, Result as ActixResult};
+use actix_web::{HttpResponse, Result as ActixResult, web};
 use std::sync::Arc;
 use tracing::{error, info};
 use uuid::Uuid;
@@ -120,10 +120,12 @@ pub async fn create_team(
     match manager.create_team(request).await {
         Ok(team) => {
             info!("Team created: {} ({})", team.name, team.id());
-            Ok(HttpResponse::Created().json(ApiResponse::success(TeamResponse {
-                team,
-                member_count: Some(0),
-            })))
+            Ok(
+                HttpResponse::Created().json(ApiResponse::success(TeamResponse {
+                    team,
+                    member_count: Some(0),
+                })),
+            )
         }
         Err(e) => {
             error!("Failed to create team: {}", e);
@@ -155,12 +157,14 @@ pub async fn list_teams(
                 })
                 .collect();
 
-            Ok(HttpResponse::Ok().json(ApiResponse::success(PaginatedResponse::new(
-                team_responses,
-                query.page,
-                query.limit,
-                total,
-            ))))
+            Ok(
+                HttpResponse::Ok().json(ApiResponse::success(PaginatedResponse::new(
+                    team_responses,
+                    query.page,
+                    query.limit,
+                    total,
+                ))),
+            )
         }
         Err(e) => {
             error!("Failed to list teams: {}", e);

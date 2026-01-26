@@ -62,9 +62,7 @@ impl TavilyConfig {
 
     /// Get effective API base URL
     pub fn get_effective_api_base(&self) -> &str {
-        self.api_base
-            .as_deref()
-            .unwrap_or("https://api.tavily.com")
+        self.api_base.as_deref().unwrap_or("https://api.tavily.com")
     }
 }
 

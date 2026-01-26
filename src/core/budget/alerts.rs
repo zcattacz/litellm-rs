@@ -74,11 +74,7 @@ impl AlertStorage {
     fn get_alerts_for_budget(&self, budget_id: &str) -> Vec<&BudgetAlert> {
         self.alerts_by_budget
             .get(budget_id)
-            .map(|ids| {
-                ids.iter()
-                    .filter_map(|id| self.alerts.get(id))
-                    .collect()
-            })
+            .map(|ids| ids.iter().filter_map(|id| self.alerts.get(id)).collect())
             .unwrap_or_default()
     }
 }
@@ -313,10 +309,7 @@ impl BudgetAlertManager {
             match request.send().await {
                 Ok(response) => {
                     if response.status().is_success() {
-                        debug!(
-                            "Successfully sent budget alert webhook to {}",
-                            webhook.url
-                        );
+                        debug!("Successfully sent budget alert webhook to {}", webhook.url);
                         return;
                     } else {
                         warn!(
@@ -327,7 +320,10 @@ impl BudgetAlertManager {
                     }
                 }
                 Err(e) => {
-                    error!("Failed to send budget alert webhook to {}: {}", webhook.url, e);
+                    error!(
+                        "Failed to send budget alert webhook to {}: {}",
+                        webhook.url, e
+                    );
                 }
             }
 
@@ -418,13 +414,7 @@ impl BudgetAlertManager {
     pub async fn get_alert_history(&self, limit: Option<usize>) -> Vec<BudgetAlert> {
         let storage = self.alerts.read().await;
         let limit = limit.unwrap_or(storage.history.len());
-        storage
-            .history
-            .iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect()
+        storage.history.iter().rev().take(limit).cloned().collect()
     }
 
     /// Get alert statistics
@@ -699,7 +689,9 @@ mod tests {
         let warning_alerts = manager.get_alerts_by_severity(AlertSeverity::Warning).await;
         assert_eq!(warning_alerts.len(), 1);
 
-        let critical_alerts = manager.get_alerts_by_severity(AlertSeverity::Critical).await;
+        let critical_alerts = manager
+            .get_alerts_by_severity(AlertSeverity::Critical)
+            .await;
         assert_eq!(critical_alerts.len(), 0);
     }
 

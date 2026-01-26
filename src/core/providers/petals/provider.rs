@@ -39,10 +39,7 @@ impl PetalsProvider {
             .map_err(|e| ProviderError::configuration("petals", e))?;
 
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ProviderError::configuration(
-                "petals",
-                format!("Failed to create pool manager: {}", e),
-            )
+            ProviderError::configuration("petals", format!("Failed to create pool manager: {}", e))
         })?);
 
         let models = get_available_models()
@@ -154,13 +151,7 @@ impl LLMProvider for PetalsProvider {
     }
 
     fn get_supported_openai_params(&self, _model: &str) -> &'static [&'static str] {
-        &[
-            "temperature",
-            "top_p",
-            "max_tokens",
-            "stream",
-            "stop",
-        ]
+        &["temperature", "top_p", "max_tokens", "stream", "stop"]
     }
 
     async fn map_openai_params(

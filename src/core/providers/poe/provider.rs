@@ -8,11 +8,11 @@ use std::sync::Arc;
 
 use super::config::PoeConfig;
 use super::model_info::get_models;
-use crate::core::providers::base::{header, GlobalPoolManager, HttpMethod};
+use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{
-    error_mapper::trait_def::ErrorMapper, provider::llm_provider::trait_definition::LLMProvider,
-    ProviderConfig as _,
+    ProviderConfig as _, error_mapper::trait_def::ErrorMapper,
+    provider::llm_provider::trait_definition::LLMProvider,
 };
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
@@ -42,7 +42,10 @@ impl PoeProvider {
             .map_err(|e| ProviderError::configuration(PROVIDER_NAME, e))?;
 
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ProviderError::configuration(PROVIDER_NAME, format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration(
+                PROVIDER_NAME,
+                format!("Failed to create pool manager: {}", e),
+            )
         })?);
 
         Ok(Self {
@@ -108,12 +111,26 @@ pub struct PoeErrorMapper;
 impl ErrorMapper<Error> for PoeErrorMapper {
     fn map_http_error(&self, status_code: u16, response_body: &str) -> Error {
         match status_code {
-            401 => ProviderError::authentication(PROVIDER_NAME, format!("Invalid API key: {}", response_body)),
-            403 => ProviderError::authentication(PROVIDER_NAME, format!("Permission denied: {}", response_body)),
+            401 => ProviderError::authentication(
+                PROVIDER_NAME,
+                format!("Invalid API key: {}", response_body),
+            ),
+            403 => ProviderError::authentication(
+                PROVIDER_NAME,
+                format!("Permission denied: {}", response_body),
+            ),
             404 => ProviderError::model_not_found(PROVIDER_NAME, response_body),
             429 => ProviderError::rate_limit(PROVIDER_NAME, None),
-            500..=599 => ProviderError::api_error(PROVIDER_NAME, status_code, format!("Server error: {}", response_body)),
-            _ => ProviderError::api_error(PROVIDER_NAME, status_code, format!("HTTP {}: {}", status_code, response_body)),
+            500..=599 => ProviderError::api_error(
+                PROVIDER_NAME,
+                status_code,
+                format!("Server error: {}", response_body),
+            ),
+            _ => ProviderError::api_error(
+                PROVIDER_NAME,
+                status_code,
+                format!("HTTP {}: {}", status_code, response_body),
+            ),
         }
     }
 }
@@ -182,11 +199,13 @@ impl LLMProvider for PoeProvider {
         model: &str,
         request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
-        let response_text = std::str::from_utf8(raw_response)
-            .map_err(|e| ProviderError::serialization(PROVIDER_NAME, format!("Invalid UTF-8: {}", e)))?;
+        let response_text = std::str::from_utf8(raw_response).map_err(|e| {
+            ProviderError::serialization(PROVIDER_NAME, format!("Invalid UTF-8: {}", e))
+        })?;
 
-        let response_json: ChatResponse = serde_json::from_str(response_text)
-            .map_err(|e| ProviderError::serialization(PROVIDER_NAME, format!("Invalid JSON: {}", e)))?;
+        let response_json: ChatResponse = serde_json::from_str(response_text).map_err(|e| {
+            ProviderError::serialization(PROVIDER_NAME, format!("Invalid JSON: {}", e))
+        })?;
 
         Ok(ChatResponse {
             id: request_id.to_string(),
@@ -228,8 +247,12 @@ impl LLMProvider for PoeProvider {
         let body = self.transform_request(request.clone(), context).await?;
         let response = self.execute_request("/chat/completions", body).await?;
 
-        let chat_response: ChatResponse = serde_json::from_value(response)
-            .map_err(|e| ProviderError::serialization(PROVIDER_NAME, format!("Failed to parse ChatResponse: {}", e)))?;
+        let chat_response: ChatResponse = serde_json::from_value(response).map_err(|e| {
+            ProviderError::serialization(
+                PROVIDER_NAME,
+                format!("Failed to parse ChatResponse: {}", e),
+            )
+        })?;
 
         Ok(chat_response)
     }
@@ -259,6 +282,9 @@ impl LLMProvider for PoeProvider {
         _request: ImageGenerationRequest,
         _context: RequestContext,
     ) -> Result<ImageGenerationResponse, Self::Error> {
-        Err(ProviderError::not_supported(PROVIDER_NAME, "Image generation"))
+        Err(ProviderError::not_supported(
+            PROVIDER_NAME,
+            "Image generation",
+        ))
     }
 }

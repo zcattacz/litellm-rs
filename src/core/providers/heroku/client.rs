@@ -2,7 +2,7 @@
 //!
 //! Request transformation, response processing, and model definitions for Heroku AI Inference
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::config::PROVIDER_NAME;
 use super::models::get_heroku_registry;

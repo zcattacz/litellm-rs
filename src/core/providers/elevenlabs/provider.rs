@@ -42,7 +42,10 @@ impl ElevenLabsProvider {
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ProviderError::configuration(PROVIDER_NAME, format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration(
+                PROVIDER_NAME,
+                format!("Failed to create pool manager: {}", e),
+            )
         })?);
 
         // Build model list
@@ -211,9 +214,10 @@ impl ElevenLabsProvider {
             .map_err(|e| ProviderError::invalid_request(PROVIDER_NAME, e.to_string()))?;
 
         // Get API key
-        let api_key = self.config.get_api_key().ok_or_else(|| {
-            ProviderError::authentication(PROVIDER_NAME, "API key is required")
-        })?;
+        let api_key = self
+            .config
+            .get_api_key()
+            .ok_or_else(|| ProviderError::authentication(PROVIDER_NAME, "API key is required"))?;
 
         // Execute request
         let client = reqwest::Client::new();
@@ -305,9 +309,10 @@ impl ElevenLabsProvider {
         let url = stt::build_stt_url(&self.config.get_api_base());
 
         // Get API key
-        let api_key = self.config.get_api_key().ok_or_else(|| {
-            ProviderError::authentication(PROVIDER_NAME, "API key is required")
-        })?;
+        let api_key = self
+            .config
+            .get_api_key()
+            .ok_or_else(|| ProviderError::authentication(PROVIDER_NAME, "API key is required"))?;
 
         // Execute request
         let client = reqwest::Client::new();
@@ -327,13 +332,19 @@ impl ElevenLabsProvider {
         }
 
         // Parse response
-        let response_text = response
-            .text()
-            .await
-            .map_err(|e| ProviderError::response_parsing(PROVIDER_NAME, format!("Failed to read response: {}", e)))?;
+        let response_text = response.text().await.map_err(|e| {
+            ProviderError::response_parsing(
+                PROVIDER_NAME,
+                format!("Failed to read response: {}", e),
+            )
+        })?;
 
-        serde_json::from_str::<TranscriptionResponse>(&response_text)
-            .map_err(|e| ProviderError::response_parsing(PROVIDER_NAME, format!("Failed to parse response: {}", e)))
+        serde_json::from_str::<TranscriptionResponse>(&response_text).map_err(|e| {
+            ProviderError::response_parsing(
+                PROVIDER_NAME,
+                format!("Failed to parse response: {}", e),
+            )
+        })
     }
 
     /// Map HTTP error to ProviderError
@@ -348,10 +359,12 @@ impl ElevenLabsProvider {
             404 => ProviderError::model_not_found(PROVIDER_NAME, "Voice not found"),
             429 => ProviderError::rate_limit(PROVIDER_NAME, Some(60)),
             500 => ProviderError::api_error(PROVIDER_NAME, 500, "Internal server error"),
-            502 | 503 => {
-                ProviderError::api_error(PROVIDER_NAME, status, "Service unavailable")
-            }
-            _ => ProviderError::api_error(PROVIDER_NAME, status, format!("HTTP error {}: {}", status, message)),
+            502 | 503 => ProviderError::api_error(PROVIDER_NAME, status, "Service unavailable"),
+            _ => ProviderError::api_error(
+                PROVIDER_NAME,
+                status,
+                format!("HTTP error {}: {}", status, message),
+            ),
         }
     }
 

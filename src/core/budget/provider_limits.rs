@@ -8,8 +8,8 @@ use super::types::{
     ResetPeriod,
 };
 use dashmap::DashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tracing::{debug, info, warn};
 
 /// Configuration for setting a provider budget limit
@@ -158,9 +158,7 @@ impl ProviderBudgetManager {
         );
 
         self.budgets.insert(provider.to_string(), budget);
-        self.request_counts
-            .entry(provider.to_string())
-            .or_default();
+        self.request_counts.entry(provider.to_string()).or_default();
     }
 
     /// Remove a provider budget limit
@@ -744,10 +742,7 @@ mod tests {
         manager.set_provider_limit("openai", config);
 
         assert_eq!(manager.check_provider_budget("openai"), BudgetStatus::Ok);
-        assert_eq!(
-            manager.check_provider_budget("unknown"),
-            BudgetStatus::Ok
-        );
+        assert_eq!(manager.check_provider_budget("unknown"), BudgetStatus::Ok);
     }
 
     #[test]
@@ -859,7 +854,10 @@ mod tests {
         manager.record_provider_spend("openai", 150.0);
 
         // Normally would be exceeded
-        assert_eq!(manager.check_provider_budget("openai"), BudgetStatus::Exceeded);
+        assert_eq!(
+            manager.check_provider_budget("openai"),
+            BudgetStatus::Exceeded
+        );
 
         // Disable manager
         manager.set_enabled(false);
@@ -936,10 +934,9 @@ mod tests {
             "openai",
             ProviderLimitConfig::new(1000.0, ResetPeriod::Monthly),
         );
-        limits.models.set_model_limit(
-            "gpt-4",
-            ModelLimitConfig::new(500.0, ResetPeriod::Monthly),
-        );
+        limits
+            .models
+            .set_model_limit("gpt-4", ModelLimitConfig::new(500.0, ResetPeriod::Monthly));
 
         assert!(limits.can_spend("openai", "gpt-4", 100.0));
 

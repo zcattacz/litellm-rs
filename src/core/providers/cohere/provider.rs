@@ -17,10 +17,10 @@ use super::config::CohereConfig;
 use super::embed::CohereEmbeddingHandler;
 use super::rerank::{CohereRerankHandler, RerankRequest, RerankResponse};
 use super::streaming::CohereStreamParser;
-use crate::core::providers::unified_provider::ProviderError;
 use crate::core::providers::base_provider::{
     BaseHttpClient, BaseProviderConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
 };
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{
     ProviderConfig, error_mapper::trait_def::ErrorMapper,
     provider::llm_provider::trait_definition::LLMProvider,
@@ -523,9 +523,7 @@ impl LLMProvider for CohereProvider {
 
                             Some(chunks)
                         }
-                        Err(e) => {
-                            Some(vec![Err(ProviderError::network("cohere", e.to_string()))])
-                        }
+                        Err(e) => Some(vec![Err(ProviderError::network("cohere", e.to_string()))]),
                     })
                 },
             )

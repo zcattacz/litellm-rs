@@ -90,7 +90,7 @@ mod logger;
 mod provider;
 
 // Re-export main types
-pub use config::{WandbConfig, PROVIDER_NAME, WANDB_API_BASE, WANDB_API_KEY_ENV};
+pub use config::{PROVIDER_NAME, WANDB_API_BASE, WANDB_API_KEY_ENV, WandbConfig};
 pub use logger::{LLMCallLog, RunState, RunSummary, WandbLogger, WandbRun};
 pub use provider::{WandbError, WandbErrorMapper, WandbProvider};
 

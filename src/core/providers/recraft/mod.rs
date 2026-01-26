@@ -62,9 +62,7 @@ impl RecraftConfig {
 
     /// Get effective API base URL
     pub fn get_effective_api_base(&self) -> &str {
-        self.api_base
-            .as_deref()
-            .unwrap_or("https://api.recraft.ai")
+        self.api_base.as_deref().unwrap_or("https://api.recraft.ai")
     }
 }
 
@@ -107,8 +105,10 @@ impl RecraftProvider {
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
         if let Some(api_key) = &self.config.api_key {
-            let auth_value = HeaderValue::from_str(&format!("Bearer {}", api_key))
-                .map_err(|e| ProviderError::configuration("recraft", format!("Invalid API key: {}", e)))?;
+            let auth_value =
+                HeaderValue::from_str(&format!("Bearer {}", api_key)).map_err(|e| {
+                    ProviderError::configuration("recraft", format!("Invalid API key: {}", e))
+                })?;
             headers.insert(AUTHORIZATION, auth_value);
         }
 
@@ -161,9 +161,7 @@ impl LLMProvider for RecraftProvider {
     }
 
     fn capabilities(&self) -> &'static [ProviderCapability] {
-        static CAPABILITIES: &[ProviderCapability] = &[
-            ProviderCapability::ImageGeneration,
-        ];
+        static CAPABILITIES: &[ProviderCapability] = &[ProviderCapability::ImageGeneration];
         CAPABILITIES
     }
 
@@ -256,7 +254,10 @@ impl LLMProvider for RecraftProvider {
         _request: ImageGenerationRequest,
         _context: RequestContext,
     ) -> Result<ImageGenerationResponse, Self::Error> {
-        Err(ProviderError::not_implemented("recraft", "Image generation not yet implemented"))
+        Err(ProviderError::not_implemented(
+            "recraft",
+            "Image generation not yet implemented",
+        ))
     }
 }
 

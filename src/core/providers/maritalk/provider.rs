@@ -1,7 +1,7 @@
 //! Maritalk Provider Implementation
 
-use async_trait::async_trait;
 use crate::core::traits::provider::ProviderConfig;
+use async_trait::async_trait;
 use futures::Stream;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -27,15 +27,18 @@ pub struct MaritalkProvider {
 
 impl MaritalkProvider {
     pub fn new(config: MaritalkConfig) -> Result<Self, ProviderError> {
-        config.validate().map_err(|e| {
-            ProviderError::configuration("maritalk", e)
-        })?;
+        config
+            .validate()
+            .map_err(|e| ProviderError::configuration("maritalk", e))?;
 
         let http_client = reqwest::Client::builder()
             .timeout(config.timeout())
             .build()
             .map_err(|e| {
-                ProviderError::initialization("maritalk", format!("Failed to create HTTP client: {}", e))
+                ProviderError::initialization(
+                    "maritalk",
+                    format!("Failed to create HTTP client: {}", e),
+                )
             })?;
 
         Ok(Self {
@@ -84,13 +87,7 @@ impl LLMProvider for MaritalkProvider {
     }
 
     fn get_supported_openai_params(&self, _model: &str) -> &'static [&'static str] {
-        &[
-            "temperature",
-            "max_tokens",
-            "top_p",
-            "stream",
-            "stop",
-        ]
+        &["temperature", "max_tokens", "top_p", "stream", "stop"]
     }
 
     async fn map_openai_params(
@@ -153,8 +150,14 @@ impl LLMProvider for MaritalkProvider {
         request: ChatRequest,
         context: RequestContext,
     ) -> Result<ChatResponse, Self::Error> {
-        let url = format!("{}/chat/completions",
-            self.config.base.api_base.as_ref().unwrap_or(&super::DEFAULT_BASE_URL.to_string()));
+        let url = format!(
+            "{}/chat/completions",
+            self.config
+                .base
+                .api_base
+                .as_ref()
+                .unwrap_or(&super::DEFAULT_BASE_URL.to_string())
+        );
 
         let body = self.transform_request(request.clone(), context).await?;
         let headers = self.build_headers();
@@ -182,18 +185,25 @@ impl LLMProvider for MaritalkProvider {
             });
         }
 
-        let response_bytes = response.bytes().await
+        let response_bytes = response
+            .bytes()
+            .await
             .map_err(|e| ProviderError::network("maritalk", e.to_string()))?;
 
-        self.transform_response(&response_bytes, &request.model, "").await
+        self.transform_response(&response_bytes, &request.model, "")
+            .await
     }
 
     async fn chat_completion_stream(
         &self,
         _request: ChatRequest,
         _context: RequestContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error> {
-        Err(ProviderError::not_implemented("maritalk", "Streaming not yet implemented"))
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error>
+    {
+        Err(ProviderError::not_implemented(
+            "maritalk",
+            "Streaming not yet implemented",
+        ))
     }
 
     async fn health_check(&self) -> HealthStatus {
@@ -206,12 +216,16 @@ impl LLMProvider for MaritalkProvider {
         input_tokens: u32,
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
-        let model_info = self.supported_models.iter()
+        let model_info = self
+            .supported_models
+            .iter()
             .find(|m| m.id == model)
             .ok_or_else(|| ProviderError::model_not_found("maritalk", model.to_string()))?;
 
-        let input_cost = model_info.input_cost_per_1k_tokens.unwrap_or(0.0) * input_tokens as f64 / 1000.0;
-        let output_cost = model_info.output_cost_per_1k_tokens.unwrap_or(0.0) * output_tokens as f64 / 1000.0;
+        let input_cost =
+            model_info.input_cost_per_1k_tokens.unwrap_or(0.0) * input_tokens as f64 / 1000.0;
+        let output_cost =
+            model_info.output_cost_per_1k_tokens.unwrap_or(0.0) * output_tokens as f64 / 1000.0;
 
         Ok(input_cost + output_cost)
     }
@@ -254,8 +268,14 @@ mod tests {
         let provider = MaritalkProvider::new(config).unwrap();
 
         let headers = provider.build_headers();
-        assert_eq!(headers.get("Authorization"), Some(&"Key test-api-key".to_string()));
-        assert_eq!(headers.get("Content-Type"), Some(&"application/json".to_string()));
+        assert_eq!(
+            headers.get("Authorization"),
+            Some(&"Key test-api-key".to_string())
+        );
+        assert_eq!(
+            headers.get("Content-Type"),
+            Some(&"application/json".to_string())
+        );
     }
 
     #[tokio::test]

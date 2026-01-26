@@ -381,9 +381,21 @@ mod tests {
     fn test_websocket_url_selection() {
         let config = SparkConfig::default();
 
-        assert_eq!(config.get_websocket_url("spark-desk-v3.5"), super::super::WS_V3_5_URL);
-        assert_eq!(config.get_websocket_url("spark-desk-v3"), super::super::WS_V3_URL);
-        assert_eq!(config.get_websocket_url("spark-desk-v2"), super::super::WS_V2_URL);
-        assert_eq!(config.get_websocket_url("spark-desk-v1.5"), super::super::WS_V1_5_URL);
+        assert_eq!(
+            config.get_websocket_url("spark-desk-v3.5"),
+            super::super::WS_V3_5_URL
+        );
+        assert_eq!(
+            config.get_websocket_url("spark-desk-v3"),
+            super::super::WS_V3_URL
+        );
+        assert_eq!(
+            config.get_websocket_url("spark-desk-v2"),
+            super::super::WS_V2_URL
+        );
+        assert_eq!(
+            config.get_websocket_url("spark-desk-v1.5"),
+            super::super::WS_V1_5_URL
+        );
     }
 }

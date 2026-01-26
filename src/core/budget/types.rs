@@ -349,11 +349,7 @@ impl fmt::Display for BudgetAlertType {
 
 impl BudgetAlert {
     /// Create a new budget alert
-    pub fn new(
-        budget: &Budget,
-        alert_type: BudgetAlertType,
-        threshold: f64,
-    ) -> Self {
+    pub fn new(budget: &Budget, alert_type: BudgetAlertType, threshold: f64) -> Self {
         let severity = match alert_type {
             BudgetAlertType::SoftLimitReached | BudgetAlertType::ApproachingLimit => {
                 AlertSeverity::Warning
@@ -921,11 +917,26 @@ mod tests {
 
     #[test]
     fn test_budget_scope_display() {
-        assert_eq!(BudgetScope::User("user-1".to_string()).to_string(), "user:user-1");
-        assert_eq!(BudgetScope::Team("team-1".to_string()).to_string(), "team:team-1");
-        assert_eq!(BudgetScope::ApiKey("key-1".to_string()).to_string(), "api_key:key-1");
-        assert_eq!(BudgetScope::Provider("openai".to_string()).to_string(), "provider:openai");
-        assert_eq!(BudgetScope::Model("gpt-4".to_string()).to_string(), "model:gpt-4");
+        assert_eq!(
+            BudgetScope::User("user-1".to_string()).to_string(),
+            "user:user-1"
+        );
+        assert_eq!(
+            BudgetScope::Team("team-1".to_string()).to_string(),
+            "team:team-1"
+        );
+        assert_eq!(
+            BudgetScope::ApiKey("key-1".to_string()).to_string(),
+            "api_key:key-1"
+        );
+        assert_eq!(
+            BudgetScope::Provider("openai".to_string()).to_string(),
+            "provider:openai"
+        );
+        assert_eq!(
+            BudgetScope::Model("gpt-4".to_string()).to_string(),
+            "model:gpt-4"
+        );
         assert_eq!(BudgetScope::Global.to_string(), "global");
     }
 
@@ -935,10 +946,7 @@ mod tests {
             BudgetScope::from_key("user:user-1"),
             Some(BudgetScope::User("user-1".to_string()))
         );
-        assert_eq!(
-            BudgetScope::from_key("global"),
-            Some(BudgetScope::Global)
-        );
+        assert_eq!(BudgetScope::from_key("global"), Some(BudgetScope::Global));
         assert_eq!(BudgetScope::from_key("invalid"), None);
     }
 
@@ -1021,7 +1029,12 @@ mod tests {
 
     #[test]
     fn test_budget_serialization() {
-        let budget = Budget::new("test", "Test", BudgetScope::User("user-1".to_string()), 100.0);
+        let budget = Budget::new(
+            "test",
+            "Test",
+            BudgetScope::User("user-1".to_string()),
+            100.0,
+        );
         let json = serde_json::to_value(&budget).unwrap();
 
         assert_eq!(json["id"], "test");

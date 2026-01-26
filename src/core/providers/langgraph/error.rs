@@ -17,8 +17,8 @@ impl ErrorMapper<ProviderError> for LangGraphErrorMapper {
         match status_code {
             400 => {
                 // Parse error message from response body
-                let message = parse_error_message(response_body)
-                    .unwrap_or_else(|| "Bad request".to_string());
+                let message =
+                    parse_error_message(response_body).unwrap_or_else(|| "Bad request".to_string());
                 ProviderError::invalid_request(PROVIDER_NAME, message)
             }
             401 => ProviderError::authentication(

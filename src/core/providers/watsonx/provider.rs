@@ -184,7 +184,9 @@ impl WatsonxProvider {
             ])
             .send()
             .await
-            .map_err(|e| ProviderError::authentication("watsonx", format!("Failed to request token: {}", e)))?;
+            .map_err(|e| {
+                ProviderError::authentication("watsonx", format!("Failed to request token: {}", e))
+            })?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -196,7 +198,10 @@ impl WatsonxProvider {
         }
 
         let token_response: serde_json::Value = response.json().await.map_err(|e| {
-            ProviderError::authentication("watsonx", format!("Failed to parse token response: {}", e))
+            ProviderError::authentication(
+                "watsonx",
+                format!("Failed to parse token response: {}", e),
+            )
         })?;
 
         let access_token = token_response
@@ -382,8 +387,9 @@ impl WatsonxProvider {
             return Err(mapper.map_http_error(status.as_u16(), &body_str));
         }
 
-        serde_json::from_slice(&response_bytes)
-            .map_err(|e| ProviderError::response_parsing("watsonx", format!("Failed to parse response: {}", e)))
+        serde_json::from_slice(&response_bytes).map_err(|e| {
+            ProviderError::response_parsing("watsonx", format!("Failed to parse response: {}", e))
+        })
     }
 }
 
@@ -478,8 +484,9 @@ impl LLMProvider for WatsonxProvider {
         _model: &str,
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
-        serde_json::from_slice(raw_response)
-            .map_err(|e| ProviderError::response_parsing("watsonx", format!("Failed to parse response: {}", e)))
+        serde_json::from_slice(raw_response).map_err(|e| {
+            ProviderError::response_parsing("watsonx", format!("Failed to parse response: {}", e))
+        })
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -498,8 +505,12 @@ impl LLMProvider for WatsonxProvider {
 
         let response = self.execute_request(&url, payload).await?;
 
-        serde_json::from_value(response)
-            .map_err(|e| ProviderError::response_parsing("watsonx", format!("Failed to parse chat response: {}", e)))
+        serde_json::from_value(response).map_err(|e| {
+            ProviderError::response_parsing(
+                "watsonx",
+                format!("Failed to parse chat response: {}", e),
+            )
+        })
     }
 
     async fn chat_completion_stream(
@@ -567,8 +578,9 @@ impl LLMProvider for WatsonxProvider {
         input_tokens: u32,
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
-        let model_info = get_model_info(model)
-            .ok_or_else(|| ProviderError::model_not_found("watsonx", format!("Unknown model: {}", model)))?;
+        let model_info = get_model_info(model).ok_or_else(|| {
+            ProviderError::model_not_found("watsonx", format!("Unknown model: {}", model))
+        })?;
 
         let input_cost = (input_tokens as f64) * (model_info.input_cost_per_million / 1_000_000.0);
         let output_cost =

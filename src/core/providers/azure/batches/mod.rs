@@ -124,20 +124,25 @@ impl BaseBatchHandler for AzureBatchHandler {
         let api_key = api_key
             .map(|s| s.to_string())
             .or_else(|| self.client.get_config().api_key.clone())
-            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
+            .ok_or_else(|| {
+                ProviderError::authentication("azure", "Azure API key required".to_string())
+            })?;
 
         let url = self.build_batches_url("");
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), &api_key)
-                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure", e.to_string()))?;
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {
-                let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
-                let header_value = reqwest::header::HeaderValue::from_str(&value)
-                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
+                let header_name =
+                    reqwest::header::HeaderName::from_bytes(key.as_bytes()).map_err(|e| {
+                        ProviderError::network("azure", format!("Invalid header: {}", e))
+                    })?;
+                let header_value = reqwest::header::HeaderValue::from_str(&value).map_err(|e| {
+                    ProviderError::network("azure", format!("Invalid header: {}", e))
+                })?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -150,7 +155,7 @@ impl BaseBatchHandler for AzureBatchHandler {
             .json(&request)
             .send()
             .await
-            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure", e.to_string()))?;
 
         if !response.status().is_success() {
             return Err(ProviderError::api_error(
@@ -163,7 +168,7 @@ impl BaseBatchHandler for AzureBatchHandler {
         response
             .json()
             .await
-            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure", e.to_string()))
     }
 
     async fn list_batches(
@@ -177,7 +182,9 @@ impl BaseBatchHandler for AzureBatchHandler {
         let api_key = api_key
             .map(|s| s.to_string())
             .or_else(|| self.client.get_config().api_key.clone())
-            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
+            .ok_or_else(|| {
+                ProviderError::authentication("azure", "Azure API key required".to_string())
+            })?;
 
         let mut url = self.build_batches_url("");
         let mut query_params = Vec::new();
@@ -196,14 +203,17 @@ impl BaseBatchHandler for AzureBatchHandler {
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), &api_key)
-                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure", e.to_string()))?;
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {
-                let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
-                let header_value = reqwest::header::HeaderValue::from_str(&value)
-                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
+                let header_name =
+                    reqwest::header::HeaderName::from_bytes(key.as_bytes()).map_err(|e| {
+                        ProviderError::network("azure", format!("Invalid header: {}", e))
+                    })?;
+                let header_value = reqwest::header::HeaderValue::from_str(&value).map_err(|e| {
+                    ProviderError::network("azure", format!("Invalid header: {}", e))
+                })?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -215,7 +225,7 @@ impl BaseBatchHandler for AzureBatchHandler {
             .headers(request_headers)
             .send()
             .await
-            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure", e.to_string()))?;
 
         if !response.status().is_success() {
             return Err(ProviderError::api_error(
@@ -228,7 +238,7 @@ impl BaseBatchHandler for AzureBatchHandler {
         response
             .json()
             .await
-            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure", e.to_string()))
     }
 
     async fn retrieve_batch(
@@ -241,20 +251,25 @@ impl BaseBatchHandler for AzureBatchHandler {
         let api_key = api_key
             .map(|s| s.to_string())
             .or_else(|| self.client.get_config().api_key.clone())
-            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
+            .ok_or_else(|| {
+                ProviderError::authentication("azure", "Azure API key required".to_string())
+            })?;
 
         let url = self.build_batches_url(&format!("/{}", batch_id));
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), &api_key)
-                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure", e.to_string()))?;
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {
-                let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
-                let header_value = reqwest::header::HeaderValue::from_str(&value)
-                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
+                let header_name =
+                    reqwest::header::HeaderName::from_bytes(key.as_bytes()).map_err(|e| {
+                        ProviderError::network("azure", format!("Invalid header: {}", e))
+                    })?;
+                let header_value = reqwest::header::HeaderValue::from_str(&value).map_err(|e| {
+                    ProviderError::network("azure", format!("Invalid header: {}", e))
+                })?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -266,7 +281,7 @@ impl BaseBatchHandler for AzureBatchHandler {
             .headers(request_headers)
             .send()
             .await
-            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure", e.to_string()))?;
 
         if !response.status().is_success() {
             return Err(ProviderError::api_error(
@@ -279,7 +294,7 @@ impl BaseBatchHandler for AzureBatchHandler {
         response
             .json()
             .await
-            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure", e.to_string()))
     }
 
     async fn cancel_batch(
@@ -292,20 +307,25 @@ impl BaseBatchHandler for AzureBatchHandler {
         let api_key = api_key
             .map(|s| s.to_string())
             .or_else(|| self.client.get_config().api_key.clone())
-            .ok_or_else(|| ProviderError::authentication("azure","Azure API key required".to_string()))?;
+            .ok_or_else(|| {
+                ProviderError::authentication("azure", "Azure API key required".to_string())
+            })?;
 
         let url = self.build_batches_url(&format!("/{}/cancel", batch_id));
 
         let mut request_headers =
             AzureUtils::create_azure_headers(self.client.get_config(), &api_key)
-                .map_err(|e| ProviderError::configuration("azure",e.to_string()))?;
+                .map_err(|e| ProviderError::configuration("azure", e.to_string()))?;
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {
-                let header_name = reqwest::header::HeaderName::from_bytes(key.as_bytes())
-                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
-                let header_value = reqwest::header::HeaderValue::from_str(&value)
-                    .map_err(|e| ProviderError::network("azure",format!("Invalid header: {}", e)))?;
+                let header_name =
+                    reqwest::header::HeaderName::from_bytes(key.as_bytes()).map_err(|e| {
+                        ProviderError::network("azure", format!("Invalid header: {}", e))
+                    })?;
+                let header_value = reqwest::header::HeaderValue::from_str(&value).map_err(|e| {
+                    ProviderError::network("azure", format!("Invalid header: {}", e))
+                })?;
                 request_headers.insert(header_name, header_value);
             }
         }
@@ -317,7 +337,7 @@ impl BaseBatchHandler for AzureBatchHandler {
             .headers(request_headers)
             .send()
             .await
-            .map_err(|e| ProviderError::network("azure",e.to_string()))?;
+            .map_err(|e| ProviderError::network("azure", e.to_string()))?;
 
         if !response.status().is_success() {
             return Err(ProviderError::api_error(
@@ -330,7 +350,7 @@ impl BaseBatchHandler for AzureBatchHandler {
         response
             .json()
             .await
-            .map_err(|e| ProviderError::serialization("azure",e.to_string()))
+            .map_err(|e| ProviderError::serialization("azure", e.to_string()))
     }
 }
 
@@ -388,20 +408,22 @@ impl AzureBatchUtils {
 
     pub fn validate_batch_request(request: &CreateBatchRequest) -> Result<(), BatchError> {
         if !Self::get_supported_batch_endpoints().contains(&request.endpoint.as_str()) {
-            return Err(ProviderError::invalid_request("azure",format!(
-                "Unsupported batch endpoint: {}",
-                request.endpoint
-            )));
+            return Err(ProviderError::invalid_request(
+                "azure",
+                format!("Unsupported batch endpoint: {}", request.endpoint),
+            ));
         }
 
         if request.input_file_id.is_empty() {
-            return Err(ProviderError::invalid_request("azure",
+            return Err(ProviderError::invalid_request(
+                "azure",
                 "Input file ID is required".to_string(),
             ));
         }
 
         if request.completion_window != "24h" {
-            return Err(ProviderError::invalid_request("azure",
+            return Err(ProviderError::invalid_request(
+                "azure",
                 "Only 24h completion window is supported".to_string(),
             ));
         }

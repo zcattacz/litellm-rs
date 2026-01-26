@@ -88,7 +88,10 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = YiConfig::default();
-        assert_eq!(config.base.api_base.as_deref(), Some(super::super::DEFAULT_BASE_URL));
+        assert_eq!(
+            config.base.api_base.as_deref(),
+            Some(super::super::DEFAULT_BASE_URL)
+        );
         assert_eq!(config.base.timeout, 60);
     }
 
@@ -108,7 +111,10 @@ mod tests {
             .with_timeout(120);
 
         assert_eq!(config.base.api_key.as_deref(), Some("test-key"));
-        assert_eq!(config.base.api_base.as_deref(), Some("https://custom.api.com"));
+        assert_eq!(
+            config.base.api_base.as_deref(),
+            Some("https://custom.api.com")
+        );
         assert_eq!(config.base.timeout, 120);
     }
 }

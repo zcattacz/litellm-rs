@@ -303,8 +303,8 @@ impl GeminiModelRegistry {
                     ModelFeature::AudioUnderstanding,
                 ],
                 pricing: ModelPricing {
-                    input_price: 0.5,   // $0.50 per 1M tokens
-                    output_price: 3.0,  // $3 per 1M tokens
+                    input_price: 0.5,  // $0.50 per 1M tokens
+                    output_price: 3.0, // $3 per 1M tokens
                     cached_input_price: Some(0.125),
                     image_price: Some(0.002),
                     video_price_per_second: Some(0.002),
@@ -944,7 +944,8 @@ impl GeminiModelRegistry {
             Some(GeminiModelFamily::Gemini3ProDeepThink)
         } else if model_lower.contains("gemini-3") && model_lower.contains("image") {
             Some(GeminiModelFamily::Gemini3ProImage)
-        } else if model_lower.contains("gemini-3-flash") || model_lower.contains("gemini-3.0-flash") {
+        } else if model_lower.contains("gemini-3-flash") || model_lower.contains("gemini-3.0-flash")
+        {
             Some(GeminiModelFamily::Gemini3Flash)
         } else if model_lower.contains("gemini-3-pro") || model_lower.contains("gemini-3.0-pro") {
             Some(GeminiModelFamily::Gemini3Pro)

@@ -11,7 +11,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, error, warn};
 
-use super::config::{WandbConfig, PROVIDER_NAME};
+use super::config::{PROVIDER_NAME, WandbConfig};
 use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig, HeaderBuilder};
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::ProviderConfig;
@@ -951,7 +951,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_wandb_logger_privacy_filters() {
-        let config = create_test_config().without_prompt_logging().without_response_logging();
+        let config = create_test_config()
+            .without_prompt_logging()
+            .without_response_logging();
         let logger = WandbLogger::new(config).unwrap();
         let _ = logger.init_run().await;
 

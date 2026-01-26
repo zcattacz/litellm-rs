@@ -53,7 +53,9 @@ impl OciProvider {
     /// Create a new OCI provider instance
     pub async fn new(config: OciConfig) -> Result<Self, ProviderError> {
         // Validate configuration
-        config.validate().map_err(|e| ProviderError::configuration("oci", e))?;
+        config
+            .validate()
+            .map_err(|e| ProviderError::configuration("oci", e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
@@ -227,8 +229,9 @@ impl OciProvider {
             return Err(mapper.map_http_error(status.as_u16(), &body_str));
         }
 
-        serde_json::from_slice(&response_bytes)
-            .map_err(|e| ProviderError::response_parsing("oci", format!("Failed to parse response: {}", e)))
+        serde_json::from_slice(&response_bytes).map_err(|e| {
+            ProviderError::response_parsing("oci", format!("Failed to parse response: {}", e))
+        })
     }
 }
 
@@ -314,8 +317,9 @@ impl LLMProvider for OciProvider {
         _model: &str,
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
-        serde_json::from_slice(raw_response)
-            .map_err(|e| ProviderError::response_parsing("oci", format!("Failed to parse response: {}", e)))
+        serde_json::from_slice(raw_response).map_err(|e| {
+            ProviderError::response_parsing("oci", format!("Failed to parse response: {}", e))
+        })
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -406,8 +410,9 @@ impl LLMProvider for OciProvider {
         input_tokens: u32,
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
-        let model_info = get_model_info(model)
-            .ok_or_else(|| ProviderError::model_not_found("oci", format!("Unknown model: {}", model)))?;
+        let model_info = get_model_info(model).ok_or_else(|| {
+            ProviderError::model_not_found("oci", format!("Unknown model: {}", model))
+        })?;
 
         let input_cost = (input_tokens as f64) * (model_info.input_cost_per_million / 1_000_000.0);
         let output_cost =

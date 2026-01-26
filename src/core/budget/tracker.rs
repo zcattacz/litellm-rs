@@ -83,11 +83,7 @@ impl BudgetTracker {
 
             debug!(
                 "Recorded spend ${:.4} for {}: ${:.2} / ${:.2} ({})",
-                amount,
-                key,
-                budget.current_spend,
-                budget.max_budget,
-                new_status
+                amount, key, budget.current_spend, budget.max_budget, new_status
             );
 
             // Determine if we need to trigger alerts
@@ -169,7 +165,10 @@ impl BudgetTracker {
 
     /// Get all budgets
     pub fn get_all_budgets(&self) -> Vec<Budget> {
-        self.budgets.iter().map(|entry| entry.value().clone()).collect()
+        self.budgets
+            .iter()
+            .map(|entry| entry.value().clone())
+            .collect()
     }
 
     /// Reset budgets based on their reset period
@@ -212,9 +211,7 @@ impl BudgetTracker {
         if let Some(mut budget) = self.budgets.get_mut(&key) {
             info!(
                 "Force resetting budget '{}' ({}) - previous spend: ${:.2}",
-                budget.name,
-                key,
-                budget.current_spend
+                budget.name, key, budget.current_spend
             );
             budget.reset();
 
@@ -283,7 +280,8 @@ impl BudgetTracker {
             .iter()
             .filter(|entry| {
                 let key = entry.key();
-                key.starts_with(&format!("{}:", scope_type)) || (scope_type == "global" && key == "global")
+                key.starts_with(&format!("{}:", scope_type))
+                    || (scope_type == "global" && key == "global")
             })
             .map(|entry| entry.value().clone())
             .collect()

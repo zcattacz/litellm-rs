@@ -44,11 +44,16 @@ impl NovitaProvider {
     /// Create a new Novita provider instance
     pub async fn new(config: NovitaConfig) -> Result<Self, ProviderError> {
         // Validate configuration
-        config.validate().map_err(|e| ProviderError::configuration(PROVIDER_NAME, e))?;
+        config
+            .validate()
+            .map_err(|e| ProviderError::configuration(PROVIDER_NAME, e))?;
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ProviderError::configuration(PROVIDER_NAME, format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration(
+                PROVIDER_NAME,
+                format!("Failed to create pool manager: {}", e),
+            )
         })?);
 
         // Build model list from static configuration
@@ -133,8 +138,13 @@ impl NovitaProvider {
             return Err(Self::map_http_error(status.as_u16(), &error_text));
         }
 
-        serde_json::from_slice(&response_bytes)
-            .map_err(|e| ProviderError::api_error(PROVIDER_NAME, 500, format!("Failed to parse response: {}", e)))
+        serde_json::from_slice(&response_bytes).map_err(|e| {
+            ProviderError::api_error(
+                PROVIDER_NAME,
+                500,
+                format!("Failed to parse response: {}", e),
+            )
+        })
     }
 
     /// Map HTTP status codes to provider errors
@@ -214,7 +224,8 @@ impl LLMProvider for NovitaProvider {
         _context: RequestContext,
     ) -> Result<serde_json::Value, Self::Error> {
         // Convert to JSON value
-        serde_json::to_value(&request).map_err(|e| ProviderError::invalid_request(PROVIDER_NAME, e.to_string()))
+        serde_json::to_value(&request)
+            .map_err(|e| ProviderError::invalid_request(PROVIDER_NAME, e.to_string()))
     }
 
     async fn transform_response(
@@ -224,8 +235,13 @@ impl LLMProvider for NovitaProvider {
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
         // Parse response
-        let chat_response: ChatResponse = serde_json::from_slice(raw_response)
-            .map_err(|e| ProviderError::api_error(PROVIDER_NAME, 500, format!("Failed to parse response: {}", e)))?;
+        let chat_response: ChatResponse = serde_json::from_slice(raw_response).map_err(|e| {
+            ProviderError::api_error(
+                PROVIDER_NAME,
+                500,
+                format!("Failed to parse response: {}", e),
+            )
+        })?;
 
         Ok(chat_response)
     }
@@ -249,8 +265,13 @@ impl LLMProvider for NovitaProvider {
             .execute_request("/chat/completions", request_json)
             .await?;
 
-        serde_json::from_value(response)
-            .map_err(|e| ProviderError::api_error(PROVIDER_NAME, 500, format!("Failed to parse chat response: {}", e)))
+        serde_json::from_value(response).map_err(|e| {
+            ProviderError::api_error(
+                PROVIDER_NAME,
+                500,
+                format!("Failed to parse chat response: {}", e),
+            )
+        })
     }
 
     async fn chat_completion_stream(
@@ -302,8 +323,9 @@ impl LLMProvider for NovitaProvider {
         input_tokens: u32,
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
-        let model_info = get_model_info(model)
-            .ok_or_else(|| ProviderError::model_not_found(PROVIDER_NAME, format!("Unknown model: {}", model)))?;
+        let model_info = get_model_info(model).ok_or_else(|| {
+            ProviderError::model_not_found(PROVIDER_NAME, format!("Unknown model: {}", model))
+        })?;
 
         let input_cost = (input_tokens as f64) * (model_info.input_cost_per_million / 1_000_000.0);
         let output_cost =

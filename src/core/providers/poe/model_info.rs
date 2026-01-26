@@ -4,28 +4,26 @@ use crate::core::types::common::{ModelInfo, ProviderCapability};
 use std::collections::HashMap;
 
 pub fn get_models() -> Vec<ModelInfo> {
-    vec![
-        ModelInfo {
-            id: "poe-default".to_string(),
-            name: "Poe Default Model".to_string(),
-            provider: "poe".to_string(),
-            max_context_length: 8192,
-            max_output_length: Some(4096),
-            supports_streaming: true,
-            supports_tools: false,
-            supports_multimodal: false,
-            input_cost_per_1k_tokens: Some(0.0),
-            output_cost_per_1k_tokens: Some(0.0),
-            currency: "USD".to_string(),
-            capabilities: vec![
-                ProviderCapability::ChatCompletion,
-                ProviderCapability::ChatCompletionStream,
-            ],
-            created_at: None,
-            updated_at: None,
-            metadata: HashMap::new(),
-        },
-    ]
+    vec![ModelInfo {
+        id: "poe-default".to_string(),
+        name: "Poe Default Model".to_string(),
+        provider: "poe".to_string(),
+        max_context_length: 8192,
+        max_output_length: Some(4096),
+        supports_streaming: true,
+        supports_tools: false,
+        supports_multimodal: false,
+        input_cost_per_1k_tokens: Some(0.0),
+        output_cost_per_1k_tokens: Some(0.0),
+        currency: "USD".to_string(),
+        capabilities: vec![
+            ProviderCapability::ChatCompletion,
+            ProviderCapability::ChatCompletionStream,
+        ],
+        created_at: None,
+        updated_at: None,
+        metadata: HashMap::new(),
+    }]
 }
 
 #[cfg(test)]

@@ -128,10 +128,7 @@ impl TeamRepository for InMemoryTeamRepository {
         }
 
         // Check for name conflict with other teams
-        if teams
-            .values()
-            .any(|t| t.name == team.name && t.id() != id)
-        {
+        if teams.values().any(|t| t.name == team.name && t.id() != id) {
             return Err(GatewayError::Conflict(format!(
                 "Team with name '{}' already exists",
                 team.name
@@ -252,10 +249,7 @@ impl TeamRepository for InMemoryTeamRepository {
 
         let key = (team_id, user_id);
         let member = members.get_mut(&key).ok_or_else(|| {
-            GatewayError::NotFound(format!(
-                "Member {} not found in team {}",
-                user_id, team_id
-            ))
+            GatewayError::NotFound(format!("Member {} not found in team {}", user_id, team_id))
         })?;
 
         member.role = role;

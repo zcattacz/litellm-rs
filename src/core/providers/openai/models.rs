@@ -114,9 +114,9 @@ pub enum OpenAIModelFamily {
     TTS,
     Embedding,
     Moderation,
-    GPT4OAudio,  // GPT-4O with audio capabilities
-    GPTAudio,    // GPT Audio models (2025)
-    Realtime,    // Realtime API models
+    GPT4OAudio, // GPT-4O with audio capabilities
+    GPTAudio,   // GPT Audio models (2025)
+    Realtime,   // Realtime API models
 }
 
 /// Model-specific configuration
@@ -663,8 +663,8 @@ impl OpenAIModelRegistry {
                 OpenAIModelFamily::GPT52Pro,
                 400000,
                 Some(128000),
-                0.021,  // $21/1M input
-                0.168,  // $168/1M output
+                0.021, // $21/1M input
+                0.168, // $168/1M output
             ),
             // GPT-5.2 (Standard)
             (

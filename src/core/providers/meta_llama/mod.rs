@@ -367,24 +367,22 @@ impl LLMProvider for LlamaProvider {
         // Convert JsonValue stream to ChatChunk stream
         use futures::stream::StreamExt;
         let chunk_stream = json_stream.map(|result| {
-            result.map(|json| {
-                crate::core::types::responses::ChatChunk {
-                    id: json
-                        .get("id")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string(),
-                    object: "chat.completion.chunk".to_string(),
-                    created: json.get("created").and_then(|v| v.as_i64()).unwrap_or(0),
-                    model: json
-                        .get("model")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string(),
-                    choices: vec![],
-                    usage: None,
-                    system_fingerprint: None,
-                }
+            result.map(|json| crate::core::types::responses::ChatChunk {
+                id: json
+                    .get("id")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                object: "chat.completion.chunk".to_string(),
+                created: json.get("created").and_then(|v| v.as_i64()).unwrap_or(0),
+                model: json
+                    .get("model")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                choices: vec![],
+                usage: None,
+                system_fingerprint: None,
             })
         });
 

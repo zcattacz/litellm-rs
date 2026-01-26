@@ -107,10 +107,19 @@ async fn test_validate_valid_key() {
 async fn test_validate_nonexistent_key() {
     let manager = create_test_manager();
 
-    let result = manager.validate_key("gw-nonexistent12345678901234567890").await.unwrap();
+    let result = manager
+        .validate_key("gw-nonexistent12345678901234567890")
+        .await
+        .unwrap();
     assert!(!result.valid);
     assert!(result.key.is_none());
-    assert!(result.invalid_reason.as_ref().unwrap().contains("not found"));
+    assert!(
+        result
+            .invalid_reason
+            .as_ref()
+            .unwrap()
+            .contains("not found")
+    );
 }
 
 #[tokio::test]
@@ -374,10 +383,16 @@ async fn test_list_keys_with_status_filter() {
         manager.revoke_key(key_id).await.unwrap();
     }
 
-    let active_keys = manager.list_keys(Some(KeyStatus::Active), None, None).await.unwrap();
+    let active_keys = manager
+        .list_keys(Some(KeyStatus::Active), None, None)
+        .await
+        .unwrap();
     assert_eq!(active_keys.len(), 3);
 
-    let revoked_keys = manager.list_keys(Some(KeyStatus::Revoked), None, None).await.unwrap();
+    let revoked_keys = manager
+        .list_keys(Some(KeyStatus::Revoked), None, None)
+        .await
+        .unwrap();
     assert_eq!(revoked_keys.len(), 2);
 }
 

@@ -209,7 +209,9 @@ impl LLMProvider for FeatherlessProvider {
         }
 
         let stream = response.bytes_stream();
-        Ok(Box::pin(super::streaming::create_featherless_stream(stream)))
+        Ok(Box::pin(super::streaming::create_featherless_stream(
+            stream,
+        )))
     }
 
     async fn health_check(&self) -> HealthStatus {

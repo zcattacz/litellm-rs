@@ -142,11 +142,9 @@ impl LambdaAIProvider {
                 500..=599 => {
                     LambdaAIError::provider_unavailable(PROVIDER_NAME, error_text.to_string())
                 }
-                _ => LambdaAIError::api_error(
-                    PROVIDER_NAME,
-                    status.as_u16(),
-                    error_text.to_string(),
-                ),
+                _ => {
+                    LambdaAIError::api_error(PROVIDER_NAME, status.as_u16(), error_text.to_string())
+                }
             });
         }
 

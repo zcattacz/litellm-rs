@@ -228,8 +228,8 @@ impl LLMProvider for FriendliAIProvider {
         let mut mapped = HashMap::new();
         for (key, value) in params {
             match key.as_str() {
-                "temperature" | "top_p" | "max_tokens" | "stream" | "stop"
-                | "presence_penalty" | "frequency_penalty" => {
+                "temperature" | "top_p" | "max_tokens" | "stream" | "stop" | "presence_penalty"
+                | "frequency_penalty" => {
                     mapped.insert(key, value);
                 }
                 _ => {}
@@ -399,7 +399,10 @@ impl LLMProvider for FriendliAIProvider {
                 {
                     Ok(response) if response.status().is_success() => HealthStatus::Healthy,
                     Ok(response) => {
-                        debug!("FriendliAI health check failed: status={}", response.status());
+                        debug!(
+                            "FriendliAI health check failed: status={}",
+                            response.status()
+                        );
                         HealthStatus::Unhealthy
                     }
                     Err(e) => {

@@ -2,9 +2,9 @@
 //!
 //! Unit tests for configuration, model info, and provider functionality.
 
-use super::*;
 use super::config::LambdaAIConfig;
 use super::model_info::{get_available_models, get_model_info, is_reasoning_model};
+use super::*;
 
 #[test]
 fn test_provider_name() {
@@ -33,8 +33,7 @@ fn test_config_get_api_base() {
     let config = LambdaAIConfig::default();
     assert_eq!(config.get_api_base(), "https://api.lambdalabs.com/v1");
 
-    let config_custom = LambdaAIConfig::default()
-        .with_api_base("https://custom.lambda.com/v1");
+    let config_custom = LambdaAIConfig::default().with_api_base("https://custom.lambda.com/v1");
     assert_eq!(config_custom.get_api_base(), "https://custom.lambda.com/v1");
 }
 
@@ -166,8 +165,8 @@ async fn test_provider_capabilities() {
     let config = LambdaAIConfig::new("test-api-key");
     let provider = provider::LambdaAIProvider::new(config).await.unwrap();
 
-    use crate::core::types::common::ProviderCapability;
     use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
+    use crate::core::types::common::ProviderCapability;
 
     let capabilities = provider.capabilities();
     assert!(capabilities.contains(&ProviderCapability::ChatCompletion));
@@ -183,7 +182,9 @@ async fn test_cost_calculation() {
     use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 
     // Test cost calculation for a known model
-    let cost = provider.calculate_cost("llama-3.1-8b-instruct", 1000, 500).await;
+    let cost = provider
+        .calculate_cost("llama-3.1-8b-instruct", 1000, 500)
+        .await;
     assert!(cost.is_ok());
     let cost_value = cost.unwrap();
     assert!(cost_value > 0.0);

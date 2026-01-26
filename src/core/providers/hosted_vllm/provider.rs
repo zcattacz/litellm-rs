@@ -11,11 +11,11 @@ use std::sync::Arc;
 use tracing::debug;
 
 use super::config::HostedVLLMConfig;
-use super::models::{get_or_create_model_info, HostedVLLMModelInfo};
-use crate::core::providers::base::{header, GlobalPoolManager, HttpMethod};
+use super::models::{HostedVLLMModelInfo, get_or_create_model_info};
+use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{
-    provider::llm_provider::trait_definition::LLMProvider, ProviderConfig as _,
+    ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
 };
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
@@ -105,7 +105,12 @@ impl HostedVLLMProvider {
     }
 
     /// Build headers for requests
-    fn build_headers(&self) -> Vec<(std::borrow::Cow<'static, str>, std::borrow::Cow<'static, str>)> {
+    fn build_headers(
+        &self,
+    ) -> Vec<(
+        std::borrow::Cow<'static, str>,
+        std::borrow::Cow<'static, str>,
+    )> {
         let mut headers = Vec::with_capacity(4 + self.config.custom_headers.len());
 
         // Add auth headers if API key is provided
@@ -119,7 +124,10 @@ impl HostedVLLMProvider {
 
         // Custom headers
         for (key, value) in &self.config.custom_headers {
-            headers.push((std::borrow::Cow::Owned(key.clone()), std::borrow::Cow::Owned(value.clone())));
+            headers.push((
+                std::borrow::Cow::Owned(key.clone()),
+                std::borrow::Cow::Owned(value.clone()),
+            ));
         }
 
         headers
@@ -297,7 +305,7 @@ fn model_info_to_gateway_model(info: &HostedVLLMModelInfo) -> ModelInfo {
         supports_streaming: true,
         supports_tools: info.supports_tools,
         supports_multimodal: info.supports_vision,
-        input_cost_per_1k_tokens: None, // Self-hosted, no API costs
+        input_cost_per_1k_tokens: None,  // Self-hosted, no API costs
         output_cost_per_1k_tokens: None, // Self-hosted, no API costs
         currency: "USD".to_string(),
         capabilities,

@@ -44,13 +44,11 @@ pub fn transform_chat_request(
             });
 
             if let Some(temp) = temperature {
-                body["temperature"] =
-                    Value::Number(safe_f64_to_number(temp));
+                body["temperature"] = Value::Number(safe_f64_to_number(temp));
             }
 
             if let Some(top_p_val) = top_p {
-                body["top_p"] =
-                    Value::Number(safe_f64_to_number(top_p_val));
+                body["top_p"] = Value::Number(safe_f64_to_number(top_p_val));
             }
 
             Ok(body)
@@ -71,8 +69,7 @@ pub fn transform_chat_request(
             }
 
             if let Some(top_p_val) = top_p {
-                body["textGenerationConfig"]["topP"] =
-                    Value::Number(safe_f64_to_number(top_p_val));
+                body["textGenerationConfig"]["topP"] = Value::Number(safe_f64_to_number(top_p_val));
             }
 
             Ok(body)
@@ -85,8 +82,7 @@ pub fn transform_chat_request(
             });
 
             if let Some(temp) = temperature {
-                body["temperature"] =
-                    Value::Number(safe_f64_to_number(temp));
+                body["temperature"] = Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)
@@ -99,8 +95,7 @@ pub fn transform_chat_request(
             });
 
             if let Some(temp) = temperature {
-                body["temperature"] =
-                    Value::Number(safe_f64_to_number(temp));
+                body["temperature"] = Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)
@@ -114,8 +109,7 @@ pub fn transform_chat_request(
             });
 
             if let Some(temp) = temperature {
-                body["temperature"] =
-                    Value::Number(safe_f64_to_number(temp));
+                body["temperature"] = Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)
@@ -129,8 +123,7 @@ pub fn transform_chat_request(
             });
 
             if let Some(temp) = temperature {
-                body["temperature"] =
-                    Value::Number(safe_f64_to_number(temp));
+                body["temperature"] = Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)
@@ -144,8 +137,7 @@ pub fn transform_chat_request(
             });
 
             if let Some(temp) = temperature {
-                body["temperature"] =
-                    Value::Number(safe_f64_to_number(temp));
+                body["temperature"] = Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)
@@ -159,8 +151,7 @@ pub fn transform_chat_request(
             });
 
             if let Some(temp) = temperature {
-                body["temperature"] =
-                    Value::Number(safe_f64_to_number(temp));
+                body["temperature"] = Value::Number(safe_f64_to_number(temp));
             }
 
             Ok(body)

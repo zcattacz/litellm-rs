@@ -27,9 +27,11 @@ impl OAuthProvider {
     pub fn default_auth_url(&self) -> Option<&'static str> {
         match self {
             Self::Google => Some("https://accounts.google.com/o/oauth2/v2/auth"),
-            Self::Microsoft => Some("https://login.microsoftonline.com/common/oauth2/v2.0/authorize"),
+            Self::Microsoft => {
+                Some("https://login.microsoftonline.com/common/oauth2/v2.0/authorize")
+            }
             Self::GitHub => Some("https://github.com/login/oauth/authorize"),
-            Self::Okta => None, // Requires tenant-specific URL
+            Self::Okta => None,  // Requires tenant-specific URL
             Self::Auth0 => None, // Requires tenant-specific URL
             Self::Custom => None,
         }
@@ -73,10 +75,7 @@ impl OAuthProvider {
                 "profile".to_string(),
                 "User.Read".to_string(),
             ],
-            Self::GitHub => vec![
-                "read:user".to_string(),
-                "user:email".to_string(),
-            ],
+            Self::GitHub => vec!["read:user".to_string(), "user:email".to_string()],
             Self::Okta | Self::Auth0 => vec![
                 "openid".to_string(),
                 "email".to_string(),
@@ -104,8 +103,8 @@ impl OAuthProvider {
             Self::Google => Some("https://accounts.google.com/logout"),
             Self::Microsoft => Some("https://login.microsoftonline.com/common/oauth2/v2.0/logout"),
             Self::GitHub => None, // GitHub doesn't have an OAuth logout endpoint
-            Self::Okta => None, // Requires tenant-specific URL
-            Self::Auth0 => None, // Requires tenant-specific URL
+            Self::Okta => None,   // Requires tenant-specific URL
+            Self::Auth0 => None,  // Requires tenant-specific URL
             Self::Custom => None,
         }
     }
@@ -346,8 +345,13 @@ impl OAuthConfig {
     }
 
     /// Add a role mapping
-    pub fn with_role_mapping(mut self, oauth_role: impl Into<String>, internal_role: impl Into<String>) -> Self {
-        self.role_mapping.insert(oauth_role.into(), internal_role.into());
+    pub fn with_role_mapping(
+        mut self,
+        oauth_role: impl Into<String>,
+        internal_role: impl Into<String>,
+    ) -> Self {
+        self.role_mapping
+            .insert(oauth_role.into(), internal_role.into());
         self
     }
 
@@ -503,10 +507,22 @@ mod tests {
 
     #[test]
     fn test_oauth_provider_from_str() {
-        assert_eq!("google".parse::<OAuthProvider>().unwrap(), OAuthProvider::Google);
-        assert_eq!("microsoft".parse::<OAuthProvider>().unwrap(), OAuthProvider::Microsoft);
-        assert_eq!("azure".parse::<OAuthProvider>().unwrap(), OAuthProvider::Microsoft);
-        assert_eq!("github".parse::<OAuthProvider>().unwrap(), OAuthProvider::GitHub);
+        assert_eq!(
+            "google".parse::<OAuthProvider>().unwrap(),
+            OAuthProvider::Google
+        );
+        assert_eq!(
+            "microsoft".parse::<OAuthProvider>().unwrap(),
+            OAuthProvider::Microsoft
+        );
+        assert_eq!(
+            "azure".parse::<OAuthProvider>().unwrap(),
+            OAuthProvider::Microsoft
+        );
+        assert_eq!(
+            "github".parse::<OAuthProvider>().unwrap(),
+            OAuthProvider::GitHub
+        );
         assert!("unknown".parse::<OAuthProvider>().is_err());
     }
 
@@ -588,8 +604,14 @@ mod tests {
 
         assert_eq!(config.client_secret, Some("secret456".to_string()));
         assert!(config.scopes.contains(&"calendar.readonly".to_string()));
-        assert_eq!(config.extra_params.get("prompt"), Some(&"consent".to_string()));
-        assert_eq!(config.role_mapping.get("admin"), Some(&"super_admin".to_string()));
+        assert_eq!(
+            config.extra_params.get("prompt"),
+            Some(&"consent".to_string())
+        );
+        assert_eq!(
+            config.role_mapping.get("admin"),
+            Some(&"super_admin".to_string())
+        );
         assert_eq!(config.timeout_ms, 60000);
     }
 
@@ -630,8 +652,14 @@ mod tests {
     #[test]
     fn test_oauth_gateway_config() {
         let mut gateway = OAuthGatewayConfig::default();
-        gateway.add_provider("google", OAuthConfig::google("client1", "https://app.example.com/callback"));
-        gateway.add_provider("github", OAuthConfig::github("client2", "https://app.example.com/callback"));
+        gateway.add_provider(
+            "google",
+            OAuthConfig::google("client1", "https://app.example.com/callback"),
+        );
+        gateway.add_provider(
+            "github",
+            OAuthConfig::github("client2", "https://app.example.com/callback"),
+        );
         gateway.default_provider = Some("google".to_string());
 
         assert!(gateway.get_provider("google").is_some());
@@ -643,7 +671,10 @@ mod tests {
     #[test]
     fn test_oauth_gateway_config_validation() {
         let mut gateway = OAuthGatewayConfig::default();
-        gateway.add_provider("valid", OAuthConfig::google("client1", "https://app.example.com/callback"));
+        gateway.add_provider(
+            "valid",
+            OAuthConfig::google("client1", "https://app.example.com/callback"),
+        );
 
         assert!(gateway.validate().is_ok());
 

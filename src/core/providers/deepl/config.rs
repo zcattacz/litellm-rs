@@ -103,7 +103,10 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = DeepLConfig::default();
-        assert_eq!(config.base.api_base.as_deref(), Some(super::super::DEFAULT_BASE_URL));
+        assert_eq!(
+            config.base.api_base.as_deref(),
+            Some(super::super::DEFAULT_BASE_URL)
+        );
         assert_eq!(config.base.timeout, 60);
         assert!(!config.use_pro);
     }
@@ -124,18 +127,27 @@ mod tests {
             .with_timeout(120);
 
         assert_eq!(config.base.api_key.as_deref(), Some("test-key"));
-        assert_eq!(config.base.api_base.as_deref(), Some("https://custom.api.com"));
+        assert_eq!(
+            config.base.api_base.as_deref(),
+            Some("https://custom.api.com")
+        );
         assert_eq!(config.base.timeout, 120);
     }
 
     #[test]
     fn test_pro_api_config() {
         let config = DeepLConfig::new("test-key").with_pro(true);
-        assert_eq!(config.base.api_base.as_deref(), Some(super::super::PRO_BASE_URL));
+        assert_eq!(
+            config.base.api_base.as_deref(),
+            Some(super::super::PRO_BASE_URL)
+        );
         assert!(config.use_pro);
 
         let config = config.with_pro(false);
-        assert_eq!(config.base.api_base.as_deref(), Some(super::super::DEFAULT_BASE_URL));
+        assert_eq!(
+            config.base.api_base.as_deref(),
+            Some(super::super::DEFAULT_BASE_URL)
+        );
         assert!(!config.use_pro);
     }
 }

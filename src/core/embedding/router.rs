@@ -4,8 +4,8 @@
 //! and routes requests to the appropriate embedding implementation.
 
 use crate::core::providers::{Provider, ProviderRegistry};
-use crate::core::types::{EmbeddingInput as TypesEmbeddingInput, EmbeddingRequest};
 use crate::core::types::responses::EmbeddingResponse;
+use crate::core::types::{EmbeddingInput as TypesEmbeddingInput, EmbeddingRequest};
 use crate::utils::error::{GatewayError, Result};
 use std::sync::Arc;
 use tokio::sync::OnceCell;
@@ -27,8 +27,8 @@ impl EmbeddingRouter {
         // Add OpenAI provider if API key is available
         if let Ok(api_key) = std::env::var("OPENAI_API_KEY") {
             use crate::core::providers::base::BaseConfig;
-            use crate::core::providers::openai::config::OpenAIConfig;
             use crate::core::providers::openai::OpenAIProvider;
+            use crate::core::providers::openai::config::OpenAIConfig;
 
             let config = OpenAIConfig {
                 base: BaseConfig {
@@ -213,8 +213,8 @@ impl EmbeddingRouter {
         options: &EmbeddingOptions,
     ) -> Result<EmbeddingResponse> {
         use crate::core::providers::base::BaseConfig;
-        use crate::core::providers::openai::config::OpenAIConfig;
         use crate::core::providers::openai::OpenAIProvider;
+        use crate::core::providers::openai::config::OpenAIConfig;
 
         let timeout = options.timeout.unwrap_or(60);
 
@@ -235,7 +235,10 @@ impl EmbeddingRouter {
         };
 
         let provider = OpenAIProvider::new(config).await.map_err(|e| {
-            GatewayError::internal(format!("Failed to create dynamic embedding provider: {}", e))
+            GatewayError::internal(format!(
+                "Failed to create dynamic embedding provider: {}",
+                e
+            ))
         })?;
 
         let request = self.build_request(model, input, options);

@@ -66,19 +66,23 @@ impl OpenAIProvider {
     /// Create new OpenAI provider
     pub async fn new(config: OpenAIConfig) -> Result<Self, ProviderError> {
         // Validate configuration
-        config.validate().map_err(|e| ProviderError::Configuration {
-            provider: "openai",
-            message: e.to_string(),
-        })?;
+        config
+            .validate()
+            .map_err(|e| ProviderError::Configuration {
+                provider: "openai",
+                message: e.to_string(),
+            })?;
 
         // Note: Headers are now built per-request in get_request_headers()
         // This avoids redundant HashMap allocation during initialization.
 
         let pool_manager =
-            Arc::new(GlobalPoolManager::new().map_err(|e| ProviderError::Network {
-                provider: "openai",
-                message: e.to_string(),
-            })?);
+            Arc::new(
+                GlobalPoolManager::new().map_err(|e| ProviderError::Network {
+                    provider: "openai",
+                    message: e.to_string(),
+                })?,
+            );
         let model_registry = get_openai_registry();
 
         Ok(Self {
@@ -122,11 +126,12 @@ impl OpenAIProvider {
             message: e.to_string(),
         })?;
 
-        let response_json: Value =
-            serde_json::from_slice(&response_bytes).map_err(|e| ProviderError::ResponseParsing {
+        let response_json: Value = serde_json::from_slice(&response_bytes).map_err(|e| {
+            ProviderError::ResponseParsing {
                 provider: "openai",
                 message: e.to_string(),
-            })?;
+            }
+        })?;
 
         // Transform response back to standard format
         self.transform_chat_response(response_json)

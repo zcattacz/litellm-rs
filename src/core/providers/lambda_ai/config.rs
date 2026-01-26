@@ -168,8 +168,7 @@ mod tests {
 
     #[test]
     fn test_lambda_ai_config_get_api_base_custom() {
-        let config = LambdaAIConfig::default()
-            .with_api_base("https://custom.lambda.com");
+        let config = LambdaAIConfig::default().with_api_base("https://custom.lambda.com");
         assert_eq!(config.get_api_base(), "https://custom.lambda.com");
     }
 

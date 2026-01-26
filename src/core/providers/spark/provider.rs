@@ -73,10 +73,7 @@ impl SparkProvider {
 
         // Check model support
         let model_spec = registry.get_model_spec(&request.model).ok_or_else(|| {
-            ProviderError::invalid_request(
-                "spark",
-                format!("Unsupported model: {}", request.model),
-            )
+            ProviderError::invalid_request("spark", format!("Unsupported model: {}", request.model))
         })?;
 
         // Check message requirements
@@ -101,7 +98,8 @@ impl SparkProvider {
         }
 
         // Check function calling support
-        if request.tools.is_some() && !model_spec.features.contains(&ModelFeature::FunctionCalling) {
+        if request.tools.is_some() && !model_spec.features.contains(&ModelFeature::FunctionCalling)
+        {
             return Err(ProviderError::not_supported(
                 "spark",
                 format!("Model {} does not support function calling", request.model),
@@ -402,9 +400,9 @@ impl SparkProviderBuilder {
 
     /// Build provider
     pub fn build(self) -> Result<SparkProvider, ProviderError> {
-        let config = self.config.ok_or_else(|| {
-            ProviderError::configuration("spark", "Configuration is required")
-        })?;
+        let config = self
+            .config
+            .ok_or_else(|| ProviderError::configuration("spark", "Configuration is required"))?;
 
         SparkProvider::new(config)
     }

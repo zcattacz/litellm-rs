@@ -213,10 +213,7 @@ impl KeyManager {
             .update_status(key_id, KeyStatus::Revoked)
             .await?;
 
-        info!(
-            "API key rotated successfully: {} -> {}",
-            key_id, new_key_id
-        );
+        info!("API key rotated successfully: {} -> {}", key_id, new_key_id);
         Ok((new_key_id, new_raw_key))
     }
 

@@ -11,17 +11,17 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::core::providers::base::{
-    get_pricing_db, header, header_owned, GlobalPoolManager, HeaderPair, HttpMethod,
+    GlobalPoolManager, HeaderPair, HttpMethod, get_pricing_db, header, header_owned,
 };
 use crate::core::providers::unified_provider::ProviderError;
-use crate::core::traits::{provider::llm_provider::trait_definition::LLMProvider, ProviderConfig};
+use crate::core::traits::{ProviderConfig, provider::llm_provider::trait_definition::LLMProvider};
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
     requests::ChatRequest,
     responses::{ChatChunk, ChatResponse},
 };
 
-use super::config::{HerokuConfig, DEFAULT_API_BASE, PROVIDER_NAME};
+use super::config::{DEFAULT_API_BASE, HerokuConfig, PROVIDER_NAME};
 use super::{HerokuClient, HerokuErrorMapper};
 
 /// Heroku AI Inference Provider

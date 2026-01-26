@@ -6,11 +6,11 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::http::header::HeaderValue;
 use actix_web::Error;
+use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready};
+use actix_web::http::header::HeaderValue;
 use chrono::Utc;
-use futures::future::{ok, Ready};
+use futures::future::{Ready, ok};
 use tracing::debug;
 
 use super::client::LangfuseClient;
@@ -117,10 +117,7 @@ impl LangfuseTracing {
 
     /// Check if path should be traced
     fn should_trace(&self, path: &str) -> bool {
-        !self
-            .exclude_paths
-            .iter()
-            .any(|p| path.starts_with(p))
+        !self.exclude_paths.iter().any(|p| path.starts_with(p))
     }
 }
 
@@ -160,10 +157,7 @@ pub struct LangfuseTracingMiddleware<S> {
 
 impl<S> LangfuseTracingMiddleware<S> {
     fn should_trace(&self, path: &str) -> bool {
-        !self
-            .exclude_paths
-            .iter()
-            .any(|p| path.starts_with(p))
+        !self.exclude_paths.iter().any(|p| path.starts_with(p))
     }
 }
 
@@ -210,8 +204,10 @@ where
 
         // Add trace ID to request headers for downstream services
         if let Ok(header_value) = HeaderValue::from_str(&trace_id) {
-            req.headers_mut()
-                .insert(actix_web::http::header::HeaderName::from_static(TRACE_ID_HEADER), header_value);
+            req.headers_mut().insert(
+                actix_web::http::header::HeaderName::from_static(TRACE_ID_HEADER),
+                header_value,
+            );
         }
 
         let service_name = self.service_name.clone();
@@ -388,7 +384,11 @@ mod tests {
 
         assert!(middleware.include_request_body);
         assert!(middleware.include_response_body);
-        assert!(middleware.exclude_paths.contains(&"/api/internal".to_string()));
+        assert!(
+            middleware
+                .exclude_paths
+                .contains(&"/api/internal".to_string())
+        );
         assert_eq!(middleware.service_name, "my-service");
     }
 

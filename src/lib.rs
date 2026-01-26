@@ -84,7 +84,7 @@ pub mod version; // Build and version information
 // Re-export main types
 pub use config::Config;
 pub use utils::error::{GatewayError, Result};
-pub use version::{BuildInfo, build_info, full_version, VERSION, GIT_HASH};
+pub use version::{BuildInfo, GIT_HASH, VERSION, build_info, full_version};
 
 // Export core completion functionality (Python LiteLLM compatible)
 pub use core::completion::{
@@ -96,8 +96,8 @@ pub use core::completion::{
 // Export core embedding functionality (Python LiteLLM compatible)
 pub use core::embedding::{
     EmbeddingInput, EmbeddingOptions, EmbeddingResponse, aembedding, cosine_similarity,
-    dot_product, embed_text, embed_texts, embed_texts_with_options, embedding,
-    euclidean_distance, normalize,
+    dot_product, embed_text, embed_texts, embed_texts_with_options, embedding, euclidean_distance,
+    normalize,
 };
 
 // Export streaming types

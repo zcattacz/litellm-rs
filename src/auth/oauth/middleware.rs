@@ -2,9 +2,9 @@
 
 use super::session::{OAuthSession, SessionStore};
 use super::types::UserInfo;
-use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
+use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready};
 use actix_web::{Error, HttpMessage, HttpRequest, web};
-use futures::future::{ok, Ready};
+use futures::future::{Ready, ok};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -346,9 +346,8 @@ impl actix_web::FromRequest for OAuthUser {
             .cloned();
 
         Box::pin(async move {
-            let session_id = session_id.ok_or_else(|| {
-                actix_web::error::ErrorUnauthorized("Missing session")
-            })?;
+            let session_id =
+                session_id.ok_or_else(|| actix_web::error::ErrorUnauthorized("Missing session"))?;
 
             let oauth = oauth_state.ok_or_else(|| {
                 actix_web::error::ErrorInternalServerError("OAuth not configured")

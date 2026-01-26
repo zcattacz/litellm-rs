@@ -10,13 +10,13 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::core::providers::base::{
-    get_pricing_db, header, header_owned, streaming_client, GlobalPoolManager, HeaderPair,
-    HttpMethod,
+    GlobalPoolManager, HeaderPair, HttpMethod, get_pricing_db, header, header_owned,
+    streaming_client,
 };
 use crate::core::providers::unified_provider::ProviderError;
+use crate::core::traits::ProviderConfig;
 use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
-use crate::core::traits::ProviderConfig;
 use crate::core::types::{
     chat::{ChatMessage, ChatRequest},
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
@@ -27,7 +27,7 @@ use crate::core::types::{
 use super::config::LangGraphConfig;
 use super::error::{LangGraphErrorMapper, PROVIDER_NAME};
 use super::models::{
-    get_model_registry, CreateThreadRequest, RunGraphRequest, RunResponse, RunStatus, ThreadState,
+    CreateThreadRequest, RunGraphRequest, RunResponse, RunStatus, ThreadState, get_model_registry,
 };
 
 /// LangGraph Cloud provider for graph-based agent execution
@@ -152,11 +152,7 @@ impl LangGraphProvider {
         input: serde_json::Value,
         config: Option<serde_json::Value>,
     ) -> Result<RunResponse, ProviderError> {
-        let url = format!(
-            "{}/threads/{}/runs",
-            self.config.get_api_base(),
-            thread_id
-        );
+        let url = format!("{}/threads/{}/runs", self.config.get_api_base(), thread_id);
 
         let request = RunGraphRequest {
             assistant_id: assistant_id.to_string(),

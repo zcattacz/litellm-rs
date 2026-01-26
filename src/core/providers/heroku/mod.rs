@@ -13,5 +13,5 @@ pub mod streaming;
 pub use client::HerokuClient;
 pub use config::HerokuConfig;
 pub use error::HerokuErrorMapper;
-pub use models::{get_heroku_registry, HerokuModelRegistry};
+pub use models::{HerokuModelRegistry, get_heroku_registry};
 pub use provider::HerokuProvider;

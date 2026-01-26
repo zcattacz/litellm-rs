@@ -13,8 +13,8 @@ use super::config::NvidiaNimConfig;
 use super::model_info::{
     get_available_models, get_model_info, get_supported_params, supports_tools,
 };
-use crate::core::providers::unified_provider::ProviderError;
 use crate::core::providers::base::{GlobalPoolManager, HttpMethod, header};
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{
     ProviderConfig as _, provider::llm_provider::trait_definition::LLMProvider,
 };

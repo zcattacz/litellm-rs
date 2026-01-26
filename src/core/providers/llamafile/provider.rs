@@ -47,7 +47,10 @@ impl LlamafileProvider {
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ProviderError::configuration(PROVIDER_NAME, format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration(
+                PROVIDER_NAME,
+                format!("Failed to create pool manager: {}", e),
+            )
         })?);
 
         // Initialize with empty models
@@ -113,8 +116,13 @@ impl LlamafileProvider {
             .await
             .map_err(|e| ProviderError::network(PROVIDER_NAME, e.to_string()))?;
 
-        serde_json::from_slice(&response_bytes)
-            .map_err(|e| ProviderError::api_error(PROVIDER_NAME, 500, format!("Failed to parse response: {}", e)))
+        serde_json::from_slice(&response_bytes).map_err(|e| {
+            ProviderError::api_error(
+                PROVIDER_NAME,
+                500,
+                format!("Failed to parse response: {}", e),
+            )
+        })
     }
 
     /// Build OpenAI-compatible chat request from ChatRequest
@@ -260,14 +268,16 @@ impl LlamafileProvider {
         let choices = response
             .get("choices")
             .and_then(|c| c.as_array())
-            .ok_or_else(|| ProviderError::api_error(PROVIDER_NAME, 500, "Missing choices in response"))?;
+            .ok_or_else(|| {
+                ProviderError::api_error(PROVIDER_NAME, 500, "Missing choices in response")
+            })?;
 
         let mut chat_choices = Vec::new();
 
         for (i, choice) in choices.iter().enumerate() {
-            let message = choice
-                .get("message")
-                .ok_or_else(|| ProviderError::api_error(PROVIDER_NAME, 500, "Missing message in choice"))?;
+            let message = choice.get("message").ok_or_else(|| {
+                ProviderError::api_error(PROVIDER_NAME, 500, "Missing message in choice")
+            })?;
 
             let content = message
                 .get("content")
@@ -442,8 +452,13 @@ impl LLMProvider for LlamafileProvider {
         model: &str,
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
-        let response: serde_json::Value = serde_json::from_slice(raw_response)
-            .map_err(|e| ProviderError::api_error(PROVIDER_NAME, 500, format!("Failed to parse response: {}", e)))?;
+        let response: serde_json::Value = serde_json::from_slice(raw_response).map_err(|e| {
+            ProviderError::api_error(
+                PROVIDER_NAME,
+                500,
+                format!("Failed to parse response: {}", e),
+            )
+        })?;
 
         self.parse_chat_response(response, model)
     }
@@ -596,7 +611,13 @@ impl LLMProvider for LlamafileProvider {
                     }
                     None
                 }
-                Err(e) => Some(Err(ProviderError::streaming_error(PROVIDER_NAME, "chat", None, None, e.to_string()))),
+                Err(e) => Some(Err(ProviderError::streaming_error(
+                    PROVIDER_NAME,
+                    "chat",
+                    None,
+                    None,
+                    e.to_string(),
+                ))),
             }
         });
 

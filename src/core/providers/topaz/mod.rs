@@ -49,8 +49,8 @@ impl TopazConfig {
     pub fn from_env() -> Result<Self, TopazError> {
         let api_key = std::env::var("TOPAZ_API_KEY").ok();
 
-        let api_base = std::env::var("TOPAZ_API_BASE")
-            .unwrap_or_else(|_| "https://api.topaz.com".to_string());
+        let api_base =
+            std::env::var("TOPAZ_API_BASE").unwrap_or_else(|_| "https://api.topaz.com".to_string());
 
         Ok(Self {
             api_key,
@@ -62,9 +62,7 @@ impl TopazConfig {
 
     /// Get effective API base URL
     pub fn get_effective_api_base(&self) -> &str {
-        self.api_base
-            .as_deref()
-            .unwrap_or("https://api.topaz.com")
+        self.api_base.as_deref().unwrap_or("https://api.topaz.com")
     }
 }
 
@@ -107,8 +105,10 @@ impl TopazProvider {
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
         if let Some(api_key) = &self.config.api_key {
-            let auth_value = HeaderValue::from_str(&format!("Bearer {}", api_key))
-                .map_err(|e| ProviderError::configuration("topaz", format!("Invalid API key: {}", e)))?;
+            let auth_value =
+                HeaderValue::from_str(&format!("Bearer {}", api_key)).map_err(|e| {
+                    ProviderError::configuration("topaz", format!("Invalid API key: {}", e))
+                })?;
             headers.insert(AUTHORIZATION, auth_value);
         }
 
@@ -161,9 +161,7 @@ impl LLMProvider for TopazProvider {
     }
 
     fn capabilities(&self) -> &'static [ProviderCapability] {
-        static CAPABILITIES: &[ProviderCapability] = &[
-            ProviderCapability::ChatCompletion,
-        ];
+        static CAPABILITIES: &[ProviderCapability] = &[ProviderCapability::ChatCompletion];
         CAPABILITIES
     }
 
@@ -216,7 +214,10 @@ impl LLMProvider for TopazProvider {
         _model: &str,
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
-        Err(ProviderError::not_implemented("topaz", "Response transformation not yet implemented"))
+        Err(ProviderError::not_implemented(
+            "topaz",
+            "Response transformation not yet implemented",
+        ))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -249,7 +250,10 @@ impl LLMProvider for TopazProvider {
         _request: ChatRequest,
         _context: RequestContext,
     ) -> Result<ChatResponse, Self::Error> {
-        Err(ProviderError::not_implemented("topaz", "Chat completion not yet implemented"))
+        Err(ProviderError::not_implemented(
+            "topaz",
+            "Chat completion not yet implemented",
+        ))
     }
 
     async fn chat_completion_stream(

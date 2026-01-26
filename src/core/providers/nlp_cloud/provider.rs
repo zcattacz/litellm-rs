@@ -22,9 +22,7 @@ use crate::core::types::{
 
 const PROVIDER_NAME: &str = "nlp_cloud";
 
-const NLP_CLOUD_CAPABILITIES: &[ProviderCapability] = &[
-    ProviderCapability::ChatCompletion,
-];
+const NLP_CLOUD_CAPABILITIES: &[ProviderCapability] = &[ProviderCapability::ChatCompletion];
 
 #[derive(Debug, Clone)]
 pub struct NlpCloudProvider {
@@ -35,10 +33,15 @@ pub struct NlpCloudProvider {
 
 impl NlpCloudProvider {
     pub async fn new(config: NlpCloudConfig) -> Result<Self, ProviderError> {
-        config.validate().map_err(|e| ProviderError::configuration(PROVIDER_NAME, e))?;
+        config
+            .validate()
+            .map_err(|e| ProviderError::configuration(PROVIDER_NAME, e))?;
 
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            ProviderError::configuration(PROVIDER_NAME, format!("Failed to create pool manager: {}", e))
+            ProviderError::configuration(
+                PROVIDER_NAME,
+                format!("Failed to create pool manager: {}", e),
+            )
         })?);
 
         let models = get_available_models()
@@ -108,8 +111,13 @@ impl NlpCloudProvider {
             return Err(Self::map_http_error(status.as_u16(), &error_text));
         }
 
-        serde_json::from_slice(&response_bytes)
-            .map_err(|e| ProviderError::api_error(PROVIDER_NAME, 500, format!("Failed to parse response: {}", e)))
+        serde_json::from_slice(&response_bytes).map_err(|e| {
+            ProviderError::api_error(
+                PROVIDER_NAME,
+                500,
+                format!("Failed to parse response: {}", e),
+            )
+        })
     }
 
     fn map_http_error(status: u16, body: &str) -> ProviderError {
@@ -161,7 +169,8 @@ impl LLMProvider for NlpCloudProvider {
         request: ChatRequest,
         _context: RequestContext,
     ) -> Result<serde_json::Value, Self::Error> {
-        serde_json::to_value(&request).map_err(|e| ProviderError::invalid_request(PROVIDER_NAME, e.to_string()))
+        serde_json::to_value(&request)
+            .map_err(|e| ProviderError::invalid_request(PROVIDER_NAME, e.to_string()))
     }
 
     async fn transform_response(
@@ -170,8 +179,13 @@ impl LLMProvider for NlpCloudProvider {
         _model: &str,
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
-        serde_json::from_slice(raw_response)
-            .map_err(|e| ProviderError::api_error(PROVIDER_NAME, 500, format!("Failed to parse response: {}", e)))
+        serde_json::from_slice(raw_response).map_err(|e| {
+            ProviderError::api_error(
+                PROVIDER_NAME,
+                500,
+                format!("Failed to parse response: {}", e),
+            )
+        })
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -192,8 +206,13 @@ impl LLMProvider for NlpCloudProvider {
             .execute_request(&format!("/{}/chatbot", request.model), request_json)
             .await?;
 
-        serde_json::from_value(response)
-            .map_err(|e| ProviderError::api_error(PROVIDER_NAME, 500, format!("Failed to parse chat response: {}", e)))
+        serde_json::from_value(response).map_err(|e| {
+            ProviderError::api_error(
+                PROVIDER_NAME,
+                500,
+                format!("Failed to parse chat response: {}", e),
+            )
+        })
     }
 
     async fn chat_completion_stream(
@@ -227,11 +246,13 @@ impl LLMProvider for NlpCloudProvider {
         input_tokens: u32,
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
-        let model_info = get_model_info(model)
-            .ok_or_else(|| ProviderError::model_not_found(PROVIDER_NAME, format!("Unknown model: {}", model)))?;
+        let model_info = get_model_info(model).ok_or_else(|| {
+            ProviderError::model_not_found(PROVIDER_NAME, format!("Unknown model: {}", model))
+        })?;
 
         let input_cost = (input_tokens as f64) * (model_info.input_cost_per_million / 1_000_000.0);
-        let output_cost = (output_tokens as f64) * (model_info.output_cost_per_million / 1_000_000.0);
+        let output_cost =
+            (output_tokens as f64) * (model_info.output_cost_per_million / 1_000_000.0);
         Ok(input_cost + output_cost)
     }
 }

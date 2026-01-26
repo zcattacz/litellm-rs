@@ -243,8 +243,7 @@ impl LangfuseLogger {
         // Spawn background flush task
         let sender_clone = Arc::clone(&sender);
         let flush_handle = tokio::spawn(async move {
-            let mut interval =
-                tokio::time::interval(Duration::from_millis(flush_interval));
+            let mut interval = tokio::time::interval(Duration::from_millis(flush_interval));
             loop {
                 tokio::select! {
                     _ = interval.tick() => {
@@ -341,7 +340,9 @@ impl LangfuseLogger {
             self.trigger_flush();
         }
 
-        let should_flush = self.sender.add(IngestionEvent::generation_create(generation));
+        let should_flush = self
+            .sender
+            .add(IngestionEvent::generation_create(generation));
         if should_flush {
             self.trigger_flush();
         }
@@ -391,7 +392,9 @@ impl LangfuseLogger {
         trace.timestamp = Some(response.timestamp);
 
         // Queue events
-        let should_flush = self.sender.add(IngestionEvent::generation_update(generation));
+        let should_flush = self
+            .sender
+            .add(IngestionEvent::generation_update(generation));
         if should_flush {
             self.trigger_flush();
         }
@@ -407,10 +410,7 @@ impl LangfuseLogger {
         };
 
         let Some(active) = active_request else {
-            warn!(
-                "Langfuse: No active request found for {}",
-                error.request_id
-            );
+            warn!("Langfuse: No active request found for {}", error.request_id);
             return;
         };
 
@@ -430,7 +430,9 @@ impl LangfuseLogger {
         }
 
         // Queue events
-        let should_flush = self.sender.add(IngestionEvent::generation_update(generation));
+        let should_flush = self
+            .sender
+            .add(IngestionEvent::generation_update(generation));
         if should_flush {
             self.trigger_flush();
         }
@@ -631,8 +633,8 @@ mod tests {
         let config = test_config();
         let logger = LangfuseLogger::new(config).unwrap();
 
-        let request = LlmRequest::new("req-123", "gpt-4")
-            .input(serde_json::json!({"messages": []}));
+        let request =
+            LlmRequest::new("req-123", "gpt-4").input(serde_json::json!({"messages": []}));
         logger.on_llm_start(request);
 
         let response = LlmResponse::new("req-123")
@@ -648,8 +650,8 @@ mod tests {
         let config = test_config();
         let logger = LangfuseLogger::new(config).unwrap();
 
-        let request = LlmRequest::new("req-123", "gpt-4")
-            .input(serde_json::json!({"messages": []}));
+        let request =
+            LlmRequest::new("req-123", "gpt-4").input(serde_json::json!({"messages": []}));
         logger.on_llm_start(request);
 
         let error = LlmError::new("req-123", "API error");
@@ -679,8 +681,8 @@ mod tests {
         let config = test_config();
         let logger = LangfuseLogger::new(config).unwrap();
 
-        let request = LlmRequest::new("req-123", "gpt-4")
-            .input(serde_json::json!({"messages": []}));
+        let request =
+            LlmRequest::new("req-123", "gpt-4").input(serde_json::json!({"messages": []}));
         logger.on_llm_start(request);
 
         let result = logger.flush().await;

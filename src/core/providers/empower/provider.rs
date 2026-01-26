@@ -211,12 +211,7 @@ impl LLMProvider for EmpowerProvider {
     }
 
     async fn health_check(&self) -> HealthStatus {
-        if self
-            .config
-            .base
-            .get_effective_api_key("empower")
-            .is_some()
-        {
+        if self.config.base.get_effective_api_key("empower").is_some() {
             HealthStatus::Healthy
         } else {
             HealthStatus::Unhealthy

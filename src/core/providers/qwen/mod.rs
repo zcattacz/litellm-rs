@@ -58,8 +58,8 @@ impl QwenConfig {
             .or_else(|_| std::env::var("DASHSCOPE_API_KEY"))
             .ok();
 
-        let api_base = std::env::var("QWEN_API_BASE")
-            .unwrap_or_else(|_| DEFAULT_API_BASE.to_string());
+        let api_base =
+            std::env::var("QWEN_API_BASE").unwrap_or_else(|_| DEFAULT_API_BASE.to_string());
 
         Ok(Self {
             api_key,
@@ -71,9 +71,7 @@ impl QwenConfig {
 
     /// Get effective API base URL
     pub fn get_effective_api_base(&self) -> &str {
-        self.api_base
-            .as_deref()
-            .unwrap_or(DEFAULT_API_BASE)
+        self.api_base.as_deref().unwrap_or(DEFAULT_API_BASE)
     }
 }
 
@@ -117,8 +115,10 @@ impl QwenProvider {
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
         if let Some(api_key) = &self.config.api_key {
-            let auth_value = HeaderValue::from_str(&format!("Bearer {}", api_key))
-                .map_err(|e| ProviderError::configuration(PROVIDER_NAME, format!("Invalid API key: {}", e)))?;
+            let auth_value =
+                HeaderValue::from_str(&format!("Bearer {}", api_key)).map_err(|e| {
+                    ProviderError::configuration(PROVIDER_NAME, format!("Invalid API key: {}", e))
+                })?;
             headers.insert(AUTHORIZATION, auth_value);
         }
 
@@ -313,7 +313,10 @@ impl LLMProvider for QwenProvider {
         _model: &str,
         _request_id: &str,
     ) -> Result<ChatResponse, Self::Error> {
-        Err(ProviderError::not_implemented(PROVIDER_NAME, "Response transformation not yet implemented"))
+        Err(ProviderError::not_implemented(
+            PROVIDER_NAME,
+            "Response transformation not yet implemented",
+        ))
     }
 
     fn get_error_mapper(&self) -> Self::ErrorMapper {
@@ -326,12 +329,16 @@ impl LLMProvider for QwenProvider {
         input_tokens: u32,
         output_tokens: u32,
     ) -> Result<f64, Self::Error> {
-        let model_info = self.models.iter()
+        let model_info = self
+            .models
+            .iter()
             .find(|m| m.id == model)
             .ok_or_else(|| ProviderError::model_not_found(PROVIDER_NAME, model.to_string()))?;
 
-        let input_cost = model_info.input_cost_per_1k_tokens.unwrap_or(0.0) * input_tokens as f64 / 1000.0;
-        let output_cost = model_info.output_cost_per_1k_tokens.unwrap_or(0.0) * output_tokens as f64 / 1000.0;
+        let input_cost =
+            model_info.input_cost_per_1k_tokens.unwrap_or(0.0) * input_tokens as f64 / 1000.0;
+        let output_cost =
+            model_info.output_cost_per_1k_tokens.unwrap_or(0.0) * output_tokens as f64 / 1000.0;
 
         Ok(input_cost + output_cost)
     }
@@ -353,7 +360,10 @@ impl LLMProvider for QwenProvider {
         _request: ChatRequest,
         _context: RequestContext,
     ) -> Result<ChatResponse, Self::Error> {
-        Err(ProviderError::not_implemented(PROVIDER_NAME, "Chat completion not yet implemented"))
+        Err(ProviderError::not_implemented(
+            PROVIDER_NAME,
+            "Chat completion not yet implemented",
+        ))
     }
 
     async fn chat_completion_stream(
@@ -362,7 +372,10 @@ impl LLMProvider for QwenProvider {
         _context: RequestContext,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error>
     {
-        Err(ProviderError::not_implemented(PROVIDER_NAME, "Streaming not yet implemented"))
+        Err(ProviderError::not_implemented(
+            PROVIDER_NAME,
+            "Streaming not yet implemented",
+        ))
     }
 
     async fn embeddings(
@@ -370,7 +383,10 @@ impl LLMProvider for QwenProvider {
         _request: EmbeddingRequest,
         _context: RequestContext,
     ) -> Result<EmbeddingResponse, Self::Error> {
-        Err(ProviderError::not_implemented(PROVIDER_NAME, "Embeddings not yet implemented"))
+        Err(ProviderError::not_implemented(
+            PROVIDER_NAME,
+            "Embeddings not yet implemented",
+        ))
     }
 
     async fn image_generation(
@@ -378,7 +394,10 @@ impl LLMProvider for QwenProvider {
         _request: ImageGenerationRequest,
         _context: RequestContext,
     ) -> Result<ImageGenerationResponse, Self::Error> {
-        Err(ProviderError::not_supported(PROVIDER_NAME, "Image generation"))
+        Err(ProviderError::not_supported(
+            PROVIDER_NAME,
+            "Image generation",
+        ))
     }
 }
 

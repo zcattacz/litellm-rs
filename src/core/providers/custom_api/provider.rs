@@ -1,7 +1,7 @@
 //! Custom HTTPX Provider Implementation
 
-use async_trait::async_trait;
 use crate::core::traits::provider::ProviderConfig;
+use async_trait::async_trait;
 use futures::Stream;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -27,15 +27,18 @@ pub struct CustomHttpxProvider {
 
 impl CustomHttpxProvider {
     pub fn new(config: CustomHttpxConfig) -> Result<Self, ProviderError> {
-        config.validate().map_err(|e| {
-            ProviderError::configuration("custom_httpx", e)
-        })?;
+        config
+            .validate()
+            .map_err(|e| ProviderError::configuration("custom_httpx", e))?;
 
         let http_client = reqwest::Client::builder()
             .timeout(config.timeout())
             .build()
             .map_err(|e| {
-                ProviderError::initialization("custom_httpx", format!("Failed to create HTTP client: {}", e))
+                ProviderError::initialization(
+                    "custom_httpx",
+                    format!("Failed to create HTTP client: {}", e),
+                )
             })?;
 
         Ok(Self {
@@ -103,10 +106,11 @@ impl LLMProvider for CustomHttpxProvider {
         _context: RequestContext,
     ) -> Result<Value, Self::Error> {
         if let Some(template) = &self.config.request_template {
-            let req_str = template
-                .replace("{model}", &request.model)
-                .replace("{messages}", &serde_json::to_string(&request.messages)
-                    .map_err(|e| ProviderError::serialization("custom_httpx", e.to_string()))?);
+            let req_str = template.replace("{model}", &request.model).replace(
+                "{messages}",
+                &serde_json::to_string(&request.messages)
+                    .map_err(|e| ProviderError::serialization("custom_httpx", e.to_string()))?,
+            );
 
             serde_json::from_str(&req_str)
                 .map_err(|e| ProviderError::serialization("custom_httpx", e.to_string()))
@@ -182,18 +186,25 @@ impl LLMProvider for CustomHttpxProvider {
             });
         }
 
-        let response_bytes = response.bytes().await
+        let response_bytes = response
+            .bytes()
+            .await
             .map_err(|e| ProviderError::network("custom_httpx", e.to_string()))?;
 
-        self.transform_response(&response_bytes, &request.model, "").await
+        self.transform_response(&response_bytes, &request.model, "")
+            .await
     }
 
     async fn chat_completion_stream(
         &self,
         _request: ChatRequest,
         _context: RequestContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error> {
-        Err(ProviderError::not_implemented("custom_httpx", "Streaming not yet implemented"))
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, Self::Error>> + Send>>, Self::Error>
+    {
+        Err(ProviderError::not_implemented(
+            "custom_httpx",
+            "Streaming not yet implemented",
+        ))
     }
 
     async fn health_check(&self) -> HealthStatus {

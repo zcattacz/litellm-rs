@@ -224,7 +224,10 @@ impl V0ChatHandler {
             let error_text = response.text().await.unwrap_or_default();
 
             return match status.as_u16() {
-                401 => Err(ProviderError::authentication(PROVIDER_NAME, "Authentication failed")),
+                401 => Err(ProviderError::authentication(
+                    PROVIDER_NAME,
+                    "Authentication failed",
+                )),
                 429 => Err(ProviderError::rate_limit(PROVIDER_NAME, None)),
                 404 => Err(ProviderError::model_not_found(PROVIDER_NAME, request.model)),
                 _ => Err(ProviderError::api_error(

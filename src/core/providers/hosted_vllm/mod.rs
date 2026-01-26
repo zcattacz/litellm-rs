@@ -31,5 +31,5 @@ mod tests;
 
 // Re-export main types for external use
 pub use config::HostedVLLMConfig;
-pub use models::{get_model_info, get_or_create_model_info, HostedVLLMModelInfo};
+pub use models::{HostedVLLMModelInfo, get_model_info, get_or_create_model_info};
 pub use provider::HostedVLLMProvider;

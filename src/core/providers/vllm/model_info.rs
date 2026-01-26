@@ -57,10 +57,10 @@ impl VLLMModelInfo {
         Self {
             model_id: id.clone(),
             display_name: id.clone(),
-            max_context_length: 4096,    // Conservative default
-            max_output_length: 2048, // Conservative default
-            supports_tools: false,   // Unknown capability
-            supports_multimodal: false,  // Unknown capability
+            max_context_length: 4096,   // Conservative default
+            max_output_length: 2048,    // Conservative default
+            supports_tools: false,      // Unknown capability
+            supports_multimodal: false, // Unknown capability
             family: "custom".to_string(),
         }
     }

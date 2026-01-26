@@ -142,7 +142,7 @@ impl AnthropicModelRegistry {
                     supports_streaming: true,
                     supports_tools: true,
                     supports_multimodal: true,
-                    input_cost_per_1k_tokens: Some(0.005),  // $5/1M input
+                    input_cost_per_1k_tokens: Some(0.005), // $5/1M input
                     output_cost_per_1k_tokens: Some(0.025), // $25/1M output
                     currency: "USD".to_string(),
                     capabilities: vec![
@@ -167,10 +167,10 @@ impl AnthropicModelRegistry {
                     ModelFeature::ComputerUse,
                 ],
                 pricing: ModelPricing {
-                    input_price: 5.0,   // $5/1M input (updated from OpenRouter)
-                    output_price: 25.0, // $25/1M output (updated from OpenRouter)
-                    cache_write_price: Some(6.25),  // 1.25x input
-                    cache_read_price: Some(0.50),   // 0.1x input
+                    input_price: 5.0,              // $5/1M input (updated from OpenRouter)
+                    output_price: 25.0,            // $25/1M output (updated from OpenRouter)
+                    cache_write_price: Some(6.25), // 1.25x input
+                    cache_read_price: Some(0.50),  // 0.1x input
                     batch_discount: Some(0.5),
                 },
                 limits: ModelLimits {

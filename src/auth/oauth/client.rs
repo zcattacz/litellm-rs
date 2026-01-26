@@ -90,7 +90,10 @@ impl OAuthClient {
         if self.config.use_pkce {
             if let Some(challenge) = state.code_challenge() {
                 params.push(("code_challenge", challenge));
-                params.push(("code_challenge_method", PkceChallengeMethod::S256.to_string()));
+                params.push((
+                    "code_challenge_method",
+                    PkceChallengeMethod::S256.to_string(),
+                ));
             }
         }
 
@@ -114,11 +117,7 @@ impl OAuthClient {
     }
 
     /// Exchange authorization code for tokens
-    pub async fn exchange_code(
-        &self,
-        code: &str,
-        state: &OAuthState,
-    ) -> Result<TokenResponse> {
+    pub async fn exchange_code(&self, code: &str, state: &OAuthState) -> Result<TokenResponse> {
         debug!(
             "Exchanging authorization code for tokens with provider: {}",
             self.config.provider
@@ -225,7 +224,10 @@ impl OAuthClient {
 
     /// Refresh an access token using a refresh token
     pub async fn refresh_token(&self, refresh_token: &str) -> Result<TokenResponse> {
-        debug!("Refreshing access token with provider: {}", self.config.provider);
+        debug!(
+            "Refreshing access token with provider: {}",
+            self.config.provider
+        );
 
         let mut params = HashMap::new();
         params.insert("grant_type", "refresh_token");
@@ -357,7 +359,19 @@ impl OAuthClient {
         }
 
         // Store additional claims
-        let known_fields = ["sub", "id", "email", "name", "picture", "avatar_url", "email_verified", "mail", "displayName", "login", "photo"];
+        let known_fields = [
+            "sub",
+            "id",
+            "email",
+            "name",
+            "picture",
+            "avatar_url",
+            "email_verified",
+            "mail",
+            "displayName",
+            "login",
+            "photo",
+        ];
         for (key, value) in json.as_object().into_iter().flatten() {
             if !known_fields.contains(&key.as_str()) {
                 user_info.extra_claims.insert(key.clone(), value.clone());
@@ -388,7 +402,9 @@ impl OAuthClient {
             return Ok(oid.to_string());
         }
 
-        Err(GatewayError::Auth("User ID not found in response".to_string()))
+        Err(GatewayError::Auth(
+            "User ID not found in response".to_string(),
+        ))
     }
 
     /// Validate callback parameters
@@ -413,7 +429,10 @@ impl OAuthClient {
             .ok_or_else(|| GatewayError::Auth("Missing state parameter".to_string()))?;
 
         if state != &expected_state.state {
-            warn!("State mismatch: expected {}, got {}", expected_state.state, state);
+            warn!(
+                "State mismatch: expected {}, got {}",
+                expected_state.state, state
+            );
             return Err(GatewayError::Auth("Invalid state parameter".to_string()));
         }
 
@@ -437,9 +456,9 @@ impl OAuthClient {
             super::config::OAuthProvider::Google => {
                 Some("https://oauth2.googleapis.com/revoke".to_string())
             }
-            super::config::OAuthProvider::Microsoft => Some(
-                "https://login.microsoftonline.com/common/oauth2/v2.0/logout".to_string(),
-            ),
+            super::config::OAuthProvider::Microsoft => {
+                Some("https://login.microsoftonline.com/common/oauth2/v2.0/logout".to_string())
+            }
             _ => None,
         };
 
@@ -466,14 +485,21 @@ impl OAuthClient {
             .map_err(|e| GatewayError::Network(format!("Token revocation failed: {}", e)))?;
 
         if !response.status().is_success() {
-            warn!("Token revocation returned non-success status: {}", response.status());
+            warn!(
+                "Token revocation returned non-success status: {}",
+                response.status()
+            );
         }
 
         Ok(())
     }
 
     /// Get the logout URL for the provider
-    pub fn get_logout_url(&self, id_token: Option<&str>, post_logout_redirect_uri: Option<&str>) -> Option<String> {
+    pub fn get_logout_url(
+        &self,
+        id_token: Option<&str>,
+        post_logout_redirect_uri: Option<&str>,
+    ) -> Option<String> {
         let logout_url = self.config.logout_url.as_ref()?;
 
         let mut params = Vec::new();
@@ -483,7 +509,10 @@ impl OAuthClient {
         }
 
         if let Some(uri) = post_logout_redirect_uri {
-            params.push(format!("post_logout_redirect_uri={}", urlencoding::encode(uri)));
+            params.push(format!(
+                "post_logout_redirect_uri={}",
+                urlencoding::encode(uri)
+            ));
         }
 
         if params.is_empty() {
@@ -679,7 +708,10 @@ mod tests {
         assert_eq!(user_info.id, "12345");
         assert_eq!(user_info.email, "user@example.com");
         assert_eq!(user_info.name, Some("testuser".to_string()));
-        assert_eq!(user_info.picture, Some("https://github.com/avatar.jpg".to_string()));
+        assert_eq!(
+            user_info.picture,
+            Some("https://github.com/avatar.jpg".to_string())
+        );
     }
 
     #[test]
@@ -721,10 +753,8 @@ mod tests {
         let url = client.get_logout_url(None, None);
         assert!(url.is_some());
 
-        let url_with_params = client.get_logout_url(
-            Some("id_token_123"),
-            Some("https://app.example.com"),
-        );
+        let url_with_params =
+            client.get_logout_url(Some("id_token_123"), Some("https://app.example.com"));
         assert!(url_with_params.is_some());
         let url = url_with_params.unwrap();
         assert!(url.contains("id_token_hint="));

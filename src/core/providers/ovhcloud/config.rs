@@ -71,7 +71,10 @@ impl OvhcloudConfig {
         self.api_base
             .clone()
             .or_else(|| std::env::var("OVHCLOUD_API_BASE").ok())
-            .unwrap_or_else(|| "https://llama-2-13b-chat.endpoints.kepler.ai.cloud.ovh.net/api/openai_compat/v1".to_string())
+            .unwrap_or_else(|| {
+                "https://llama-2-13b-chat.endpoints.kepler.ai.cloud.ovh.net/api/openai_compat/v1"
+                    .to_string()
+            })
     }
 }
 

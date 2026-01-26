@@ -65,7 +65,7 @@ mod models;
 mod provider;
 
 // Re-export main types
-pub use config::{DistanceMetric, IndexType, PgVectorConfig, PgVectorConfigBuilder, PROVIDER_NAME};
+pub use config::{DistanceMetric, IndexType, PROVIDER_NAME, PgVectorConfig, PgVectorConfigBuilder};
 pub use models::{EmbeddingModel, SearchOptions, SearchResult, TableStats, VectorPoint};
 pub use provider::{
     PgVectorExecutor, PgVectorProvider, PreparedStatement, QueryRow, StatementParam,

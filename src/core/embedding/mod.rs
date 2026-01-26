@@ -51,7 +51,7 @@ mod tests;
 // Re-export main types
 pub use helpers::{cosine_similarity, dot_product, euclidean_distance, normalize};
 pub use options::EmbeddingOptions;
-pub use router::{get_global_embedding_router, EmbeddingRouter};
+pub use router::{EmbeddingRouter, get_global_embedding_router};
 pub use types::EmbeddingInput;
 
 // Re-export response types from core types
@@ -153,9 +153,7 @@ pub async fn embed_text(model: &str, text: &str) -> crate::utils::error::Result<
         .into_iter()
         .next()
         .map(|d| d.embedding)
-        .ok_or_else(|| {
-            crate::utils::error::GatewayError::internal("No embedding data in response")
-        })
+        .ok_or_else(|| crate::utils::error::GatewayError::internal("No embedding data in response"))
 }
 
 /// Embed multiple texts and return their embedding vectors

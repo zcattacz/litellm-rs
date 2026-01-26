@@ -22,13 +22,11 @@ use crate::core::traits::{
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
     requests::{ChatMessage, ChatRequest, EmbeddingRequest, MessageRole},
-    responses::{ChatChunk, ChatChoice, ChatResponse, EmbeddingResponse, FinishReason, Usage},
+    responses::{ChatChoice, ChatChunk, ChatResponse, EmbeddingResponse, FinishReason, Usage},
 };
 
 // Static capabilities
-const GOOGLE_PSE_CAPABILITIES: &[ProviderCapability] = &[
-    ProviderCapability::ChatCompletion,
-];
+const GOOGLE_PSE_CAPABILITIES: &[ProviderCapability] = &[ProviderCapability::ChatCompletion];
 
 /// Google PSE provider configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -149,25 +147,23 @@ impl GooglePSEProvider {
 
         let base_client = BaseHttpClient::new(base_config)?;
 
-        let models = vec![
-            ModelInfo {
-                id: "google-pse-search".to_string(),
-                name: "Google PSE Search".to_string(),
-                provider: "google_pse".to_string(),
-                max_context_length: 1024,
-                max_output_length: None,
-                supports_streaming: false,
-                supports_tools: false,
-                supports_multimodal: false,
-                input_cost_per_1k_tokens: Some(0.005),
-                output_cost_per_1k_tokens: Some(0.0),
-                currency: "USD".to_string(),
-                capabilities: vec![],
-                created_at: None,
-                updated_at: None,
-                metadata: HashMap::new(),
-            },
-        ];
+        let models = vec![ModelInfo {
+            id: "google-pse-search".to_string(),
+            name: "Google PSE Search".to_string(),
+            provider: "google_pse".to_string(),
+            max_context_length: 1024,
+            max_output_length: None,
+            supports_streaming: false,
+            supports_tools: false,
+            supports_multimodal: false,
+            input_cost_per_1k_tokens: Some(0.005),
+            output_cost_per_1k_tokens: Some(0.0),
+            currency: "USD".to_string(),
+            capabilities: vec![],
+            created_at: None,
+            updated_at: None,
+            metadata: HashMap::new(),
+        }];
 
         Ok(Self {
             config,
@@ -246,7 +242,9 @@ impl LLMProvider for GooglePSEProvider {
         debug!("Google PSE search request: model={}", request.model);
 
         let query = if let Some(last_message) = request.messages.last() {
-            if let Some(crate::core::types::requests::MessageContent::Text(text)) = &last_message.content {
+            if let Some(crate::core::types::requests::MessageContent::Text(text)) =
+                &last_message.content
+            {
                 text.clone()
             } else {
                 return Err(ProviderError::invalid_request(
@@ -292,7 +290,10 @@ impl LLMProvider for GooglePSEProvider {
             .await
             .map_err(|e| ProviderError::response_parsing("google_pse", e.to_string()))?;
 
-        let content = format!("Search results: {}", serde_json::to_string_pretty(&search_response).unwrap_or_default());
+        let content = format!(
+            "Search results: {}",
+            serde_json::to_string_pretty(&search_response).unwrap_or_default()
+        );
 
         Ok(ChatResponse {
             id: format!("pse-{}", uuid::Uuid::new_v4()),
@@ -355,8 +356,7 @@ impl LLMProvider for GooglePSEProvider {
             .with_query("q", "test")
             .build();
 
-        let headers = HeaderBuilder::new()
-            .build_reqwest();
+        let headers = HeaderBuilder::new().build_reqwest();
 
         match headers {
             Ok(headers) => {
@@ -370,7 +370,10 @@ impl LLMProvider for GooglePSEProvider {
                 {
                     Ok(response) if response.status().is_success() => HealthStatus::Healthy,
                     Ok(response) => {
-                        debug!("Google PSE health check failed: status={}", response.status());
+                        debug!(
+                            "Google PSE health check failed: status={}",
+                            response.status()
+                        );
                         HealthStatus::Unhealthy
                     }
                     Err(e) => {

@@ -188,10 +188,7 @@ mod tests {
 
         let headers = opts.headers.unwrap();
         assert_eq!(headers.get("X-Custom-Header"), Some(&"value1".to_string()));
-        assert_eq!(
-            headers.get("X-Another-Header"),
-            Some(&"value2".to_string())
-        );
+        assert_eq!(headers.get("X-Another-Header"), Some(&"value2".to_string()));
     }
 
     #[test]

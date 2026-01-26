@@ -254,8 +254,8 @@ static MODEL_CONFIGS: LazyLock<HashMap<&'static str, ModelInfo>> = LazyLock::new
         ModelInfo {
             model_id: "whisper-large-v3",
             display_name: "Whisper Large v3",
-            max_context_length: 0,    // Audio model
-            max_output_length: 0, // Audio model
+            max_context_length: 0, // Audio model
+            max_output_length: 0,  // Audio model
             supports_tools: false,
             is_reasoning: false,
             supports_multimodal: false,

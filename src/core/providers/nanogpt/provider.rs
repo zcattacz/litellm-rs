@@ -50,7 +50,10 @@ impl NanoGPTProvider {
 
         // Create pool manager
         let pool_manager = Arc::new(GlobalPoolManager::new().map_err(|e| {
-            Error::configuration(PROVIDER_NAME, format!("Failed to create pool manager: {}", e))
+            Error::configuration(
+                PROVIDER_NAME,
+                format!("Failed to create pool manager: {}", e),
+            )
         })?);
 
         // Build model list from static configuration
@@ -128,7 +131,11 @@ impl NanoGPTProvider {
             .map_err(|e| Error::network(PROVIDER_NAME, e.to_string()))?;
 
         serde_json::from_slice(&response_bytes).map_err(|e| {
-            Error::api_error(PROVIDER_NAME, 500, format!("Failed to parse response: {}", e))
+            Error::api_error(
+                PROVIDER_NAME,
+                500,
+                format!("Failed to parse response: {}", e),
+            )
         })
     }
 }
@@ -197,7 +204,11 @@ impl LLMProvider for NanoGPTProvider {
     ) -> Result<ChatResponse, Self::Error> {
         // Parse response
         let chat_response: ChatResponse = serde_json::from_slice(raw_response).map_err(|e| {
-            Error::api_error(PROVIDER_NAME, 500, format!("Failed to parse response: {}", e))
+            Error::api_error(
+                PROVIDER_NAME,
+                500,
+                format!("Failed to parse response: {}", e),
+            )
         })?;
 
         Ok(chat_response)
@@ -222,7 +233,11 @@ impl LLMProvider for NanoGPTProvider {
             .await?;
 
         serde_json::from_value(response).map_err(|e| {
-            Error::api_error(PROVIDER_NAME, 500, format!("Failed to parse chat response: {}", e))
+            Error::api_error(
+                PROVIDER_NAME,
+                500,
+                format!("Failed to parse chat response: {}", e),
+            )
         })
     }
 

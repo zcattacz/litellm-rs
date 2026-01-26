@@ -126,29 +126,46 @@ mod tests {
     fn test_error_mapper_http_errors() {
         let mapper = GradientAIErrorMapper;
 
-        let err =
-            crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(&mapper, 400, "bad request");
+        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(
+            &mapper,
+            400,
+            "bad request",
+        );
         assert!(matches!(err, ProviderError::InvalidRequest { .. }));
 
-        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(&mapper, 401, "");
+        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(
+            &mapper, 401, "",
+        );
         assert!(matches!(err, ProviderError::Authentication { .. }));
 
-        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(&mapper, 403, "");
+        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(
+            &mapper, 403, "",
+        );
         assert!(matches!(err, ProviderError::Authentication { .. }));
 
-        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(&mapper, 404, "");
+        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(
+            &mapper, 404, "",
+        );
         assert!(matches!(err, ProviderError::ModelNotFound { .. }));
 
-        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(&mapper, 429, "");
+        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(
+            &mapper, 429, "",
+        );
         assert!(matches!(err, ProviderError::RateLimit { .. }));
 
-        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(&mapper, 500, "");
+        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(
+            &mapper, 500, "",
+        );
         assert!(matches!(err, ProviderError::ApiError { .. }));
 
-        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(&mapper, 502, "");
+        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(
+            &mapper, 502, "",
+        );
         assert!(matches!(err, ProviderError::ProviderUnavailable { .. }));
 
-        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(&mapper, 503, "");
+        let err = crate::core::traits::error_mapper::trait_def::ErrorMapper::map_http_error(
+            &mapper, 503, "",
+        );
         assert!(matches!(err, ProviderError::ProviderUnavailable { .. }));
     }
 

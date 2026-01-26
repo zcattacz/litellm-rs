@@ -15,13 +15,13 @@ use std::sync::Arc;
 use std::time::Instant;
 use tracing::debug;
 
-use super::config::{WandbConfig, PROVIDER_NAME};
+use super::config::{PROVIDER_NAME, WandbConfig};
 use super::logger::{LLMCallLog, WandbLogger};
 use crate::core::providers::base_provider::HttpErrorMapper;
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{
-    error_mapper::trait_def::ErrorMapper, provider::llm_provider::trait_definition::LLMProvider,
-    ProviderConfig,
+    ProviderConfig, error_mapper::trait_def::ErrorMapper,
+    provider::llm_provider::trait_definition::LLMProvider,
 };
 use crate::core::types::{
     common::{HealthStatus, ModelInfo, ProviderCapability, RequestContext},
@@ -191,7 +191,14 @@ impl WandbProvider {
         latency_ms: u64,
         error: Option<&str>,
     ) -> Result<(), ProviderError> {
-        let log = super::logger::create_chat_log(provider, &request.model, request, response, latency_ms, error);
+        let log = super::logger::create_chat_log(
+            provider,
+            &request.model,
+            request,
+            response,
+            latency_ms,
+            error,
+        );
         self.logger.log(log).await
     }
 
@@ -261,7 +268,11 @@ impl WandbProvider {
         }
 
         // Log to W&B (fire and forget)
-        if let Err(e) = self.logger.log(LLMCallLog::new(provider_name, &model).with_latency(latency_ms)).await {
+        if let Err(e) = self
+            .logger
+            .log(LLMCallLog::new(provider_name, &model).with_latency(latency_ms))
+            .await
+        {
             debug!("Failed to log to W&B: {:?}", e);
         }
 
@@ -525,7 +536,16 @@ mod tests {
         let _ = provider.init_run().await;
 
         let result = provider
-            .log_call("openai", "gpt-4", Some(100), Some(50), Some(0.01), 200, true, None)
+            .log_call(
+                "openai",
+                "gpt-4",
+                Some(100),
+                Some(50),
+                Some(0.01),
+                200,
+                true,
+                None,
+            )
             .await;
 
         assert!(result.is_ok());
@@ -586,7 +606,16 @@ mod tests {
 
         // Log some calls (will buffer but not send)
         let _ = provider
-            .log_call("openai", "gpt-4", Some(100), Some(50), Some(0.01), 200, true, None)
+            .log_call(
+                "openai",
+                "gpt-4",
+                Some(100),
+                Some(50),
+                Some(0.01),
+                200,
+                true,
+                None,
+            )
             .await;
 
         // finish should succeed even if run wasn't initialized
@@ -709,7 +738,16 @@ mod tests {
         // Log multiple calls
         for _ in 0..3 {
             let _ = provider
-                .log_call("openai", "gpt-4", Some(100), Some(50), Some(0.01), 200, true, None)
+                .log_call(
+                    "openai",
+                    "gpt-4",
+                    Some(100),
+                    Some(50),
+                    Some(0.01),
+                    200,
+                    true,
+                    None,
+                )
                 .await;
         }
 

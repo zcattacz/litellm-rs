@@ -178,9 +178,7 @@ impl LLMProvider for DockerModelRunnerProvider {
         body["stream"] = serde_json::Value::Bool(true);
 
         let client = reqwest::Client::new();
-        let mut req = client
-            .post(&url)
-            .header("Content-Type", "application/json");
+        let mut req = client.post(&url).header("Content-Type", "application/json");
 
         if let Some(api_key) = &self.config.base.api_key {
             req = req.header("Authorization", format!("Bearer {}", api_key));
@@ -206,7 +204,9 @@ impl LLMProvider for DockerModelRunnerProvider {
         }
 
         let stream = response.bytes_stream();
-        Ok(Box::pin(super::streaming::create_docker_model_runner_stream(stream)))
+        Ok(Box::pin(
+            super::streaming::create_docker_model_runner_stream(stream),
+        ))
     }
 
     async fn health_check(&self) -> HealthStatus {

@@ -87,11 +87,7 @@ impl BudgetManager {
     }
 
     /// Create a new budget
-    pub async fn create_budget(
-        &self,
-        scope: BudgetScope,
-        config: BudgetConfig,
-    ) -> Result<Budget> {
+    pub async fn create_budget(&self, scope: BudgetScope, config: BudgetConfig) -> Result<Budget> {
         // Validate configuration
         if config.max_budget <= 0.0 {
             return Err(GatewayError::Validation(
@@ -154,11 +150,7 @@ impl BudgetManager {
     }
 
     /// Update an existing budget
-    pub async fn update_budget(
-        &self,
-        scope: &BudgetScope,
-        config: BudgetConfig,
-    ) -> Result<Budget> {
+    pub async fn update_budget(&self, scope: &BudgetScope, config: BudgetConfig) -> Result<Budget> {
         if !self.tracker.has_budget(scope) {
             return Err(GatewayError::NotFound(format!(
                 "Budget not found for scope: {}",
@@ -205,9 +197,9 @@ impl BudgetManager {
         });
 
         if updated {
-            self.tracker
-                .get_budget(scope)
-                .ok_or_else(|| GatewayError::Internal("Failed to retrieve updated budget".to_string()))
+            self.tracker.get_budget(scope).ok_or_else(|| {
+                GatewayError::Internal("Failed to retrieve updated budget".to_string())
+            })
         } else {
             Err(GatewayError::Internal(
                 "Failed to update budget".to_string(),
@@ -232,9 +224,9 @@ impl BudgetManager {
 
     /// Get a budget by scope
     pub fn get_budget(&self, scope: &BudgetScope) -> Result<Budget> {
-        self.tracker.get_budget(scope).ok_or_else(|| {
-            GatewayError::NotFound(format!("Budget not found for scope: {}", scope))
-        })
+        self.tracker
+            .get_budget(scope)
+            .ok_or_else(|| GatewayError::NotFound(format!("Budget not found for scope: {}", scope)))
     }
 
     /// Get a budget by ID
@@ -269,11 +261,7 @@ impl BudgetManager {
     }
 
     /// Record spending against a scope
-    pub async fn record_spend(
-        &self,
-        scope: &BudgetScope,
-        amount: f64,
-    ) -> Option<SpendResult> {
+    pub async fn record_spend(&self, scope: &BudgetScope, amount: f64) -> Option<SpendResult> {
         if amount <= 0.0 {
             warn!("Attempted to record non-positive spend: {}", amount);
             return None;
@@ -283,11 +271,7 @@ impl BudgetManager {
     }
 
     /// Check if a spend would be allowed
-    pub async fn check_spend(
-        &self,
-        scope: &BudgetScope,
-        amount: f64,
-    ) -> BudgetCheckResult {
+    pub async fn check_spend(&self, scope: &BudgetScope, amount: f64) -> BudgetCheckResult {
         let config = self.config.read().await;
 
         if !config.enabled {
