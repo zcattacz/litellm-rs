@@ -69,11 +69,11 @@ redis = { version = "0.27", features = ["tokio-comp", "cluster", "streams", "aio
 
 # Caching
 moka = { version = "0.12", features = ["future"] }
-lru = "0.12"
+lru = "0.16"
 
 # Object storage (S3 compatible)
 object_store = { version = "0.11", features = ["aws", "gcp", "azure"], optional = true }
-aws-sdk-s3 = { version = "1.63", optional = true }
+aws-sdk-s3 = { version = "1.120", optional = true }
 aws-config = { version = "1.5", optional = true }
 
 # Vector database client
