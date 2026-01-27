@@ -111,31 +111,33 @@ pub fn format_duration(duration_ms: u64) -> String {
 /// Sanitize string for logging (remove sensitive information)
 #[allow(dead_code)]
 pub fn sanitize_for_logging(input: &str) -> String {
-    // Replace potential API keys, tokens, etc.
-    let patterns = [
-        (
-            r#"(?i)api[_-]?key["']?\s*[:=]\s*["']?([a-zA-Z0-9\-_]{20,})"#,
-            "api_key: [REDACTED]",
-        ),
-        (
-            r#"(?i)token["']?\s*[:=]\s*["']?([a-zA-Z0-9\-_\.]{20,})"#,
-            "token: [REDACTED]",
-        ),
-        (
-            r#"(?i)password["']?\s*[:=]\s*["']?([^\s"']{8,})"#,
-            "password: [REDACTED]",
-        ),
-        (
-            r#"(?i)secret["']?\s*[:=]\s*["']?([a-zA-Z0-9\-_]{16,})"#,
-            "secret: [REDACTED]",
-        ),
-    ];
+    use once_cell::sync::Lazy;
+    use regex::Regex;
+
+    static SANITIZE_PATTERNS: Lazy<Vec<(Regex, &'static str)>> = Lazy::new(|| {
+        vec![
+            (
+                Regex::new(r#"(?i)api[_-]?key["']?\s*[:=]\s*["']?([a-zA-Z0-9\-_]{20,})"#).unwrap(),
+                "api_key: [REDACTED]",
+            ),
+            (
+                Regex::new(r#"(?i)token["']?\s*[:=]\s*["']?([a-zA-Z0-9\-_\.]{20,})"#).unwrap(),
+                "token: [REDACTED]",
+            ),
+            (
+                Regex::new(r#"(?i)password["']?\s*[:=]\s*["']?([^\s"']{8,})"#).unwrap(),
+                "password: [REDACTED]",
+            ),
+            (
+                Regex::new(r#"(?i)secret["']?\s*[:=]\s*["']?([a-zA-Z0-9\-_]{16,})"#).unwrap(),
+                "secret: [REDACTED]",
+            ),
+        ]
+    });
 
     let mut result = input.to_string();
-    for (pattern, replacement) in &patterns {
-        if let Ok(re) = regex::Regex::new(pattern) {
-            result = re.replace_all(&result, *replacement).to_string();
-        }
+    for (re, replacement) in SANITIZE_PATTERNS.iter() {
+        result = re.replace_all(&result, *replacement).to_string();
     }
 
     result

@@ -5,6 +5,8 @@
 #![allow(dead_code)]
 
 use crate::utils::error::{GatewayError, Result};
+use once_cell::sync::Lazy;
+use regex::Regex;
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
@@ -217,10 +219,11 @@ impl ConfigValidator {
 
     /// Validate email format
     pub fn validate_email(email: &str) -> Result<()> {
-        let email_regex = regex::Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
-            .map_err(|e| GatewayError::Internal(format!("Regex error: {}", e)))?;
+        static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
+            Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap()
+        });
 
-        if !email_regex.is_match(email) {
+        if !EMAIL_REGEX.is_match(email) {
             return Err(GatewayError::Validation("Invalid email format".to_string()));
         }
         Ok(())
@@ -321,10 +324,10 @@ impl ConfigValidator {
 
     /// Validate duration string (e.g., "30s", "5m", "1h")
     pub fn validate_duration_string(value: &str) -> Result<std::time::Duration> {
-        let duration_regex = regex::Regex::new(r"^(\d+)(s|m|h|d)$")
-            .map_err(|e| GatewayError::Internal(format!("Regex error: {}", e)))?;
+        static DURATION_REGEX: Lazy<Regex> =
+            Lazy::new(|| Regex::new(r"^(\d+)(s|m|h|d)$").unwrap());
 
-        if let Some(captures) = duration_regex.captures(value) {
+        if let Some(captures) = DURATION_REGEX.captures(value) {
             let number: u64 = captures[1]
                 .parse()
                 .map_err(|e| GatewayError::Validation(format!("Invalid duration number: {}", e)))?;
