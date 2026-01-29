@@ -208,6 +208,9 @@ ON CONFLICT (id) DO UPDATE SET
 
         // Add WHERE clause for threshold and metadata filter
         let mut conditions = Vec::new();
+        // Parameter index starts at 2 (1 is the vector)
+        let mut _param_index = 2;
+        let mut _filter_params = Vec::new();
 
         if let Some(threshold) = options.threshold {
             let threshold_condition = match self.config.distance_metric {
@@ -224,8 +227,16 @@ ON CONFLICT (id) DO UPDATE SET
             conditions.push(threshold_condition);
         }
 
-        if let Some(ref filter) = options.metadata_filter {
-            conditions.push(filter.clone());
+        // Use safe parameterized filters instead of raw SQL string
+        if let Some(ref filters) = options.metadata_filters {
+            if !filters.is_empty() {
+                let (filter_sql, params) = filters.to_sql_with_params(_param_index);
+                if !filter_sql.is_empty() {
+                    conditions.push(filter_sql);
+                    _filter_params = params;
+                    _param_index += _filter_params.len();
+                }
+            }
         }
 
         if !conditions.is_empty() {

@@ -4,6 +4,267 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Comparison operator for metadata filters
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FilterOp {
+    /// Equal (=)
+    Eq,
+    /// Not equal (!=)
+    Ne,
+    /// Greater than (>)
+    Gt,
+    /// Greater than or equal (>=)
+    Gte,
+    /// Less than (<)
+    Lt,
+    /// Less than or equal (<=)
+    Lte,
+    /// LIKE pattern match
+    Like,
+    /// ILIKE case-insensitive pattern match
+    ILike,
+    /// IS NULL
+    IsNull,
+    /// IS NOT NULL
+    IsNotNull,
+}
+
+impl FilterOp {
+    /// Convert to SQL operator string
+    pub fn to_sql(&self) -> &'static str {
+        match self {
+            FilterOp::Eq => "=",
+            FilterOp::Ne => "!=",
+            FilterOp::Gt => ">",
+            FilterOp::Gte => ">=",
+            FilterOp::Lt => "<",
+            FilterOp::Lte => "<=",
+            FilterOp::Like => "LIKE",
+            FilterOp::ILike => "ILIKE",
+            FilterOp::IsNull => "IS NULL",
+            FilterOp::IsNotNull => "IS NOT NULL",
+        }
+    }
+}
+
+/// A single metadata filter condition (safe from SQL injection)
+#[derive(Debug, Clone)]
+pub struct MetadataFilter {
+    /// The JSONB field path (e.g., "category", "tags->0")
+    field: String,
+    /// The comparison operator
+    op: FilterOp,
+    /// The value to compare against (will be parameterized)
+    value: Option<FilterValue>,
+}
+
+/// Value types for metadata filters
+#[derive(Debug, Clone)]
+pub enum FilterValue {
+    /// String value
+    String(String),
+    /// Integer value
+    Int(i64),
+    /// Float value
+    Float(f64),
+    /// Boolean value
+    Bool(bool),
+}
+
+impl MetadataFilter {
+    /// Create a new filter condition
+    pub fn new(field: impl Into<String>, op: FilterOp, value: FilterValue) -> Self {
+        Self {
+            field: field.into(),
+            op,
+            value: Some(value),
+        }
+    }
+
+    /// Create an equality filter
+    pub fn eq(field: impl Into<String>, value: impl Into<FilterValue>) -> Self {
+        Self::new(field, FilterOp::Eq, value.into())
+    }
+
+    /// Create a not-equal filter
+    pub fn ne(field: impl Into<String>, value: impl Into<FilterValue>) -> Self {
+        Self::new(field, FilterOp::Ne, value.into())
+    }
+
+    /// Create a greater-than filter
+    pub fn gt(field: impl Into<String>, value: impl Into<FilterValue>) -> Self {
+        Self::new(field, FilterOp::Gt, value.into())
+    }
+
+    /// Create a less-than filter
+    pub fn lt(field: impl Into<String>, value: impl Into<FilterValue>) -> Self {
+        Self::new(field, FilterOp::Lt, value.into())
+    }
+
+    /// Create an IS NULL filter
+    pub fn is_null(field: impl Into<String>) -> Self {
+        Self {
+            field: field.into(),
+            op: FilterOp::IsNull,
+            value: None,
+        }
+    }
+
+    /// Create an IS NOT NULL filter
+    pub fn is_not_null(field: impl Into<String>) -> Self {
+        Self {
+            field: field.into(),
+            op: FilterOp::IsNotNull,
+            value: None,
+        }
+    }
+
+    /// Create a LIKE pattern filter
+    pub fn like(field: impl Into<String>, pattern: impl Into<String>) -> Self {
+        Self::new(field, FilterOp::Like, FilterValue::String(pattern.into()))
+    }
+
+    /// Validate and sanitize the field name to prevent SQL injection
+    fn sanitize_field(&self) -> String {
+        // Only allow alphanumeric, underscore, and arrow operators for JSONB
+        let sanitized: String = self
+            .field
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-' || *c == '>')
+            .collect();
+
+        // Ensure it starts with a letter or underscore
+        if sanitized.is_empty()
+            || (!sanitized.chars().next().unwrap().is_alphabetic()
+                && sanitized.chars().next().unwrap() != '_')
+        {
+            "invalid_field".to_string()
+        } else {
+            sanitized
+        }
+    }
+
+    /// Generate SQL condition with parameter placeholder
+    /// Returns (sql_fragment, parameter_index_offset)
+    pub fn to_sql_with_param(&self, param_index: usize) -> (String, Option<FilterValue>) {
+        let field = self.sanitize_field();
+        let jsonb_field = format!("metadata->>'{}'", field);
+
+        match self.op {
+            FilterOp::IsNull => (format!("{} IS NULL", jsonb_field), None),
+            FilterOp::IsNotNull => (format!("{} IS NOT NULL", jsonb_field), None),
+            _ => {
+                let sql = format!("{} {} ${}", jsonb_field, self.op.to_sql(), param_index);
+                (sql, self.value.clone())
+            }
+        }
+    }
+}
+
+impl From<String> for FilterValue {
+    fn from(s: String) -> Self {
+        FilterValue::String(s)
+    }
+}
+
+impl From<&str> for FilterValue {
+    fn from(s: &str) -> Self {
+        FilterValue::String(s.to_string())
+    }
+}
+
+impl From<i64> for FilterValue {
+    fn from(i: i64) -> Self {
+        FilterValue::Int(i)
+    }
+}
+
+impl From<i32> for FilterValue {
+    fn from(i: i32) -> Self {
+        FilterValue::Int(i as i64)
+    }
+}
+
+impl From<f64> for FilterValue {
+    fn from(f: f64) -> Self {
+        FilterValue::Float(f)
+    }
+}
+
+impl From<bool> for FilterValue {
+    fn from(b: bool) -> Self {
+        FilterValue::Bool(b)
+    }
+}
+
+/// A collection of metadata filters combined with AND/OR logic
+#[derive(Debug, Clone, Default)]
+pub struct MetadataFilters {
+    /// The filter conditions
+    filters: Vec<MetadataFilter>,
+    /// Whether to use AND (true) or OR (false) logic
+    use_and: bool,
+}
+
+impl MetadataFilters {
+    /// Create a new empty filter collection with AND logic
+    pub fn new() -> Self {
+        Self {
+            filters: Vec::new(),
+            use_and: true,
+        }
+    }
+
+    /// Create filters with OR logic
+    pub fn or() -> Self {
+        Self {
+            filters: Vec::new(),
+            use_and: false,
+        }
+    }
+
+    /// Add a filter condition
+    pub fn add(mut self, filter: MetadataFilter) -> Self {
+        self.filters.push(filter);
+        self
+    }
+
+    /// Check if there are any filters
+    pub fn is_empty(&self) -> bool {
+        self.filters.is_empty()
+    }
+
+    /// Generate SQL WHERE clause fragment with parameters
+    /// Returns (sql_fragment, parameters)
+    pub fn to_sql_with_params(&self, start_param_index: usize) -> (String, Vec<FilterValue>) {
+        if self.filters.is_empty() {
+            return (String::new(), Vec::new());
+        }
+
+        let mut conditions = Vec::new();
+        let mut params = Vec::new();
+        let mut param_idx = start_param_index;
+
+        for filter in &self.filters {
+            let (sql, param) = filter.to_sql_with_param(param_idx);
+            conditions.push(sql);
+            if let Some(p) = param {
+                params.push(p);
+                param_idx += 1;
+            }
+        }
+
+        let joiner = if self.use_and { " AND " } else { " OR " };
+        let sql = if conditions.len() > 1 {
+            format!("({})", conditions.join(joiner))
+        } else {
+            conditions.into_iter().next().unwrap_or_default()
+        };
+
+        (sql, params)
+    }
+}
+
 /// Common embedding model dimensions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum EmbeddingModel {
@@ -222,8 +483,8 @@ pub struct SearchOptions {
     pub include_metadata: bool,
     /// Whether to include content in results
     pub include_content: bool,
-    /// Optional filter on metadata (SQL WHERE clause fragment)
-    pub metadata_filter: Option<String>,
+    /// Safe metadata filters (parameterized to prevent SQL injection)
+    pub metadata_filters: Option<MetadataFilters>,
 }
 
 impl SearchOptions {
@@ -249,9 +510,20 @@ impl SearchOptions {
         self
     }
 
-    /// Set metadata filter
-    pub fn with_filter(mut self, filter: impl Into<String>) -> Self {
-        self.metadata_filter = Some(filter.into());
+    /// Set metadata filters (safe from SQL injection)
+    pub fn with_filters(mut self, filters: MetadataFilters) -> Self {
+        self.metadata_filters = Some(filters);
+        self
+    }
+
+    /// Add a single equality filter
+    pub fn with_filter_eq(mut self, field: impl Into<String>, value: impl Into<FilterValue>) -> Self {
+        let filter = MetadataFilter::eq(field, value);
+        self.metadata_filters = Some(
+            self.metadata_filters
+                .unwrap_or_else(MetadataFilters::new)
+                .add(filter),
+        );
         self
     }
 }
@@ -299,12 +571,12 @@ mod tests {
         let options = SearchOptions::new(10)
             .with_threshold(0.8)
             .with_vector()
-            .with_filter("metadata->>'type' = 'document'");
+            .with_filter_eq("type", "document");
 
         assert_eq!(options.limit, 10);
         assert_eq!(options.threshold, Some(0.8));
         assert!(options.include_vector);
-        assert!(options.metadata_filter.is_some());
+        assert!(options.metadata_filters.is_some());
     }
 
     #[test]

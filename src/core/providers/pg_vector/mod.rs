@@ -122,11 +122,11 @@ mod tests {
         let options = SearchOptions::new(10)
             .with_threshold(0.8)
             .with_vector()
-            .with_filter("metadata->>'type' = 'document'");
+            .with_filter_eq("type", "document");
 
         assert_eq!(options.limit, 10);
         assert_eq!(options.threshold, Some(0.8));
         assert!(options.include_vector);
-        assert!(options.metadata_filter.is_some());
+        assert!(options.metadata_filters.is_some());
     }
 }
