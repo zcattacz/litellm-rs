@@ -25,7 +25,7 @@ pub struct SnowflakeConfig {
     /// Snowflake account ID (e.g., "xy12345.us-east-1")
     pub account_id: Option<String>,
 
-    /// API base URL (optional, defaults to https://{account_id}.snowflakecomputing.com/api/v2)
+    /// API base URL (optional, defaults to <https://{account_id}.snowflakecomputing.com/api/v2>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

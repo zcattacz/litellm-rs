@@ -11,7 +11,7 @@ pub struct VoyageConfig {
     /// API key for Voyage AI authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://api.voyageai.com/v1)
+    /// API base URL (default: <https://api.voyageai.com/v1>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

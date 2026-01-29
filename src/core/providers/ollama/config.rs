@@ -11,7 +11,7 @@ pub struct OllamaConfig {
     /// API key for Ollama authentication (optional, used with remote Ollama servers)
     pub api_key: Option<String>,
 
-    /// API base URL (default: http://localhost:11434)
+    /// API base URL (default: <http://localhost:11434>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

@@ -10,7 +10,7 @@
 //! - Tool calling (for supported models)
 //!
 //! References:
-//! - API Docs: https://cloud.ibm.com/apidocs/watsonx-ai
+//! - API Docs: <https://cloud.ibm.com/apidocs/watsonx-ai>
 
 // Core modules
 mod config;

@@ -25,7 +25,7 @@ use crate::core::types::{
 pub struct RecraftConfig {
     /// API key for Recraft
     pub api_key: Option<String>,
-    /// API base URL (default: https://api.recraft.ai)
+    /// API base URL (default: <https://api.recraft.ai>)
     pub api_base: Option<String>,
     /// Timeout in seconds
     pub timeout: u64,

@@ -34,7 +34,7 @@ impl StringPool {
         hasher.finish()
     }
 
-    /// Intern a string, returning an Arc<str> for efficient sharing
+    /// Intern a string, returning an `Arc<str>` for efficient sharing
     pub fn intern(&self, s: &str) -> Arc<str> {
         let hash = Self::hash_string(s);
 
@@ -139,7 +139,7 @@ impl SmartString {
         Self::Owned(s)
     }
 
-    /// Create a new SmartString from an Arc<str>
+    /// Create a new SmartString from an `Arc<str>`
     #[allow(dead_code)] // Reserved for future smart string operations
     pub fn from_shared(s: Arc<str>) -> Self {
         Self::Shared(s)
@@ -154,7 +154,7 @@ impl SmartString {
         }
     }
 
-    /// Convert to a Cow<str> for efficient string operations
+    /// Convert to a `Cow<str>` for efficient string operations
     #[allow(dead_code)] // Reserved for future smart string operations
     pub fn as_cow(&self) -> Cow<'_, str> {
         match self {

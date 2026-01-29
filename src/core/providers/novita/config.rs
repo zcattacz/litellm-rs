@@ -11,7 +11,7 @@ pub struct NovitaConfig {
     /// API key for Novita authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://api.novita.ai/v3/openai)
+    /// API base URL (default: <https://api.novita.ai/v3/openai>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

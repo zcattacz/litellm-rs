@@ -128,7 +128,7 @@ impl<T: SSETransformer> UnifiedSSEParser<T> {
     ///
     /// Optimized to minimize allocations:
     /// - Uses `from_utf8_lossy` which returns `Cow<str>` (borrowed when valid UTF-8)
-    /// - Processes lines without collecting into intermediate Vec<String>
+    /// - Processes lines without collecting into intermediate `Vec<String>`
     /// - Only allocates for incomplete lines that need to be buffered
     pub fn process_bytes(&mut self, bytes: &[u8]) -> Result<Vec<ChatChunk>, ProviderError> {
         // Append new bytes to buffer - from_utf8_lossy avoids allocation for valid UTF-8

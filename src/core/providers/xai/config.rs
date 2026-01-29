@@ -9,7 +9,7 @@ pub struct XAIConfig {
     /// API key for authentication
     pub api_key: Option<String>,
 
-    /// API base URL (defaults to https://api.x.ai)
+    /// API base URL (defaults to <https://api.x.ai>)
     pub api_base: Option<String>,
 
     /// Organization ID (optional)

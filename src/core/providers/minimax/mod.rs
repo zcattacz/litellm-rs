@@ -1,8 +1,8 @@
 //! Minimax AI Provider
 //!
 //! Minimax provides an OpenAI-compatible API with support for their MiniMax-M2 series models.
-//! - International: https://api.minimax.io/v1
-//! - China: https://api.minimaxi.com/v1
+//! - International: <https://api.minimax.io/v1>
+//! - China: <https://api.minimaxi.com/v1>
 
 use async_trait::async_trait;
 use futures::Stream;
@@ -42,7 +42,7 @@ const MINIMAX_CAPABILITIES: &[ProviderCapability] = &[
 pub struct MinimaxConfig {
     /// API key for authentication
     pub api_key: String,
-    /// API base URL (defaults to https://api.minimax.io/v1)
+    /// API base URL (defaults to <https://api.minimax.io/v1>)
     pub api_base: String,
     /// Request timeout in seconds
     pub timeout_seconds: u64,

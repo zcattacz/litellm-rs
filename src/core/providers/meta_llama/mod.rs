@@ -1,7 +1,7 @@
 //! Meta Llama Provider
 //!
 //! Meta's Llama models integration for LiteLLM.
-//! This provider supports Llama API's OpenAI-compatible endpoint at https://api.llama.com/compat/v1
+//! This provider supports Llama API's OpenAI-compatible endpoint at <https://api.llama.com/compat/v1>
 //!
 //! ## Features
 //! - OpenAI-compatible API interface
@@ -11,7 +11,7 @@
 //! - Streaming support
 //!
 //! ## Documentation
-//! - API Docs: https://llama.developer.meta.com/docs/features/compatibility/
+//! - API Docs: <https://llama.developer.meta.com/docs/features/compatibility/>
 
 use async_trait::async_trait;
 use futures::Stream;
@@ -62,7 +62,7 @@ const LLAMA_CAPABILITIES: &[ProviderCapability] = &[
 pub struct LlamaProviderConfig {
     /// API key for authentication
     pub api_key: String,
-    /// API base URL (defaults to https://api.llama.com/compat/v1)
+    /// API base URL (defaults to <https://api.llama.com/compat/v1>)
     pub api_base: Option<String>,
     /// Organization ID
     pub organization_id: Option<String>,

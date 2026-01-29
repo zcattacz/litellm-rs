@@ -48,7 +48,7 @@
 //!
 //! - `LANGFUSE_PUBLIC_KEY`: Your Langfuse public key
 //! - `LANGFUSE_SECRET_KEY`: Your Langfuse secret key
-//! - `LANGFUSE_HOST`: Langfuse host (default: https://cloud.langfuse.com)
+//! - `LANGFUSE_HOST`: Langfuse host (default: <https://cloud.langfuse.com>)
 //! - `LANGFUSE_ENABLED`: Enable/disable integration (default: true)
 //! - `LANGFUSE_DEBUG`: Debug mode - log instead of send (default: false)
 //! - `LANGFUSE_BATCH_SIZE`: Batch size for ingestion (default: 10)

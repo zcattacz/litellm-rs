@@ -6,7 +6,7 @@
 //! Llama API specifics:
 //! - Supports function calling and tools
 //! - Only json_schema is supported for response_format
-//! - OpenAI-compatible endpoint at https://api.llama.com/compat/v1
+//! - OpenAI-compatible endpoint at <https://api.llama.com/compat/v1>
 
 use serde_json::{Value, json};
 use std::collections::HashMap;

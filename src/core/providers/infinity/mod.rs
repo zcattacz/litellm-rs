@@ -3,7 +3,7 @@
 //! Infinity is a high-performance open-source embedding and reranking server.
 //! This provider supports both embedding and reranking capabilities.
 //!
-//! Reference: https://infinity.modal.michaelfeil.eu/docs
+//! Reference: <https://infinity.modal.michaelfeil.eu/docs>
 
 // Core modules
 mod config;

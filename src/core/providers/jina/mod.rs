@@ -1,7 +1,7 @@
 //! Jina AI Provider
 //!
 //! Jina AI provides embeddings and reranking capabilities.
-//! Reference: https://jina.ai/embeddings/ and https://jina.ai/reranker/
+//! Reference: <https://jina.ai/embeddings/> and <https://jina.ai/reranker/>
 
 use async_trait::async_trait;
 use futures::Stream;
@@ -33,7 +33,7 @@ const JINA_CAPABILITIES: &[ProviderCapability] = &[ProviderCapability::Embedding
 pub struct JinaConfig {
     /// API key for authentication
     pub api_key: String,
-    /// API base URL (defaults to https://api.jina.ai/v1)
+    /// API base URL (defaults to <https://api.jina.ai/v1>)
     pub api_base: String,
     /// Request timeout in seconds
     pub timeout_seconds: u64,

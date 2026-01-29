@@ -25,7 +25,7 @@ use crate::core::types::{
 pub struct SapAIConfig {
     /// API key for SAP AI
     pub api_key: Option<String>,
-    /// API base URL (default: https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com)
+    /// API base URL (default: <https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com>)
     pub api_base: Option<String>,
     /// Timeout in seconds
     pub timeout: u64,

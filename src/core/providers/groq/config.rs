@@ -11,7 +11,7 @@ pub struct GroqConfig {
     /// API key for Groq authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://api.groq.com/openai/v1)
+    /// API base URL (default: <https://api.groq.com/openai/v1>)
     pub api_base: Option<String>,
 
     /// Organization ID for Groq

@@ -6,7 +6,7 @@
 //! Milvus is an open-source vector database designed for AI applications,
 //! providing high-performance similarity search and vector storage.
 //!
-//! Reference: https://milvus.io/docs/restful_api.md
+//! Reference: <https://milvus.io/docs/restful_api.md>
 
 use crate::core::traits::ProviderConfig;
 use serde::{Deserialize, Serialize};

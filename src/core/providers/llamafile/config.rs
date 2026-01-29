@@ -14,7 +14,7 @@ pub struct LlamafileConfig {
     /// API key for Llamafile authentication (optional, typically not required)
     pub api_key: Option<String>,
 
-    /// API base URL (default: http://127.0.0.1:8080/v1)
+    /// API base URL (default: <http://127.0.0.1:8080/v1>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

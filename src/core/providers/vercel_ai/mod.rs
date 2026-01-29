@@ -25,7 +25,7 @@ use crate::core::types::{
 pub struct VercelAIConfig {
     /// API key for Vercel AI
     pub api_key: Option<String>,
-    /// API base URL (default: https://api.vercel.com/v1)
+    /// API base URL (default: <https://api.vercel.com/v1>)
     pub api_base: Option<String>,
     /// Timeout in seconds
     pub timeout: u64,

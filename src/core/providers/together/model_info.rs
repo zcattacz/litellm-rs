@@ -3,7 +3,7 @@
 //! Contains model configurations and capabilities for Together AI supported models.
 //! Together AI provides access to various open-source and proprietary models.
 //!
-//! Docs: https://docs.together.ai/docs/serverless-models
+//! Docs: <https://docs.together.ai/docs/serverless-models>
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

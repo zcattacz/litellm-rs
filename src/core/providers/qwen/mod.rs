@@ -32,7 +32,7 @@ pub const DEFAULT_API_BASE: &str = "https://dashscope.aliyuncs.com/api/v1";
 pub struct QwenConfig {
     /// API key for Qwen
     pub api_key: Option<String>,
-    /// API base URL (default: https://dashscope.aliyuncs.com/api/v1)
+    /// API base URL (default: <https://dashscope.aliyuncs.com/api/v1>)
     pub api_base: Option<String>,
     /// Timeout in seconds
     pub timeout: u64,

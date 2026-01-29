@@ -55,7 +55,7 @@
 //! embeddings, use another provider like OpenAI, Voyage, or Cohere, then store
 //! them in Milvus for efficient similarity search.
 //!
-//! Reference: https://milvus.io/docs/restful_api.md
+//! Reference: <https://milvus.io/docs/restful_api.md>
 
 mod config;
 mod error;

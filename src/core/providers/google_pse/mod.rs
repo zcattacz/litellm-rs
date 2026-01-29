@@ -35,7 +35,7 @@ pub struct GooglePSEConfig {
     pub api_key: String,
     /// Search Engine ID
     pub search_engine_id: String,
-    /// API base URL (defaults to https://www.googleapis.com/customsearch/v1)
+    /// API base URL (defaults to <https://www.googleapis.com/customsearch/v1>)
     pub api_base: String,
     /// Request timeout in seconds
     pub timeout_seconds: u64,

@@ -4,7 +4,7 @@
 //! This implementation provides access to chat completions, embeddings, and rerank
 //! through Together's OpenAI-compatible API.
 //!
-//! Docs: https://docs.together.ai/reference
+//! Docs: <https://docs.together.ai/reference>
 
 // Core modules
 mod config;

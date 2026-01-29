@@ -11,7 +11,7 @@ pub struct HyperbolicConfig {
     /// API key for Hyperbolic authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://api.hyperbolic.xyz/v1)
+    /// API base URL (default: <https://api.hyperbolic.xyz/v1>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

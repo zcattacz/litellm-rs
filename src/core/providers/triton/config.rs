@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TritonConfig {
     /// Triton server URL (required)
-    /// Example: http://localhost:8000
+    /// Example: <http://localhost:8000>
     pub server_url: Option<String>,
 
     /// Model name deployed on Triton

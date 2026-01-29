@@ -38,7 +38,7 @@ pub struct GradientAIConfig {
     /// API key for Gradient AI authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://inference.do-ai.run)
+    /// API base URL (default: <https://inference.do-ai.run>)
     pub api_base: Option<String>,
 
     /// Agent endpoint URL (for agent-specific deployments)

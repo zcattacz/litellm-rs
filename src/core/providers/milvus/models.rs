@@ -4,7 +4,7 @@
 //! Milvus is primarily a vector database, so the "models" here represent different
 //! embedding dimensions and index types supported for vector storage and retrieval.
 //!
-//! Reference: https://milvus.io/docs/index.md
+//! Reference: <https://milvus.io/docs/index.md>
 
 /// Supported metric types for similarity search in Milvus
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

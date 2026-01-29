@@ -33,7 +33,7 @@ use crate::core::types::{
 pub struct DeepInfraConfig {
     /// API key for DeepInfra
     pub api_key: Option<String>,
-    /// API base URL (default: https://api.deepinfra.com)
+    /// API base URL (default: <https://api.deepinfra.com>)
     pub api_base: Option<String>,
     /// Timeout in seconds
     pub timeout: u64,

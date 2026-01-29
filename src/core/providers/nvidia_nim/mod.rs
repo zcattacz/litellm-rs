@@ -4,7 +4,7 @@
 //! for various models. This implementation provides access through NVIDIA's
 //! OpenAI-compatible API.
 //!
-//! Reference: https://docs.api.nvidia.com/nim/reference
+//! Reference: <https://docs.api.nvidia.com/nim/reference>
 
 // Core modules
 mod config;

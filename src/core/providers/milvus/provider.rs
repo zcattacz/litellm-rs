@@ -9,7 +9,7 @@
 //! - Similarity search
 //! - Collection management
 //!
-//! Reference: https://milvus.io/docs/restful_api.md
+//! Reference: <https://milvus.io/docs/restful_api.md>
 
 use async_trait::async_trait;
 use futures::Stream;

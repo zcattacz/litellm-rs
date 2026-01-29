@@ -25,7 +25,7 @@ use crate::core::types::{
 pub struct TopazConfig {
     /// API key for Topaz
     pub api_key: Option<String>,
-    /// API base URL (default: https://api.topaz.com)
+    /// API base URL (default: <https://api.topaz.com>)
     pub api_base: Option<String>,
     /// Timeout in seconds
     pub timeout: u64,

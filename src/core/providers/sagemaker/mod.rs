@@ -4,7 +4,7 @@
 //! This implementation supports Sagemaker endpoints with HuggingFace TGI format
 //! and AWS SigV4 authentication.
 //!
-//! Reference: https://docs.aws.amazon.com/sagemaker/latest/dg/realtime-endpoints.html
+//! Reference: <https://docs.aws.amazon.com/sagemaker/latest/dg/realtime-endpoints.html>
 
 // Core modules
 mod config;

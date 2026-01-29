@@ -11,7 +11,7 @@ pub struct NvidiaNimConfig {
     /// API key for NVIDIA NIM authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://integrate.api.nvidia.com/v1)
+    /// API base URL (default: <https://integrate.api.nvidia.com/v1>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

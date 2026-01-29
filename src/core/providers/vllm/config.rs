@@ -13,7 +13,7 @@ pub struct VLLMConfig {
     pub api_key: Option<String>,
 
     /// API base URL (required - vLLM is self-hosted)
-    /// Example: "http://localhost:8000/v1" or "https://your-vllm-server.com/v1"
+    /// Example: "<http://localhost:8000/v1"> or "<https://your-vllm-server.com/v1">
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

@@ -1,7 +1,7 @@
 //! Dashscope (Alibaba Cloud) AI Provider
 //!
 //! Dashscope provides access to Alibaba's Qwen series models with an OpenAI-compatible API.
-//! API Base: https://dashscope.aliyuncs.com/compatible-mode/v1
+//! API Base: <https://dashscope.aliyuncs.com/compatible-mode/v1>
 
 use async_trait::async_trait;
 use futures::Stream;
@@ -41,7 +41,7 @@ const DASHSCOPE_CAPABILITIES: &[ProviderCapability] = &[
 pub struct DashscopeConfig {
     /// API key for authentication
     pub api_key: String,
-    /// API base URL (defaults to https://dashscope.aliyuncs.com/compatible-mode/v1)
+    /// API base URL (defaults to <https://dashscope.aliyuncs.com/compatible-mode/v1>)
     pub api_base: String,
     /// Request timeout in seconds
     pub timeout_seconds: u64,

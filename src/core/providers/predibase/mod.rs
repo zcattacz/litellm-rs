@@ -1,7 +1,7 @@
 //! Predibase Provider
 //!
 //! Predibase provides fine-tuned LLM serving.
-//! API Reference: https://docs.predibase.com/
+//! API Reference: <https://docs.predibase.com/>
 
 mod config;
 mod error;

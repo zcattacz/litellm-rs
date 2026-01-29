@@ -12,7 +12,7 @@ pub struct CloudflareConfig {
     /// API token for authentication
     pub api_token: Option<String>,
 
-    /// API base URL (defaults to https://api.cloudflare.com/client/v4)
+    /// API base URL (defaults to <https://api.cloudflare.com/client/v4>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

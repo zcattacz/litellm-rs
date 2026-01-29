@@ -11,7 +11,7 @@ pub struct ElevenLabsConfig {
     /// API key for ElevenLabs authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://api.elevenlabs.io)
+    /// API base URL (default: <https://api.elevenlabs.io>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

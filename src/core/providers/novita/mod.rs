@@ -3,7 +3,7 @@
 //! Novita AI provides OpenAI-compatible API for accessing various AI models.
 //! This implementation wraps their API with proper authentication and LiteLLM source header.
 //!
-//! Reference: https://novita.ai/docs/guides/llm-api
+//! Reference: <https://novita.ai/docs/guides/llm-api>
 
 // Core modules
 mod config;

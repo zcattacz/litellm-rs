@@ -3,7 +3,7 @@
 //! High-performance inference provider using Sambanova's custom AI chips.
 //! This implementation is OpenAI-compatible with minimal transformation needed.
 //!
-//! Reference: https://docs.sambanova.ai/cloud/api-reference/
+//! Reference: <https://docs.sambanova.ai/cloud/api-reference/>
 
 use async_trait::async_trait;
 use futures::Stream;
@@ -41,7 +41,7 @@ const SAMBANOVA_CAPABILITIES: &[ProviderCapability] = &[
 pub struct SambanovaConfig {
     /// API key for authentication
     pub api_key: String,
-    /// API base URL (defaults to https://api.sambanova.ai/v1)
+    /// API base URL (defaults to <https://api.sambanova.ai/v1>)
     pub api_base: String,
     /// Request timeout in seconds
     pub timeout_seconds: u64,

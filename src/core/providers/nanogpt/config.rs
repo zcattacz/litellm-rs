@@ -11,7 +11,7 @@ pub struct NanoGPTConfig {
     /// API key for NanoGPT authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://api.nano-gpt.com/v1)
+    /// API base URL (default: <https://api.nano-gpt.com/v1>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

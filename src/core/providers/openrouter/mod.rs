@@ -3,7 +3,7 @@
 //! OpenRouter is a unified API that provides access to multiple LLM models.
 //! It's OpenAI API compatible but supports additional parameters and functionality.
 //!
-//! Documentation: https://openrouter.ai/docs
+//! Documentation: <https://openrouter.ai/docs>
 
 pub mod config;
 pub mod models;

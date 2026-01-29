@@ -37,7 +37,7 @@ const FRIENDLIAI_CAPABILITIES: &[ProviderCapability] = &[
 pub struct FriendliAIConfig {
     /// API key for authentication
     pub api_key: String,
-    /// API base URL (defaults to https://api.friendli.ai/v1)
+    /// API base URL (defaults to <https://api.friendli.ai/v1>)
     pub api_base: String,
     /// Request timeout in seconds
     pub timeout_seconds: u64,

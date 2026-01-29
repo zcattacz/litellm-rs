@@ -3,7 +3,7 @@
 //! Hyperbolic provides OpenAI-compatible API for accessing various AI models.
 //! This implementation provides access to their models through their standard endpoints.
 //!
-//! Reference: https://docs.hyperbolic.xyz/docs/rest-api
+//! Reference: <https://docs.hyperbolic.xyz/docs/rest-api>
 
 // Core modules
 mod config;

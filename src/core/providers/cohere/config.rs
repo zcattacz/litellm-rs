@@ -33,7 +33,7 @@ pub struct CohereConfig {
     /// API key for authentication
     pub api_key: String,
 
-    /// API base URL (defaults to https://api.cohere.ai)
+    /// API base URL (defaults to <https://api.cohere.ai>)
     pub api_base: String,
 
     /// API version to use (v1 or v2)

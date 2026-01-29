@@ -11,7 +11,7 @@ pub struct DeepgramConfig {
     /// API key for Deepgram authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://api.deepgram.com/v1)
+    /// API base URL (default: <https://api.deepgram.com/v1>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

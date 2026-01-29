@@ -1,7 +1,7 @@
 //! Together AI Rerank API
 //!
 //! Provides document reranking functionality using Together AI's rerank models.
-//! Docs: https://docs.together.ai/reference/rerank
+//! Docs: <https://docs.together.ai/reference/rerank>
 
 use serde::{Deserialize, Serialize};
 

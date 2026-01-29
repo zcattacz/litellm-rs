@@ -37,7 +37,7 @@ const GIGACHAT_CAPABILITIES: &[ProviderCapability] = &[
 pub struct GigaChatConfig {
     /// API key (credentials) for authentication
     pub api_key: String,
-    /// API base URL (defaults to https://gigachat.devices.sberbank.ru/api/v1)
+    /// API base URL (defaults to <https://gigachat.devices.sberbank.ru/api/v1>)
     pub api_base: String,
     /// Request timeout in seconds
     pub timeout_seconds: u64,

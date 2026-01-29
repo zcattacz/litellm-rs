@@ -1,7 +1,7 @@
 //! NLP Cloud Provider
 //!
 //! NLP Cloud provides multilingual NLP models via API.
-//! API Reference: https://docs.nlpcloud.com/
+//! API Reference: <https://docs.nlpcloud.com/>
 
 mod config;
 mod error;

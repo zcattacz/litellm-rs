@@ -17,7 +17,7 @@ pub struct WatsonxConfig {
     /// API key for Watsonx authentication
     pub api_key: Option<String>,
 
-    /// API base URL (e.g., https://us-south.ml.cloud.ibm.com)
+    /// API base URL (e.g., <https://us-south.ml.cloud.ibm.com>)
     pub api_base: Option<String>,
 
     /// Project ID for Watsonx.ai

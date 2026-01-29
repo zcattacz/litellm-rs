@@ -20,7 +20,7 @@ pub struct BasetenConfig {
     /// API key for Baseten authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://inference.baseten.co/v1)
+    /// API base URL (default: <https://inference.baseten.co/v1>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

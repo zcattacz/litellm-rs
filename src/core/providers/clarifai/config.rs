@@ -14,7 +14,7 @@ pub struct ClarifaiConfig {
     /// API key for Clarifai authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://api.clarifai.com/v2/ext/openai/v1)
+    /// API base URL (default: <https://api.clarifai.com/v2/ext/openai/v1>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds
@@ -96,7 +96,7 @@ impl ClarifaiConfig {
     /// Parse Clarifai model string format and return the full model URL
     ///
     /// Clarifai model format: `user_id.app_id.model_id`
-    /// Returns: `https://clarifai.com/{user_id}/{app_id}/models/{model_id}`
+    /// Returns: `<https://clarifai.com/{user_id}/{app_id}/models/{model_id}`>
     pub fn get_model_url(model: &str) -> Option<String> {
         let parts: Vec<&str> = model.split('.').collect();
         if parts.len() == 3 {

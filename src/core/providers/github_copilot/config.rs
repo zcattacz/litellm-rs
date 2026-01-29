@@ -32,7 +32,7 @@ pub struct GitHubCopilotConfig {
     /// API key file name
     pub api_key_file: Option<String>,
 
-    /// API base URL (default: https://api.githubcopilot.com)
+    /// API base URL (default: <https://api.githubcopilot.com>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

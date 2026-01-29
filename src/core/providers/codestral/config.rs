@@ -9,7 +9,7 @@ pub struct CodestralConfig {
     /// API key for Codestral/Mistral authentication
     pub api_key: Option<String>,
 
-    /// Base URL (default: https://codestral.mistral.ai/v1)
+    /// Base URL (default: <https://codestral.mistral.ai/v1>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

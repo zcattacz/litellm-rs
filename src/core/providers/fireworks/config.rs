@@ -11,7 +11,7 @@ pub struct FireworksConfig {
     /// API key for Fireworks AI authentication
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://api.fireworks.ai/inference/v1)
+    /// API base URL (default: <https://api.fireworks.ai/inference/v1>)
     pub api_base: Option<String>,
 
     /// Account ID for model listing (optional)

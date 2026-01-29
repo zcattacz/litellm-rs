@@ -25,7 +25,7 @@ use crate::core::types::{
 pub struct ZhipuConfig {
     /// API key for Zhipu AI
     pub api_key: Option<String>,
-    /// API base URL (default: https://open.bigmodel.cn/api/paas/v4)
+    /// API base URL (default: <https://open.bigmodel.cn/api/paas/v4>)
     pub api_base: Option<String>,
     /// Timeout in seconds
     pub timeout: u64,

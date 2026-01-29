@@ -25,7 +25,7 @@ use crate::core::types::{
 pub struct XiaomiMIMOConfig {
     /// API key for Xiaomi MIMO
     pub api_key: Option<String>,
-    /// API base URL (default: https://api.xiaomi.com/mimo)
+    /// API base URL (default: <https://api.xiaomi.com/mimo>)
     pub api_base: Option<String>,
     /// Timeout in seconds
     pub timeout: u64,

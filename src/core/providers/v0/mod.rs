@@ -1,7 +1,7 @@
 //! V0 AI Provider Module
 //!
 //! V0 is an OpenAI-compatible AI platform for developers
-//! https://v0.dev/
+//! <https://v0.dev/>
 
 pub mod chat;
 

@@ -14,7 +14,7 @@ pub struct GitHubConfig {
     /// API key for GitHub authentication (GitHub PAT)
     pub api_key: Option<String>,
 
-    /// API base URL (default: https://models.inference.ai.azure.com)
+    /// API base URL (default: <https://models.inference.ai.azure.com>)
     pub api_base: Option<String>,
 
     /// Request timeout in seconds

@@ -38,7 +38,7 @@ pub struct WandbConfig {
     /// Can also be set via WANDB_ENTITY environment variable
     pub entity: Option<String>,
 
-    /// API base URL (defaults to https://api.wandb.ai)
+    /// API base URL (defaults to <https://api.wandb.ai>)
     pub api_base: String,
 
     /// Request timeout in seconds

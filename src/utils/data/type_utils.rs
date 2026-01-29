@@ -109,7 +109,7 @@ pub trait DefaultConfig {
 }
 
 /// A wrapper type for optional values with better ergonomics
-/// Note: This is mainly for demonstration - in most cases, use Option<T> directly
+/// Note: This is mainly for demonstration - in most cases, use `Option<T>` directly
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Optional<T> {

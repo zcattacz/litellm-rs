@@ -9,7 +9,7 @@
 //! - Tool calling (for supported models like Claude 3.5 Sonnet)
 //!
 //! References:
-//! - API Docs: https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-llm-rest-api
+//! - API Docs: <https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-llm-rest-api>
 
 // Core modules
 mod config;

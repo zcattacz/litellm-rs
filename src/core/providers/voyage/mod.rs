@@ -3,7 +3,7 @@
 //! Voyage AI is a specialized embedding provider offering state-of-the-art
 //! text embeddings for semantic search, retrieval, and RAG applications.
 //!
-//! Reference: https://docs.voyageai.com/reference/embeddings-api
+//! Reference: <https://docs.voyageai.com/reference/embeddings-api>
 
 mod config;
 mod error;

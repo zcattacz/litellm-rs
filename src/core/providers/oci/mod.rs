@@ -9,7 +9,7 @@
 //! - Tool calling (for supported models)
 //!
 //! References:
-//! - API Docs: https://docs.oracle.com/en-us/iaas/Content/generative-ai/home.htm
+//! - API Docs: <https://docs.oracle.com/en-us/iaas/Content/generative-ai/home.htm>
 
 // Core modules
 mod config;

@@ -25,7 +25,7 @@ use crate::core::types::{
 pub struct TavilyConfig {
     /// API key for Tavily
     pub api_key: Option<String>,
-    /// API base URL (default: https://api.tavily.com)
+    /// API base URL (default: <https://api.tavily.com>)
     pub api_base: Option<String>,
     /// Timeout in seconds
     pub timeout: u64,
