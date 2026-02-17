@@ -213,14 +213,17 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_groq_provider_chat_completion() {
-        use litellm_rs::core::providers::groq::GroqProvider;
+        use litellm_rs::core::providers::openai_like::OpenAILikeProvider;
+        use litellm_rs::core::providers::registry;
         use litellm_rs::core::traits::provider::llm_provider::trait_definition::LLMProvider;
         use litellm_rs::core::types::context::RequestContext;
 
         let api_key =
             std::env::var("GROQ_API_KEY").expect("GROQ_API_KEY environment variable not set");
 
-        let provider = GroqProvider::with_api_key(&api_key).await.unwrap();
+        let def = registry::get_definition("groq").unwrap();
+        let config = def.to_openai_like_config(Some(&api_key), None);
+        let provider = OpenAILikeProvider::new(config).await.unwrap();
 
         let request = create_simple_request("llama-3.1-8b-instant", "Hello");
         let context = RequestContext::default();

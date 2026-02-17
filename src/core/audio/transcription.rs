@@ -1,11 +1,11 @@
 //! Audio transcription functionality
 
-use crate::core::providers::{Provider, ProviderRegistry};
+use crate::core::providers::ProviderRegistry;
 use crate::utils::error::gateway_error::{GatewayError, Result};
 use std::sync::Arc;
-use tracing::{debug, info};
+use tracing::info;
 
-use super::types::{SegmentInfo, TranscriptionRequest, TranscriptionResponse, WordInfo};
+use super::types::{TranscriptionRequest, TranscriptionResponse};
 
 /// Audio service for handling audio transcription requests
 pub struct TranscriptionService {
@@ -32,7 +32,7 @@ impl TranscriptionService {
         }
 
         // Determine provider from model name
-        let (provider_name, actual_model) = parse_model_string(&request.model);
+        let (provider_name, _actual_model) = parse_model_string(&request.model);
 
         // Find provider
         let providers = self.provider_registry.all();
@@ -47,59 +47,10 @@ impl TranscriptionService {
             })?;
 
         // Route to appropriate provider
-        match provider {
-            Provider::Groq(groq) => {
-                debug!("Using Groq for transcription");
-                let response = groq
-                    .transcribe_audio(
-                        request.file,
-                        Some(actual_model.to_string()),
-                        request.language,
-                        request.response_format,
-                    )
-                    .await
-                    .map_err(|e| {
-                        GatewayError::internal(format!("Groq transcription error: {}", e))
-                    })?;
-
-                Ok(TranscriptionResponse {
-                    text: response.text,
-                    task: response.task,
-                    language: response.language,
-                    duration: response.duration.map(|d| d as f64),
-                    words: response.words.map(|words| {
-                        words
-                            .into_iter()
-                            .map(|w| WordInfo {
-                                word: w.word,
-                                start: w.start as f64,
-                                end: w.end as f64,
-                            })
-                            .collect()
-                    }),
-                    segments: response.segments.map(|segs| {
-                        segs.into_iter()
-                            .map(|s| SegmentInfo {
-                                id: s.id,
-                                start: s.start as f64,
-                                end: s.end as f64,
-                                text: s.text,
-                            })
-                            .collect()
-                    }),
-                })
-            }
-            Provider::OpenAI(_openai) => {
-                // OpenAI transcription - similar implementation
-                Err(GatewayError::internal(
-                    "OpenAI audio transcription not yet implemented",
-                ))
-            }
-            _ => Err(GatewayError::internal(format!(
-                "Provider {} does not support audio transcription",
-                provider.name()
-            ))),
-        }
+        Err(GatewayError::internal(format!(
+            "Provider {} does not support audio transcription",
+            provider.name()
+        )))
     }
 }
 

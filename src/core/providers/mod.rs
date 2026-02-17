@@ -50,7 +50,7 @@ pub mod github;
 pub mod github_copilot;
 pub mod google_pse;
 pub mod gradient_ai;
-pub mod groq;
+// groq: Tier 1 → registry/catalog.rs
 pub mod heroku;
 // hosted_vllm: Tier 1 → registry/catalog.rs
 pub mod huggingface;
@@ -301,7 +301,6 @@ macro_rules! dispatch_provider {
             Provider::V0(p) => p.$method(),
             Provider::DeepInfra(p) => p.$method(),
             Provider::AzureAI(p) => p.$method(),
-            Provider::Groq(p) => p.$method(),
             Provider::XAI(p) => p.$method(),
             Provider::Cloudflare(p) => p.$method(),
             Provider::OpenAILike(p) => p.$method(),
@@ -323,7 +322,6 @@ macro_rules! dispatch_provider {
             Provider::V0(p) => p.$method($($arg),+),
             Provider::DeepInfra(p) => p.$method($($arg),+),
             Provider::AzureAI(p) => p.$method($($arg),+),
-            Provider::Groq(p) => p.$method($($arg),+),
             Provider::XAI(p) => p.$method($($arg),+),
             Provider::Cloudflare(p) => p.$method($($arg),+),
             Provider::OpenAILike(p) => p.$method($($arg),+),
@@ -348,7 +346,6 @@ macro_rules! dispatch_provider_async {
             Provider::V0(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::DeepInfra(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::AzureAI(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
-            Provider::Groq(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::XAI(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::Cloudflare(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::OpenAILike(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
@@ -373,7 +370,6 @@ macro_rules! dispatch_provider_value {
             Provider::V0(p) => LLMProvider::$method(p),
             Provider::DeepInfra(p) => LLMProvider::$method(p),
             Provider::AzureAI(p) => LLMProvider::$method(p),
-            Provider::Groq(p) => LLMProvider::$method(p),
             Provider::XAI(p) => LLMProvider::$method(p),
             Provider::Cloudflare(p) => LLMProvider::$method(p),
             Provider::OpenAILike(p) => LLMProvider::$method(p),
@@ -395,7 +391,6 @@ macro_rules! dispatch_provider_value {
             Provider::V0(p) => LLMProvider::$method(p, $($arg),+),
             Provider::DeepInfra(p) => LLMProvider::$method(p, $($arg),+),
             Provider::AzureAI(p) => LLMProvider::$method(p, $($arg),+),
-            Provider::Groq(p) => LLMProvider::$method(p, $($arg),+),
             Provider::XAI(p) => LLMProvider::$method(p, $($arg),+),
             Provider::Cloudflare(p) => LLMProvider::$method(p, $($arg),+),
             Provider::OpenAILike(p) => LLMProvider::$method(p, $($arg),+),
@@ -440,7 +435,6 @@ macro_rules! dispatch_provider_async_direct {
             Provider::V0(p) => LLMProvider::$method(p).await,
             Provider::DeepInfra(p) => LLMProvider::$method(p).await,
             Provider::AzureAI(p) => LLMProvider::$method(p).await,
-            Provider::Groq(p) => LLMProvider::$method(p).await,
             Provider::XAI(p) => LLMProvider::$method(p).await,
             Provider::Cloudflare(p) => LLMProvider::$method(p).await,
             Provider::OpenAILike(p) => LLMProvider::$method(p).await,
@@ -467,7 +461,6 @@ pub enum Provider {
     V0(v0::V0Provider),
     DeepInfra(deepinfra::DeepInfraProvider),
     AzureAI(azure_ai::AzureAIProvider),
-    Groq(groq::GroqProvider),
     XAI(xai::XAIProvider),
     Cloudflare(cloudflare::CloudflareProvider),
     /// Tier 1: data-driven OpenAI-compatible providers (groq, together, fireworks, etc.)
@@ -491,7 +484,6 @@ impl Provider {
             Provider::V0(_) => "v0",
             Provider::DeepInfra(_) => "deepinfra",
             Provider::AzureAI(_) => "azure_ai",
-            Provider::Groq(_) => "groq",
             Provider::XAI(_) => "xai",
             Provider::Cloudflare(_) => "cloudflare",
             Provider::OpenAILike(p) => {
@@ -517,7 +509,6 @@ impl Provider {
             Provider::V0(_) => ProviderType::V0,
             Provider::DeepInfra(_) => ProviderType::DeepInfra,
             Provider::AzureAI(_) => ProviderType::AzureAI,
-            Provider::Groq(_) => ProviderType::Groq,
             Provider::XAI(_) => ProviderType::XAI,
             Provider::Cloudflare(_) => ProviderType::Cloudflare,
             Provider::OpenAILike(_) => ProviderType::OpenAICompatible,
@@ -529,7 +520,6 @@ impl Provider {
         static SUPPORTED: &[ProviderType] = &[
             ProviderType::OpenAI,
             ProviderType::Anthropic,
-            ProviderType::Groq,
             ProviderType::XAI,
             ProviderType::OpenRouter,
             ProviderType::Mistral,
@@ -635,11 +625,6 @@ impl Provider {
                 Ok(Box::pin(mapped))
             }
             Provider::AzureAI(p) => {
-                let stream = LLMProvider::chat_completion_stream(p, request, context).await?;
-                let mapped = stream.map(|result| result);
-                Ok(Box::pin(mapped))
-            }
-            Provider::Groq(p) => {
                 let stream = LLMProvider::chat_completion_stream(p, request, context).await?;
                 let mapped = stream.map(|result| result);
                 Ok(Box::pin(mapped))
@@ -830,13 +815,6 @@ impl Provider {
                     anthropic::AnthropicConfig::default().with_api_key(api_key),
                 )?;
                 Ok(Provider::Anthropic(provider))
-            }
-            ProviderType::Groq => {
-                let api_key = macros::require_config_str(&config, "api_key", "groq")?;
-                let provider = groq::GroqProvider::with_api_key(api_key)
-                    .await
-                    .map_err(|e| ProviderError::initialization("groq", e.to_string()))?;
-                Ok(Provider::Groq(provider))
             }
             ProviderType::XAI => {
                 let api_key = macros::require_config_str(&config, "api_key", "xai")?;

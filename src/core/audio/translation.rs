@@ -1,12 +1,12 @@
 //! Audio translation functionality
 
-use crate::core::providers::{Provider, ProviderRegistry};
+use crate::core::providers::ProviderRegistry;
 use crate::utils::error::gateway_error::{GatewayError, Result};
 use std::sync::Arc;
 use tracing::info;
 
 use super::transcription::parse_model_string;
-use super::types::{SegmentInfo, TranslationRequest, TranslationResponse};
+use super::types::{TranslationRequest, TranslationResponse};
 
 /// Audio service for handling audio translation requests
 pub struct TranslationService {
@@ -34,7 +34,7 @@ impl TranslationService {
 
         // For translation, we use transcription with target language = English
         // Most providers use the same endpoint with different parameters
-        let (provider_name, actual_model) = parse_model_string(&request.model);
+        let (provider_name, _actual_model) = parse_model_string(&request.model);
 
         let providers = self.provider_registry.all();
         let provider = providers
@@ -47,42 +47,9 @@ impl TranslationService {
                 ))
             })?;
 
-        match provider {
-            Provider::Groq(groq) => {
-                // Groq uses the same endpoint, we set language to "en" for translation
-                let response = groq
-                    .transcribe_audio(
-                        request.file,
-                        Some(actual_model.to_string()),
-                        Some("en".to_string()), // Force English output
-                        request.response_format,
-                    )
-                    .await
-                    .map_err(|e| {
-                        GatewayError::internal(format!("Groq translation error: {}", e))
-                    })?;
-
-                Ok(TranslationResponse {
-                    text: response.text,
-                    task: Some("translate".to_string()),
-                    language: response.language,
-                    duration: response.duration.map(|d| d as f64),
-                    segments: response.segments.map(|segs| {
-                        segs.into_iter()
-                            .map(|s| SegmentInfo {
-                                id: s.id,
-                                start: s.start as f64,
-                                end: s.end as f64,
-                                text: s.text,
-                            })
-                            .collect()
-                    }),
-                })
-            }
-            _ => Err(GatewayError::internal(format!(
-                "Provider {} does not support audio translation",
-                provider.name()
-            ))),
-        }
+        Err(GatewayError::internal(format!(
+            "Provider {} does not support audio translation",
+            provider.name()
+        )))
     }
 }

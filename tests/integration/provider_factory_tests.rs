@@ -45,14 +45,19 @@ mod tests {
         assert_eq!(provider.name(), "anthropic");
     }
 
-    /// Test creating Groq provider from config
+    /// Test creating Groq provider via create_provider (catalog path)
     #[tokio::test]
     async fn test_groq_provider_from_config() {
-        let config = json!({
-            "api_key": "gsk-test-key"
-        });
+        use litellm_rs::core::providers::create_provider;
 
-        let result = Provider::from_config_async(ProviderType::Groq, config).await;
+        let config = litellm_rs::config::models::provider::ProviderConfig {
+            name: "groq".to_string(),
+            provider_type: "groq".to_string(),
+            api_key: "gsk-test-key".to_string(),
+            ..Default::default()
+        };
+
+        let result = create_provider(config).await;
         assert!(
             result.is_ok(),
             "Failed to create Groq provider: {:?}",
@@ -60,7 +65,7 @@ mod tests {
         );
 
         let provider = result.unwrap();
-        assert_eq!(provider.name(), "groq");
+        assert!(matches!(provider, Provider::OpenAILike(_)));
     }
 
     /// Test creating XAI provider from config
@@ -204,10 +209,10 @@ mod tests {
     #[tokio::test]
     async fn test_provider_capabilities() {
         let config = json!({
-            "api_key": "gsk-test-key"  // Use Groq format which doesn't validate prefix
+            "api_key": "sk-proj-test-key-1234567890abcdef"
         });
 
-        let provider = Provider::from_config_async(ProviderType::Groq, config)
+        let provider = Provider::from_config_async(ProviderType::OpenAI, config)
             .await
             .unwrap();
 
@@ -222,10 +227,10 @@ mod tests {
     #[tokio::test]
     async fn test_provider_models_list() {
         let config = json!({
-            "api_key": "test-key"
+            "api_key": "sk-proj-test-key-1234567890abcdef"
         });
 
-        let provider = Provider::from_config_async(ProviderType::Groq, config)
+        let provider = Provider::from_config_async(ProviderType::OpenAI, config)
             .await
             .unwrap();
 
