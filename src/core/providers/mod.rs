@@ -6,34 +6,35 @@
 pub mod base;
 
 // Provider modules - alphabetically ordered
+// Tier 1 providers removed in favor of registry/catalog.rs are commented with their tier.
 pub mod ai21;
-pub mod aiml_api;
-pub mod aleph_alpha;
+// aiml_api: Tier 1 → registry/catalog.rs
+// aleph_alpha: Tier 1 → registry/catalog.rs
 pub mod amazon_nova;
 pub mod anthropic;
-pub mod anyscale;
+// anyscale: Tier 1 → registry/catalog.rs
 pub mod azure;
 pub mod azure_ai;
-pub mod baichuan;
+// baichuan: Tier 1 → registry/catalog.rs
 pub mod baseten;
 pub mod bedrock;
-pub mod bytez;
+// bytez: Tier 1 → registry/catalog.rs
 // cerebras: Tier 1 → registry/catalog.rs
 pub mod clarifai;
 pub mod cloudflare;
 pub mod codestral;
 pub mod cohere;
-pub mod comet_api;
-pub mod compactifai;
+// comet_api: Tier 1 → registry/catalog.rs
+// compactifai: Tier 1 → registry/catalog.rs
 pub mod custom_api;
-pub mod dashscope;
+// dashscope: Tier 1 → registry/catalog.rs
 pub mod databricks;
 pub mod datarobot;
 pub mod deepgram;
 pub mod deepinfra;
 pub mod deepl;
 pub mod deepseek;
-pub mod docker_model_runner;
+// docker_model_runner: Tier 1 → registry/catalog.rs
 pub mod elevenlabs;
 pub mod empower;
 pub mod exa_ai;
@@ -51,26 +52,26 @@ pub mod google_pse;
 pub mod gradient_ai;
 pub mod groq;
 pub mod heroku;
-pub mod hosted_vllm;
+// hosted_vllm: Tier 1 → registry/catalog.rs
 pub mod huggingface;
 // hyperbolic: Tier 1 → registry/catalog.rs
-pub mod infinity;
+// infinity: Tier 1 → registry/catalog.rs
 pub mod jina;
-pub mod lambda_ai;
+// lambda_ai: Tier 1 → registry/catalog.rs
 pub mod langgraph;
-pub mod lemonade;
-pub mod linkup;
-pub mod llamafile;
-pub mod lm_studio;
+// lemonade: Tier 1 → registry/catalog.rs
+// linkup: Tier 1 → registry/catalog.rs
+// llamafile: Tier 1 → registry/catalog.rs
+// lm_studio: Tier 1 → registry/catalog.rs
 pub mod manus;
-pub mod maritalk;
+// maritalk: Tier 1 → registry/catalog.rs
 pub mod meta_llama;
 pub mod milvus;
-pub mod minimax;
+// minimax: Tier 1 → registry/catalog.rs
 pub mod mistral;
 pub mod moonshot;
 pub mod morph;
-pub mod nanogpt;
+// nanogpt: Tier 1 → registry/catalog.rs
 // nebius: Tier 1 → registry/catalog.rs
 pub mod nlp_cloud;
 // novita: Tier 1 → registry/catalog.rs
@@ -78,15 +79,15 @@ pub mod nlp_cloud;
 pub mod nvidia_nim;
 pub mod oci;
 pub mod ollama;
-pub mod oobabooga;
+// oobabooga: Tier 1 → registry/catalog.rs
 pub mod openai;
 pub mod openai_like;
 pub mod openrouter;
-pub mod ovhcloud;
+// ovhcloud: Tier 1 → registry/catalog.rs
 // perplexity: Tier 1 → registry/catalog.rs
 pub mod petals;
 pub mod pg_vector;
-pub mod poe;
+// poe: Tier 1 → registry/catalog.rs
 pub mod predibase;
 pub mod qwen;
 pub mod ragflow;
@@ -97,7 +98,7 @@ pub mod sagemaker;
 pub mod sambanova;
 pub mod sap_ai;
 pub mod searxng;
-pub mod siliconflow;
+// siliconflow: Tier 1 → registry/catalog.rs
 pub mod snowflake;
 pub mod spark;
 pub mod stability;
@@ -108,15 +109,15 @@ pub mod triton;
 pub mod v0;
 pub mod vercel_ai;
 pub mod vertex_ai;
-pub mod vllm;
+// vllm: Tier 1 → registry/catalog.rs
 pub mod volcengine;
 pub mod voyage;
 pub mod wandb;
 pub mod watsonx;
 pub mod xai;
 pub mod xiaomi_mimo;
-pub mod xinference;
-pub mod yi;
+// xinference: Tier 1 → registry/catalog.rs
+// yi: Tier 1 → registry/catalog.rs
 pub mod zhipu;
 
 // Shared utilities and architecture
