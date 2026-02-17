@@ -114,7 +114,7 @@ pub mod volcengine;
 pub mod voyage;
 pub mod wandb;
 pub mod watsonx;
-pub mod xai;
+// xai: Tier 1 → registry/catalog.rs
 pub mod xiaomi_mimo;
 // xinference: Tier 1 → registry/catalog.rs
 // yi: Tier 1 → registry/catalog.rs
@@ -301,7 +301,6 @@ macro_rules! dispatch_provider {
             Provider::V0(p) => p.$method(),
             Provider::DeepInfra(p) => p.$method(),
             Provider::AzureAI(p) => p.$method(),
-            Provider::XAI(p) => p.$method(),
             Provider::Cloudflare(p) => p.$method(),
             Provider::OpenAILike(p) => p.$method(),
         }
@@ -322,7 +321,6 @@ macro_rules! dispatch_provider {
             Provider::V0(p) => p.$method($($arg),+),
             Provider::DeepInfra(p) => p.$method($($arg),+),
             Provider::AzureAI(p) => p.$method($($arg),+),
-            Provider::XAI(p) => p.$method($($arg),+),
             Provider::Cloudflare(p) => p.$method($($arg),+),
             Provider::OpenAILike(p) => p.$method($($arg),+),
         }
@@ -346,7 +344,6 @@ macro_rules! dispatch_provider_async {
             Provider::V0(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::DeepInfra(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::AzureAI(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
-            Provider::XAI(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::Cloudflare(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::OpenAILike(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
         }
@@ -370,7 +367,6 @@ macro_rules! dispatch_provider_value {
             Provider::V0(p) => LLMProvider::$method(p),
             Provider::DeepInfra(p) => LLMProvider::$method(p),
             Provider::AzureAI(p) => LLMProvider::$method(p),
-            Provider::XAI(p) => LLMProvider::$method(p),
             Provider::Cloudflare(p) => LLMProvider::$method(p),
             Provider::OpenAILike(p) => LLMProvider::$method(p),
         }
@@ -391,7 +387,6 @@ macro_rules! dispatch_provider_value {
             Provider::V0(p) => LLMProvider::$method(p, $($arg),+),
             Provider::DeepInfra(p) => LLMProvider::$method(p, $($arg),+),
             Provider::AzureAI(p) => LLMProvider::$method(p, $($arg),+),
-            Provider::XAI(p) => LLMProvider::$method(p, $($arg),+),
             Provider::Cloudflare(p) => LLMProvider::$method(p, $($arg),+),
             Provider::OpenAILike(p) => LLMProvider::$method(p, $($arg),+),
         }
@@ -435,7 +430,6 @@ macro_rules! dispatch_provider_async_direct {
             Provider::V0(p) => LLMProvider::$method(p).await,
             Provider::DeepInfra(p) => LLMProvider::$method(p).await,
             Provider::AzureAI(p) => LLMProvider::$method(p).await,
-            Provider::XAI(p) => LLMProvider::$method(p).await,
             Provider::Cloudflare(p) => LLMProvider::$method(p).await,
             Provider::OpenAILike(p) => LLMProvider::$method(p).await,
         }
@@ -461,7 +455,6 @@ pub enum Provider {
     V0(v0::V0Provider),
     DeepInfra(deepinfra::DeepInfraProvider),
     AzureAI(azure_ai::AzureAIProvider),
-    XAI(xai::XAIProvider),
     Cloudflare(cloudflare::CloudflareProvider),
     /// Tier 1: data-driven OpenAI-compatible providers (groq, together, fireworks, etc.)
     OpenAILike(openai_like::OpenAILikeProvider),
@@ -484,7 +477,6 @@ impl Provider {
             Provider::V0(_) => "v0",
             Provider::DeepInfra(_) => "deepinfra",
             Provider::AzureAI(_) => "azure_ai",
-            Provider::XAI(_) => "xai",
             Provider::Cloudflare(_) => "cloudflare",
             Provider::OpenAILike(p) => {
                 use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
@@ -509,7 +501,6 @@ impl Provider {
             Provider::V0(_) => ProviderType::V0,
             Provider::DeepInfra(_) => ProviderType::DeepInfra,
             Provider::AzureAI(_) => ProviderType::AzureAI,
-            Provider::XAI(_) => ProviderType::XAI,
             Provider::Cloudflare(_) => ProviderType::Cloudflare,
             Provider::OpenAILike(_) => ProviderType::OpenAICompatible,
         }
@@ -520,7 +511,6 @@ impl Provider {
         static SUPPORTED: &[ProviderType] = &[
             ProviderType::OpenAI,
             ProviderType::Anthropic,
-            ProviderType::XAI,
             ProviderType::OpenRouter,
             ProviderType::Mistral,
             ProviderType::DeepSeek,
@@ -815,13 +805,6 @@ impl Provider {
                     anthropic::AnthropicConfig::default().with_api_key(api_key),
                 )?;
                 Ok(Provider::Anthropic(provider))
-            }
-            ProviderType::XAI => {
-                let api_key = macros::require_config_str(&config, "api_key", "xai")?;
-                let provider = xai::XAIProvider::with_api_key(api_key)
-                    .await
-                    .map_err(|e| ProviderError::initialization("xai", e.to_string()))?;
-                Ok(Provider::XAI(provider))
             }
             ProviderType::OpenRouter => {
                 let api_key = macros::require_config_str(&config, "api_key", "openrouter")?;
