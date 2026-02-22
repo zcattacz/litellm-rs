@@ -82,7 +82,7 @@ pub mod ollama;
 // oobabooga: Tier 1 → registry/catalog.rs
 pub mod openai;
 pub mod openai_like;
-pub mod openrouter;
+// openrouter: Tier 1 → registry/catalog.rs
 // ovhcloud: Tier 1 → registry/catalog.rs
 // perplexity: Tier 1 → registry/catalog.rs
 pub mod petals;
@@ -294,7 +294,6 @@ macro_rules! dispatch_provider {
             Provider::Bedrock(p) => p.$method(),
             Provider::Mistral(p) => p.$method(),
             Provider::MetaLlama(p) => p.$method(),
-            Provider::OpenRouter(p) => p.$method(),
             Provider::VertexAI(p) => p.$method(),
             Provider::V0(p) => p.$method(),
             Provider::AzureAI(p) => p.$method(),
@@ -311,7 +310,6 @@ macro_rules! dispatch_provider {
             Provider::Bedrock(p) => p.$method($($arg),+),
             Provider::Mistral(p) => p.$method($($arg),+),
             Provider::MetaLlama(p) => p.$method($($arg),+),
-            Provider::OpenRouter(p) => p.$method($($arg),+),
             Provider::VertexAI(p) => p.$method($($arg),+),
             Provider::V0(p) => p.$method($($arg),+),
             Provider::AzureAI(p) => p.$method($($arg),+),
@@ -331,7 +329,6 @@ macro_rules! dispatch_provider_async {
             Provider::Bedrock(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::Mistral(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::MetaLlama(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
-            Provider::OpenRouter(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::VertexAI(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::V0(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
             Provider::AzureAI(p) => LLMProvider::$method(p, $($arg),*).await.map_err(ProviderError::from),
@@ -351,7 +348,6 @@ macro_rules! dispatch_provider_value {
             Provider::Bedrock(p) => LLMProvider::$method(p),
             Provider::Mistral(p) => LLMProvider::$method(p),
             Provider::MetaLlama(p) => LLMProvider::$method(p),
-            Provider::OpenRouter(p) => LLMProvider::$method(p),
             Provider::VertexAI(p) => LLMProvider::$method(p),
             Provider::V0(p) => LLMProvider::$method(p),
             Provider::AzureAI(p) => LLMProvider::$method(p),
@@ -368,7 +364,6 @@ macro_rules! dispatch_provider_value {
             Provider::Bedrock(p) => LLMProvider::$method(p, $($arg),+),
             Provider::Mistral(p) => LLMProvider::$method(p, $($arg),+),
             Provider::MetaLlama(p) => LLMProvider::$method(p, $($arg),+),
-            Provider::OpenRouter(p) => LLMProvider::$method(p, $($arg),+),
             Provider::VertexAI(p) => LLMProvider::$method(p, $($arg),+),
             Provider::V0(p) => LLMProvider::$method(p, $($arg),+),
             Provider::AzureAI(p) => LLMProvider::$method(p, $($arg),+),
@@ -408,7 +403,6 @@ macro_rules! dispatch_provider_async_direct {
             Provider::Bedrock(p) => LLMProvider::$method(p).await,
             Provider::Mistral(p) => LLMProvider::$method(p).await,
             Provider::MetaLlama(p) => LLMProvider::$method(p).await,
-            Provider::OpenRouter(p) => LLMProvider::$method(p).await,
             Provider::VertexAI(p) => LLMProvider::$method(p).await,
             Provider::V0(p) => LLMProvider::$method(p).await,
             Provider::AzureAI(p) => LLMProvider::$method(p).await,
@@ -430,7 +424,6 @@ pub enum Provider {
     Bedrock(bedrock::BedrockProvider),
     Mistral(mistral::MistralProvider),
     MetaLlama(meta_llama::LlamaProvider),
-    OpenRouter(openrouter::OpenRouterProvider),
     VertexAI(vertex_ai::VertexAIProvider),
     V0(v0::V0Provider),
     AzureAI(azure_ai::AzureAIProvider),
@@ -449,7 +442,6 @@ impl Provider {
             Provider::Bedrock(_) => "bedrock",
             Provider::Mistral(_) => "mistral",
             Provider::MetaLlama(_) => "meta_llama",
-            Provider::OpenRouter(_) => "openrouter",
             Provider::VertexAI(_) => "vertex_ai",
             Provider::V0(_) => "v0",
             Provider::AzureAI(_) => "azure_ai",
@@ -470,7 +462,6 @@ impl Provider {
             Provider::Bedrock(_) => ProviderType::Bedrock,
             Provider::Mistral(_) => ProviderType::Mistral,
             Provider::MetaLlama(_) => ProviderType::MetaLlama,
-            Provider::OpenRouter(_) => ProviderType::OpenRouter,
             Provider::VertexAI(_) => ProviderType::VertexAI,
             Provider::V0(_) => ProviderType::V0,
             Provider::AzureAI(_) => ProviderType::AzureAI,
@@ -484,7 +475,6 @@ impl Provider {
         static SUPPORTED: &[ProviderType] = &[
             ProviderType::OpenAI,
             ProviderType::Anthropic,
-            ProviderType::OpenRouter,
             ProviderType::Mistral,
             ProviderType::Cloudflare,
         ];
@@ -771,12 +761,6 @@ impl Provider {
                     anthropic::AnthropicConfig::default().with_api_key(api_key),
                 )?;
                 Ok(Provider::Anthropic(provider))
-            }
-            ProviderType::OpenRouter => {
-                let api_key = macros::require_config_str(&config, "api_key", "openrouter")?;
-                let or_config = openrouter::OpenRouterConfig::new(api_key);
-                let provider = openrouter::OpenRouterProvider::new(or_config)?;
-                Ok(Provider::OpenRouter(provider))
             }
             ProviderType::Mistral => {
                 let api_key = macros::require_config_str(&config, "api_key", "mistral")?;

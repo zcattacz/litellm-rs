@@ -61,8 +61,6 @@ impl From<String> for ProviderError {
 // Provider-specific error conversions for unified error handling
 // Note: MoonshotError, MistralError, and LlamaError are now type aliases for ProviderError, so no From impl needed
 
-// OpenRouterError is now a type alias for ProviderError, no conversion needed
-
 // DeepInfraError is now a type alias for ProviderError, no conversion needed
 
 impl From<crate::core::cost::types::CostError> for ProviderError {

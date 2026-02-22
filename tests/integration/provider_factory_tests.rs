@@ -91,14 +91,17 @@ mod tests {
         assert!(matches!(provider, Provider::OpenAILike(_)));
     }
 
-    /// Test creating OpenRouter provider from config
+    /// Test creating OpenRouter provider via create_provider (catalog path)
     #[tokio::test]
     async fn test_openrouter_provider_from_config() {
-        let config = json!({
-            "api_key": "or-test-key"
-        });
+        let config = litellm_rs::config::models::provider::ProviderConfig {
+            name: "openrouter".to_string(),
+            provider_type: "openrouter".to_string(),
+            api_key: "or-test-key".to_string(),
+            ..Default::default()
+        };
 
-        let result = Provider::from_config_async(ProviderType::OpenRouter, config).await;
+        let result = create_provider(config).await;
         assert!(
             result.is_ok(),
             "Failed to create OpenRouter provider: {:?}",
@@ -106,7 +109,7 @@ mod tests {
         );
 
         let provider = result.unwrap();
-        assert_eq!(provider.name(), "openrouter");
+        assert!(matches!(provider, Provider::OpenAILike(_)));
     }
 
     /// Test creating Mistral provider from config

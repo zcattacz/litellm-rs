@@ -56,7 +56,6 @@ mod config;
 mod litellm;
 mod macros;
 mod openai;
-mod openrouter;
 mod routing;
 mod traits;
 
@@ -64,6 +63,5 @@ mod traits;
 pub use config::{ConfigError, ConfigResult};
 pub use litellm::{LiteLLMError, LiteLLMResult};
 pub use openai::{OpenAIError, OpenAIResult};
-pub use openrouter::{OpenRouterError, OpenRouterResult};
 pub use routing::{RoutingError, RoutingResult};
 pub use traits::ProviderErrorTrait;

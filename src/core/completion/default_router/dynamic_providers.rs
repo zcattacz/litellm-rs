@@ -77,12 +77,13 @@ impl DefaultRouter {
         // Create dynamic provider based on type
         let response = match provider_type {
             "openrouter" => {
-                self.create_dynamic_openrouter(
+                self.create_dynamic_openai_compatible(
                     actual_model,
                     &api_key,
                     &api_base,
                     chat_request,
                     context,
+                    "OpenRouter",
                 )
                 .await?
             }
@@ -143,48 +144,6 @@ impl DefaultRouter {
         };
 
         Ok(Some(response))
-    }
-
-    /// Create dynamic OpenRouter provider
-    async fn create_dynamic_openrouter(
-        &self,
-        model: &str,
-        api_key: &str,
-        api_base: &str,
-        chat_request: &ChatRequest,
-        context: RequestContext,
-    ) -> Result<CompletionResponse> {
-        use crate::core::providers::openrouter::{OpenRouterConfig, OpenRouterProvider};
-        use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
-
-        let config = OpenRouterConfig {
-            api_key: api_key.to_string(),
-            base_url: api_base.to_string(),
-            site_url: None,
-            site_name: None,
-            timeout_seconds: 60,
-            max_retries: 3,
-            extra_params: Default::default(),
-        };
-
-        let provider = OpenRouterProvider::new(config).map_err(|e| {
-            GatewayError::internal(format!(
-                "Failed to create dynamic OpenRouter provider: {}",
-                e
-            ))
-        })?;
-
-        let mut updated_request = chat_request.clone();
-        updated_request.model = model.to_string();
-
-        let response = provider
-            .chat_completion(updated_request, context)
-            .await
-            .map_err(|e| {
-                GatewayError::internal(format!("Dynamic OpenRouter provider error: {}", e))
-            })?;
-
-        convert_from_chat_completion_response(response)
     }
 
     /// Create dynamic Anthropic provider

@@ -89,22 +89,11 @@ impl DefaultRouter {
 
         // Add OpenRouter provider if API key is available
         if let Ok(api_key) = std::env::var("OPENROUTER_API_KEY") {
-            use crate::core::providers::openrouter::{OpenRouterConfig, OpenRouterProvider};
-
-            let api_key = api_key.trim().to_string();
-
-            let config = OpenRouterConfig {
-                api_key,
-                base_url: "https://openrouter.ai/api/v1".to_string(),
-                site_url: std::env::var("OPENROUTER_HTTP_REFERER").ok(),
-                site_name: std::env::var("OPENROUTER_X_TITLE").ok(),
-                timeout_seconds: 60,
-                max_retries: 3,
-                extra_params: Default::default(),
-            };
-
-            if let Ok(openrouter_provider) = OpenRouterProvider::new(config) {
-                provider_registry.register(Provider::OpenRouter(openrouter_provider));
+            if let Some(def) = crate::core::providers::registry::get_definition("openrouter") {
+                let config = def.to_openai_like_config(Some(&api_key), None);
+                if let Ok(provider) = crate::core::providers::openai_like::OpenAILikeProvider::new(config).await {
+                    provider_registry.register(Provider::OpenAILike(provider));
+                }
             }
         }
 

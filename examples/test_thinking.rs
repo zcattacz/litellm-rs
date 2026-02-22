@@ -2,7 +2,7 @@
 //!
 //! Run with: cargo run --example test_thinking --all-features
 
-use litellm_rs::core::providers::openrouter::{OpenRouterConfig, OpenRouterProvider};
+use litellm_rs::core::providers::openai_like::OpenAILikeProvider;
 use litellm_rs::core::providers::thinking::{
     deepseek_thinking, openai_thinking, openrouter_thinking,
 };
@@ -31,9 +31,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Test model detection
     test_model_detection();
 
-    // Create OpenRouter provider
-    let config = OpenRouterConfig::new(&api_key);
-    let provider = OpenRouterProvider::new(config)?;
+    // Create OpenRouter provider via catalog
+    let def = litellm_rs::core::providers::registry::get_definition("openrouter")
+        .expect("openrouter should be in catalog");
+    let config = def.to_openai_like_config(Some(&api_key), None);
+    let provider = OpenAILikeProvider::new(config).await?;
 
     // Test with DeepSeek R1 (thinking model)
     println!("\n--- Testing DeepSeek R1 (Reasoning Model) ---");
@@ -81,7 +83,7 @@ fn test_model_detection() {
     );
 }
 
-async fn test_deepseek_r1(provider: &OpenRouterProvider) -> Result<(), Box<dyn std::error::Error>> {
+async fn test_deepseek_r1(provider: &OpenAILikeProvider) -> Result<(), Box<dyn std::error::Error>> {
     // Create a reasoning question
     let request = ChatRequest {
         model: "deepseek/deepseek-r1".to_string(),
