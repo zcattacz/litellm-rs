@@ -3,7 +3,7 @@
 //! Tests for error types, conversions, and error recovery mechanisms.
 //! These tests verify that errors flow correctly through the system.
 
-#[cfg(test)]
+#[cfg(all(test, feature = "gateway"))]
 mod tests {
     use actix_web::ResponseError;
     use litellm_rs::GatewayError;

@@ -36,6 +36,7 @@
 pub mod config;
 pub mod events;
 pub mod logger;
+#[cfg(feature = "gateway")]
 pub mod middleware;
 pub mod outputs;
 pub mod types;
@@ -47,6 +48,7 @@ mod tests;
 pub use config::AuditConfig;
 pub use events::{AuditEvent, EventType};
 pub use logger::AuditLogger;
+#[cfg(feature = "gateway")]
 pub use middleware::{AuditMiddleware, AuditMiddlewareService};
 pub use outputs::{AuditOutput, FileOutput, MemoryOutput};
 pub use types::{AuditError, AuditResult, LogLevel, RequestLog, ResponseLog, UserAction};

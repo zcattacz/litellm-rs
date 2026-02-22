@@ -4,7 +4,7 @@ use super::types::{ChatCompletionChunk, ChatCompletionChunkChoice, ChatCompletio
 use crate::core::models::openai::Usage;
 use crate::core::types::message::MessageRole;
 use crate::utils::error::gateway_error::Result;
-use actix_web::web;
+use bytes::Bytes;
 use futures::stream::{Stream, StreamExt};
 use serde_json::json;
 use tokio::sync::mpsc;
@@ -39,7 +39,7 @@ impl StreamingHandler {
     pub fn create_sse_stream<S>(
         mut self,
         provider_stream: S,
-    ) -> impl Stream<Item = Result<web::Bytes>>
+    ) -> impl Stream<Item = Result<Bytes>>
     where
         S: Stream<Item = Result<String>> + Send + 'static,
     {

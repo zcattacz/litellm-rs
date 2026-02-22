@@ -57,6 +57,7 @@
 pub mod client;
 pub mod config;
 pub mod logger;
+#[cfg(feature = "gateway")]
 pub mod middleware;
 pub mod types;
 
@@ -64,6 +65,7 @@ pub mod types;
 pub use client::{BatchSender, LangfuseClient, LangfuseError};
 pub use config::LangfuseConfig;
 pub use logger::{LangfuseLogger, LlmCallback, LlmError, LlmRequest, LlmResponse};
+#[cfg(feature = "gateway")]
 pub use middleware::{
     LangfuseRequestExt, LangfuseTracing, PARENT_SPAN_ID_HEADER, SESSION_ID_HEADER, TRACE_ID_HEADER,
     USER_ID_HEADER,
@@ -146,6 +148,7 @@ mod tests {
         let _ = config.is_valid();
     }
 
+    #[cfg(feature = "gateway")]
     #[test]
     fn test_middleware_creation() {
         let config = LangfuseConfig {

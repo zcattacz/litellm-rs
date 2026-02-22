@@ -53,13 +53,21 @@ gateway --config config/gateway.yaml
 ## Installation
 
 ```toml
-# Full features (default)
+# Full gateway with SQLite + Redis (default)
 [dependencies]
 litellm-rs = "0.3"
 
-# Lite mode - API only, no database
+# API-only - lightweight, no actix-web/argon2/aes-gcm/clap
+[dependencies]
+litellm-rs = { version = "0.3", default-features = false }
+
+# API-only with metrics
 [dependencies]
 litellm-rs = { version = "0.3", default-features = false, features = ["lite"] }
+
+# Gateway server without storage
+[dependencies]
+litellm-rs = { version = "0.3", default-features = false, features = ["gateway"] }
 ```
 
 ## Supported Providers

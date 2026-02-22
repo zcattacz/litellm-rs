@@ -65,6 +65,7 @@
 
 mod alerts;
 mod manager;
+#[cfg(feature = "gateway")]
 mod middleware;
 mod provider_limits;
 mod tracker;
@@ -76,6 +77,7 @@ mod tests;
 // Re-export public types
 pub use alerts::{AlertConfig, AlertStats, BudgetAlertManager, WebhookConfig};
 pub use manager::{BudgetManager, BudgetManagerConfig, BudgetSummary};
+#[cfg(feature = "gateway")]
 pub use middleware::{
     BudgetCheckMiddleware, BudgetCheckMiddlewareService, BudgetMiddleware, BudgetMiddlewareService,
     BudgetRecorder, BudgetRecorderExt,

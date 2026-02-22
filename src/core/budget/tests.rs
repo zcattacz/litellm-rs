@@ -178,6 +178,7 @@ async fn test_multiple_budget_scopes() {
     assert_eq!(provider_budgets.len(), 1);
 }
 
+#[cfg(feature = "gateway")]
 #[tokio::test]
 async fn test_budget_recorder() {
     let manager = Arc::new(BudgetManager::new());

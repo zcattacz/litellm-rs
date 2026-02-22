@@ -2,7 +2,7 @@
 
 use crate::core::models::openai::Usage;
 use crate::core::types::message::MessageRole;
-use actix_web::web;
+use bytes::Bytes;
 
 /// Simple Event structure for SSE compatibility
 #[derive(Debug, Clone, Default)]
@@ -35,13 +35,13 @@ impl Event {
     }
 
     /// Convert event to bytes for SSE transmission
-    pub fn to_bytes(&self) -> web::Bytes {
+    pub fn to_bytes(&self) -> Bytes {
         let mut result = String::new();
         if let Some(event) = &self.event {
             result.push_str(&format!("event: {}\n", event));
         }
         result.push_str(&format!("data: {}\n\n", self.data));
-        web::Bytes::from(result)
+        Bytes::from(result)
     }
 }
 

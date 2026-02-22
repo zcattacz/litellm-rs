@@ -52,7 +52,9 @@
 //!
 //! ## Gateway Mode
 //!
-//! ```rust,no_run
+//! Requires the `gateway` feature (enabled by default via `storage`):
+//!
+//! ```rust,ignore
 //! use litellm_rs::{Gateway, Config};
 //!
 //! #[tokio::main]
@@ -68,18 +70,18 @@
 #![warn(clippy::all)]
 
 // Public module exports
-#[cfg(feature = "storage")]
+#[cfg(feature = "gateway")]
 mod auth;
 // Core completion API moved to core::completion
 pub mod config;
 pub mod core;
-#[cfg(feature = "storage")]
+#[cfg(feature = "gateway")]
 mod monitoring;
 pub mod sdk; // New SDK module
-#[cfg(feature = "storage")]
+#[cfg(feature = "gateway")]
 pub mod server;
 pub mod services; // Add services module
-#[cfg(feature = "storage")]
+#[cfg(feature = "gateway")]
 pub mod storage;
 pub mod utils;
 pub mod version; // Build and version information
@@ -123,17 +125,17 @@ pub use core::router::{
     RouterError, UnifiedRouter, UnifiedRoutingStrategy as RoutingStrategy,
 };
 
-#[cfg(feature = "storage")]
+#[cfg(feature = "gateway")]
 use tracing::info;
 
 /// A minimal LiteLLM Gateway implementation
-#[cfg(feature = "storage")]
+#[cfg(feature = "gateway")]
 pub struct Gateway {
     config: Config,
     server: server::HttpServer,
 }
 
-#[cfg(feature = "storage")]
+#[cfg(feature = "gateway")]
 impl Gateway {
     /// Create a new gateway instance
     pub async fn new(config: Config) -> Result<Self> {

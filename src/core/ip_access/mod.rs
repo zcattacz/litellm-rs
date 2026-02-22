@@ -38,6 +38,7 @@
 
 pub mod config;
 pub mod control;
+#[cfg(feature = "gateway")]
 pub mod middleware;
 pub mod types;
 
@@ -47,5 +48,6 @@ mod tests;
 // Re-export main types
 pub use config::IpAccessConfig;
 pub use control::IpAccessControl;
+#[cfg(feature = "gateway")]
 pub use middleware::{IpAccessMiddleware, IpAccessMiddlewareService};
 pub use types::{IpAccessError, IpAccessMode, IpAccessResult, IpRule};

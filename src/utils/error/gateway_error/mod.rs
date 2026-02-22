@@ -6,11 +6,12 @@
 
 mod conversions;
 mod helpers;
+#[cfg(feature = "gateway")]
 mod response;
 #[cfg(test)]
 mod tests;
 mod types;
 
-// Re-export all public types for backward compatibility
+#[cfg(feature = "gateway")]
 pub use response::{GatewayErrorDetail, GatewayErrorResponse};
 pub use types::{GatewayError, Result};

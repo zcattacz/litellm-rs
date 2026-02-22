@@ -38,6 +38,7 @@
 
 pub mod config;
 pub mod engine;
+#[cfg(feature = "gateway")]
 pub mod middleware;
 pub mod openai_moderation;
 pub mod pii;
@@ -51,6 +52,7 @@ mod tests;
 // Re-export main types
 pub use config::{GuardrailConfig, OpenAIModerationConfig, PIIConfig, PromptInjectionConfig};
 pub use engine::GuardrailEngine;
+#[cfg(feature = "gateway")]
 pub use middleware::{GuardrailCheckContext, GuardrailMiddleware, GuardrailMiddlewareService};
 pub use openai_moderation::OpenAIModerationGuardrail;
 pub use pii::PIIGuardrail;
