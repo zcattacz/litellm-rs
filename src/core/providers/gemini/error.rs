@@ -2,6 +2,7 @@
 //!
 //! Error handling
 
+use crate::core::providers::shared::parse_retry_after_from_body;
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 
@@ -26,7 +27,7 @@ impl GeminiErrorMapper {
             403 => ProviderError::authentication("gemini", "Forbidden: insufficient permissions"),
             404 => ProviderError::model_not_found("gemini", "Model or endpoint not found"),
             429 => {
-                let retry_after = Self::extract_retry_after(body);
+                let retry_after = parse_retry_after_from_body(body);
                 ProviderError::rate_limit("gemini", retry_after)
             }
             500..=599 => {
@@ -120,22 +121,7 @@ impl GeminiErrorMapper {
         ProviderError::api_error("gemini", 500, "Unknown API error")
     }
 
-    /// Extract retry delay
-    fn extract_retry_after(body: &str) -> Option<u64> {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(body) {
-            if let Some(error) = json.get("error") {
-                return Self::extract_retry_after_from_error(error);
-            }
-
-            // Check
-            if let Some(retry_after) = json.get("retry_after") {
-                return retry_after.as_u64();
-            }
-        }
-        None
-    }
-
-    /// Error
+    /// Extract retry delay from Gemini error object (handles `details[]` array)
     fn extract_retry_after_from_error(error: &serde_json::Value) -> Option<u64> {
         // Check
         if let Some(retry_after) = error.get("retry_after") {

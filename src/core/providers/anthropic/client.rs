@@ -11,6 +11,7 @@ use tokio::time::timeout;
 use crate::core::providers::base::{
     HeaderPair, apply_headers, header, header_owned, header_static,
 };
+use crate::core::providers::shared::parse_retry_after_from_body;
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::types::{
     chat::ChatMessage,
@@ -178,28 +179,12 @@ impl AnthropicClient {
             403 => anthropic_auth_error("Forbidden: insufficient permissions"),
             404 => anthropic_api_error(404, "Model or endpoint not found"),
             429 => {
-                let retry_after = self.extract_retry_after(body);
+                let retry_after = parse_retry_after_from_body(body);
                 anthropic_rate_limit_error(retry_after)
             }
             500..=599 => anthropic_api_error(status, format!("Server error: {}", body)),
             _ => anthropic_api_error(status, body),
         }
-    }
-
-    /// Extract retry-after value
-    fn extract_retry_after(&self, body: &str) -> Option<u64> {
-        if let Ok(json) = serde_json::from_str::<Value>(body) {
-            if let Some(retry_after) = json.get("retry_after") {
-                return retry_after.as_u64();
-            }
-
-            if let Some(error) = json.get("error") {
-                if let Some(retry_after) = error.get("retry_after") {
-                    return retry_after.as_u64();
-                }
-            }
-        }
-        None
     }
 
     /// Request
@@ -757,41 +742,29 @@ mod tests {
 
     #[test]
     fn test_extract_retry_after_from_root() {
-        let config = AnthropicConfig::new_test("test-key");
-        let client = AnthropicClient::new(config).unwrap();
         let body = r#"{"retry_after": 60}"#;
-
-        let retry = client.extract_retry_after(body);
+        let retry = parse_retry_after_from_body(body);
         assert_eq!(retry, Some(60));
     }
 
     #[test]
     fn test_extract_retry_after_from_error() {
-        let config = AnthropicConfig::new_test("test-key");
-        let client = AnthropicClient::new(config).unwrap();
         let body = r#"{"error": {"retry_after": 30}}"#;
-
-        let retry = client.extract_retry_after(body);
+        let retry = parse_retry_after_from_body(body);
         assert_eq!(retry, Some(30));
     }
 
     #[test]
     fn test_extract_retry_after_missing() {
-        let config = AnthropicConfig::new_test("test-key");
-        let client = AnthropicClient::new(config).unwrap();
-        let body = r#"{"message": "rate limited"}"#;
-
-        let retry = client.extract_retry_after(body);
+        let body = r#"{"message": "no retry info"}"#;
+        let retry = parse_retry_after_from_body(body);
         assert!(retry.is_none());
     }
 
     #[test]
     fn test_extract_retry_after_invalid_json() {
-        let config = AnthropicConfig::new_test("test-key");
-        let client = AnthropicClient::new(config).unwrap();
         let body = "not json";
-
-        let retry = client.extract_retry_after(body);
+        let retry = parse_retry_after_from_body(body);
         assert!(retry.is_none());
     }
 

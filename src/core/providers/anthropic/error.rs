@@ -2,6 +2,7 @@
 //!
 //! Error handling
 
+use crate::core::providers::shared::parse_retry_after_from_body;
 use crate::core::providers::unified_provider::ProviderError;
 
 // Error
@@ -21,7 +22,7 @@ impl AnthropicErrorMapper {
             }
             404 => ProviderError::model_not_found("anthropic", "Model or endpoint not found"),
             429 => {
-                let retry_after = Self::extract_retry_after(body);
+                let retry_after = parse_retry_after_from_body(body);
                 ProviderError::rate_limit("anthropic", retry_after)
             }
             500..=599 => {
@@ -83,21 +84,6 @@ impl AnthropicErrorMapper {
         ProviderError::api_error("anthropic", 500, "Unknown API error")
     }
 
-    /// Extract retry delay
-    fn extract_retry_after(body: &str) -> Option<u64> {
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(body) {
-            if let Some(retry_after) = json.get("retry_after") {
-                return retry_after.as_u64();
-            }
-
-            if let Some(error) = json.get("error") {
-                if let Some(retry_after) = error.get("retry_after") {
-                    return retry_after.as_u64();
-                }
-            }
-        }
-        None
-    }
 }
 
 // Standard error helper functions
