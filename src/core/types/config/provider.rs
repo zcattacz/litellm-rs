@@ -1,7 +1,6 @@
 //! Provider configuration types
 
 use super::defaults::*;
-use super::health::HealthCheckConfig;
 use super::rate_limit::RateLimitConfig;
 use super::retry::RetryConfig;
 use serde::{Deserialize, Serialize};
@@ -27,9 +26,6 @@ pub struct ProviderConfigEntry {
     /// Labels (for routing and filtering)
     #[serde(default)]
     pub tags: HashMap<String, String>,
-    /// Health check configuration
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub health_check: Option<HealthCheckConfig>,
     /// Retry configuration
     #[serde(skip_serializing_if = "Option::is_none")]
     pub retry: Option<RetryConfig>,
@@ -116,7 +112,6 @@ mod tests {
             weight: 0.8,
             config: serde_json::json!({"api_key": "test"}),
             tags: HashMap::from([("env".to_string(), "prod".to_string())]),
-            health_check: None,
             retry: None,
             rate_limit: None,
         };
@@ -135,7 +130,6 @@ mod tests {
             weight: 1.0,
             config: serde_json::json!({}),
             tags: HashMap::new(),
-            health_check: Some(HealthCheckConfig::default()),
             retry: Some(RetryConfig::default()),
             rate_limit: Some(RateLimitConfig {
                 strategy: RateLimitStrategy::TokenBucket,
@@ -144,7 +138,6 @@ mod tests {
                 ..Default::default()
             }),
         };
-        assert!(entry.health_check.is_some());
         assert!(entry.retry.is_some());
         assert!(entry.rate_limit.is_some());
     }
@@ -158,7 +151,7 @@ mod tests {
             weight: 1.0,
             config: serde_json::json!({"key": "value"}),
             tags: HashMap::new(),
-            health_check: None,
+
             retry: None,
             rate_limit: None,
         };
@@ -205,7 +198,7 @@ mod tests {
             weight: 0.9,
             config: serde_json::json!({}),
             tags: HashMap::new(),
-            health_check: None,
+
             retry: None,
             rate_limit: None,
         };

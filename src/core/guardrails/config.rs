@@ -1,5 +1,6 @@
 //! Configuration for the Guardrails system
 
+use crate::core::types::config::defaults::default_true;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
@@ -47,10 +48,6 @@ pub struct GuardrailConfig {
     /// Whether to fail open (allow on error)
     #[serde(default)]
     pub fail_open: bool,
-}
-
-fn default_true() -> bool {
-    true
 }
 
 impl Default for GuardrailConfig {

@@ -12,48 +12,8 @@ use litellm_rs::core::router::{
 };
 use std::hint::black_box;
 
-use litellm_rs::utils::string_pool::{StringPool, intern_string};
 use std::sync::Arc;
 use tokio::runtime::Runtime;
-
-/// Benchmark string pool operations
-fn bench_string_pool(c: &mut Criterion) {
-    let mut group = c.benchmark_group("string_pool");
-
-    // Test string interning performance
-    group.bench_function("intern_new_strings", |b| {
-        let pool = StringPool::new();
-        let mut counter = 0;
-
-        b.iter(|| {
-            counter += 1;
-            let s = format!("test_string_{}", counter);
-            black_box(pool.intern(&s))
-        });
-    });
-
-    group.bench_function("intern_existing_strings", |b| {
-        let pool = StringPool::new();
-        // Pre-populate with some strings
-        for i in 0..100 {
-            pool.intern(&format!("test_string_{}", i));
-        }
-
-        b.iter(|| {
-            let s = format!("test_string_{}", rand::random::<u8>() % 100);
-            black_box(pool.intern(&s))
-        });
-    });
-
-    group.bench_function("global_intern", |b| {
-        b.iter(|| {
-            let s = format!("global_test_{}", rand::random::<u32>());
-            black_box(intern_string(&s))
-        });
-    });
-
-    group.finish();
-}
 
 /// Helper to create a test provider for benchmarks
 fn create_test_provider(rt: &Runtime) -> Provider {
@@ -421,22 +381,11 @@ fn bench_memory_usage(c: &mut Criterion) {
         });
     });
 
-    group.bench_function("interned_strings", |b| {
-        b.iter(|| {
-            let mut strings = Vec::new();
-            for i in 0..1000 {
-                strings.push(intern_string(&format!("test_string_{}", i)));
-            }
-            black_box(strings)
-        });
-    });
-
     group.finish();
 }
 
 criterion_group!(
     benches,
-    bench_string_pool,
     bench_unified_router,
     bench_concurrent_router,
     bench_serialization,

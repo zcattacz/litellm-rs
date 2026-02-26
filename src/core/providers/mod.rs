@@ -121,7 +121,6 @@ pub mod xiaomi_mimo;
 pub mod zhipu;
 
 // Shared utilities and architecture
-pub mod capabilities;
 pub mod macros; // Macros for reducing boilerplate
 pub mod shared; // Shared utilities for all providers // Compile-time capability verification
 pub mod thinking; // Thinking/reasoning provider trait (modular)

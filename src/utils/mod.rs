@@ -13,21 +13,17 @@
 //! - **data**: Data processing, validation, and transformation utilities
 //! - **logging**: Structured logging and monitoring utilities
 //! - **error**: Error handling, recovery, and context management
-//! - **perf**: Performance optimization and memory management
 //! - **sys**: System utilities, dependency injection, and shared state
-//! - **business**: Business logic utilities (cost calculation, etc.)
 
 // Core utility modules organized by functionality
 pub mod ai; // AI/ML & model utilities
 pub mod auth; // Authentication & security
-pub mod business;
 pub mod config; // Configuration management
 pub mod data; // Data processing utilities
 pub mod error; // Error handling
 pub mod event; // Event publish-subscribe system
 pub mod logging; // Logging & monitoring
 pub mod net; // Network & client utilities
-pub mod perf; // Performance optimization
 pub mod sync; // Concurrent-safe containers
 pub mod sys; // System utilities // Business logic
 
@@ -46,11 +42,6 @@ pub use net::client::utils::ClientUtils;
 pub use sync::{
     AtomicValue, ConcurrentMap, ConcurrentVec, VersionError, VersionedEntry, VersionedMap,
 };
-
-// Re-export string pool for performance benchmarks
-pub mod string_pool {
-    pub use crate::utils::perf::strings::{StringPool, intern_string};
-}
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;

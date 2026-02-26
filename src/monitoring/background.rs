@@ -6,7 +6,6 @@ use std::time::Duration;
 use tracing::{debug, warn};
 
 use super::system::MonitoringSystem;
-use super::types::{Alert, AlertSeverity};
 
 impl MonitoringSystem {
     /// Start background monitoring tasks
@@ -72,28 +71,7 @@ impl MonitoringSystem {
     /// Run health checks
     pub(super) async fn run_health_checks(&self) -> Result<()> {
         debug!("Running health checks");
-
-        let health_status = self.health.check_all().await?;
-
-        // Check for unhealthy components and send alerts
-        if !health_status.overall_healthy {
-            let alert = Alert {
-                id: uuid::Uuid::new_v4().to_string(),
-                severity: AlertSeverity::Critical,
-                title: "System Health Check Failed".to_string(),
-                description: format!(
-                    "One or more system components are unhealthy: {:?}",
-                    health_status
-                ),
-                timestamp: chrono::Utc::now(),
-                source: "health_checker".to_string(),
-                metadata: serde_json::to_value(&health_status).unwrap_or_default(),
-                resolved: false,
-            };
-
-            self.send_alert(alert).await?;
-        }
-
+        // TODO: Integrate with core::health when monitoring system is activated
         Ok(())
     }
 

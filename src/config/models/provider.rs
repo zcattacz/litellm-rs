@@ -144,10 +144,6 @@ impl Default for ProviderHealthCheckConfig {
     }
 }
 
-fn default_true() -> bool {
-    true
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

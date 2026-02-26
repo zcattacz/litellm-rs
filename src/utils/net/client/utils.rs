@@ -105,7 +105,7 @@ impl ClientUtils {
             return server_delay;
         }
 
-        let base_delay = config.initial_delay.as_millis() as f64;
+        let base_delay = config.initial_delay().as_millis() as f64;
         let exponential_delay = base_delay * config.backoff_multiplier.powi(attempt as i32);
 
         let delay_ms = if config.jitter {
@@ -116,7 +116,7 @@ impl ClientUtils {
             exponential_delay
         };
 
-        let capped_delay = delay_ms.min(config.max_delay.as_millis() as f64);
+        let capped_delay = delay_ms.min(config.max_delay().as_millis() as f64);
         Duration::from_millis(capped_delay as u64)
     }
 
@@ -388,10 +388,11 @@ mod tests {
     fn test_calculate_retry_delay_respects_server_delay() {
         let config = RetryConfig {
             max_retries: 3,
-            initial_delay: Duration::from_millis(100),
-            max_delay: Duration::from_secs(30),
+            initial_delay_ms: 100,
+            max_delay_ms: 30000,
             backoff_multiplier: 2.0,
             jitter: false,
+            retryable_errors: vec![],
         };
 
         let server_delay = Duration::from_secs(10);
@@ -403,10 +404,11 @@ mod tests {
     fn test_calculate_retry_delay_exponential_backoff() {
         let config = RetryConfig {
             max_retries: 5,
-            initial_delay: Duration::from_millis(100),
-            max_delay: Duration::from_secs(30),
+            initial_delay_ms: 100,
+            max_delay_ms: 30000,
             backoff_multiplier: 2.0,
             jitter: false,
+            retryable_errors: vec![],
         };
 
         let delay0 = ClientUtils::calculate_retry_delay(&config, 0, None);
@@ -422,10 +424,11 @@ mod tests {
     fn test_calculate_retry_delay_respects_max() {
         let config = RetryConfig {
             max_retries: 10,
-            initial_delay: Duration::from_millis(100),
-            max_delay: Duration::from_millis(500),
+            initial_delay_ms: 100,
+            max_delay_ms: 500,
             backoff_multiplier: 2.0,
             jitter: false,
+            retryable_errors: vec![],
         };
 
         // At attempt 5: 100 * 2^5 = 3200ms, but max is 500ms
@@ -437,10 +440,11 @@ mod tests {
     fn test_calculate_retry_delay_with_jitter() {
         let config = RetryConfig {
             max_retries: 3,
-            initial_delay: Duration::from_millis(100),
-            max_delay: Duration::from_secs(30),
+            initial_delay_ms: 100,
+            max_delay_ms: 30000,
             backoff_multiplier: 2.0,
             jitter: true,
+            retryable_errors: vec![],
         };
 
         // With jitter, delay should be around 100ms +/- 10%

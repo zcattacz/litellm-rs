@@ -1,5 +1,6 @@
 //! OAuth configuration types and provider definitions
 
+use crate::core::types::config::defaults::default_true;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -200,10 +201,6 @@ pub struct OAuthConfig {
     /// Connection timeout in milliseconds
     #[serde(default = "default_timeout")]
     pub timeout_ms: u64,
-}
-
-fn default_true() -> bool {
-    true
 }
 
 fn default_timeout() -> u64 {

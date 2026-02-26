@@ -151,10 +151,6 @@ impl RbacConfig {
     }
 }
 
-fn default_true() -> bool {
-    true
-}
-
 /// Warn about insecure configuration in development
 pub fn warn_insecure_config(config: &AuthConfig) {
     if !config.is_production_ready() {

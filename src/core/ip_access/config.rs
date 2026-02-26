@@ -1,5 +1,6 @@
 //! Configuration for the IP Access Control system
 
+use crate::core::types::config::defaults::default_true;
 use serde::{Deserialize, Serialize};
 
 use super::types::{IpAccessMode, IpAccessResult, IpRule};
@@ -50,10 +51,6 @@ pub struct IpAccessConfig {
     /// Whether to log blocked requests
     #[serde(default = "default_true")]
     pub log_blocked: bool,
-}
-
-fn default_true() -> bool {
-    true
 }
 
 fn default_excluded_paths() -> Vec<String> {

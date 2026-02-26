@@ -2,6 +2,7 @@
 //!
 //! This module provides unified pricing management for all providers
 
+use crate::core::types::config::defaults::default_true;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
@@ -214,11 +215,7 @@ fn default_cache_ttl() -> u64 {
 }
 
 fn default_update_interval() -> u64 {
-    86400 // 24 hours  
-}
-
-fn default_true() -> bool {
-    true
+    86400 // 24 hours
 }
 
 #[cfg(test)]

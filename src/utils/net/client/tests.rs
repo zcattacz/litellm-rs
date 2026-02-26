@@ -428,8 +428,8 @@ fn test_retry_config_default() {
     let config = RetryConfig::default();
 
     assert_eq!(config.max_retries, 3);
-    assert_eq!(config.initial_delay, Duration::from_millis(1000));
-    assert_eq!(config.max_delay, Duration::from_secs(60));
+    assert_eq!(config.initial_delay_ms, 100);
+    assert_eq!(config.max_delay_ms, 30000);
     assert_eq!(config.backoff_multiplier, 2.0);
     assert!(config.jitter);
 }
@@ -438,15 +438,16 @@ fn test_retry_config_default() {
 fn test_retry_config_custom() {
     let config = RetryConfig {
         max_retries: 5,
-        initial_delay: Duration::from_millis(500),
-        max_delay: Duration::from_secs(30),
+        initial_delay_ms: 500,
+        max_delay_ms: 30000,
         backoff_multiplier: 1.5,
         jitter: false,
+        retryable_errors: vec![],
     };
 
     assert_eq!(config.max_retries, 5);
-    assert_eq!(config.initial_delay, Duration::from_millis(500));
-    assert_eq!(config.max_delay, Duration::from_secs(30));
+    assert_eq!(config.initial_delay_ms, 500);
+    assert_eq!(config.max_delay_ms, 30000);
     assert_eq!(config.backoff_multiplier, 1.5);
     assert!(!config.jitter);
 }
@@ -457,7 +458,7 @@ fn test_retry_config_clone() {
     let cloned = config.clone();
 
     assert_eq!(cloned.max_retries, config.max_retries);
-    assert_eq!(cloned.initial_delay, config.initial_delay);
+    assert_eq!(cloned.initial_delay_ms, config.initial_delay_ms);
     assert_eq!(cloned.jitter, config.jitter);
 }
 
@@ -476,10 +477,11 @@ fn test_calculate_retry_delay_with_server_delay() {
 fn test_calculate_retry_delay_exponential() {
     let config = RetryConfig {
         max_retries: 3,
-        initial_delay: Duration::from_millis(1000),
-        max_delay: Duration::from_secs(60),
+        initial_delay_ms: 1000,
+        max_delay_ms: 60000,
         backoff_multiplier: 2.0,
         jitter: false,
+        retryable_errors: vec![],
     };
 
     let delay0 = ClientUtils::calculate_retry_delay(&config, 0, None);
@@ -496,10 +498,11 @@ fn test_calculate_retry_delay_exponential() {
 fn test_calculate_retry_delay_capped() {
     let config = RetryConfig {
         max_retries: 10,
-        initial_delay: Duration::from_secs(1),
-        max_delay: Duration::from_secs(5),
+        initial_delay_ms: 1000,
+        max_delay_ms: 5000,
         backoff_multiplier: 2.0,
         jitter: false,
+        retryable_errors: vec![],
     };
 
     // After several retries, should be capped at max_delay

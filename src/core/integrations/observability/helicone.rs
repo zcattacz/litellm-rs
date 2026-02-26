@@ -2,6 +2,7 @@
 //!
 //! Provides integration with Helicone for LLM observability and logging.
 
+use crate::core::types::config::defaults::default_true;
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -66,10 +67,6 @@ pub struct HeliconeConfig {
 
 fn default_base_url() -> String {
     "https://api.helicone.ai".to_string()
-}
-
-fn default_true() -> bool {
-    true
 }
 
 fn default_cache_ttl() -> u64 {

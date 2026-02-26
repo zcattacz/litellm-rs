@@ -4,6 +4,12 @@
 
 #![allow(missing_docs)]
 
+// Re-export shared default functions so submodules using `use super::*` get them
+pub use crate::core::types::config::defaults::{
+    default_api_key_header, default_failure_threshold, default_health_check_interval,
+    default_jwt_expiration, default_max_retries, default_recovery_timeout, default_true,
+};
+
 pub mod auth;
 pub mod budget;
 pub mod cache;
@@ -37,11 +43,6 @@ pub fn default_max_body_size() -> usize {
     10 * 1024 * 1024 // 10MB
 }
 
-/// Default maximum retry attempts
-pub fn default_max_retries() -> u32 {
-    3
-}
-
 /// Default provider weight
 pub fn default_weight() -> f32 {
     1.0
@@ -65,18 +66,6 @@ pub fn default_cache_max_size() -> usize {
 
 pub fn default_similarity_threshold() -> f64 {
     0.95
-}
-
-pub fn default_health_check_interval() -> u64 {
-    30
-}
-
-pub fn default_failure_threshold() -> u32 {
-    5
-}
-
-pub fn default_recovery_timeout() -> u64 {
-    60
 }
 
 pub fn default_min_requests() -> u32 {
@@ -105,14 +94,6 @@ pub fn default_connection_timeout() -> u64 {
 
 pub fn default_redis_max_connections() -> u32 {
     20
-}
-
-pub fn default_jwt_expiration() -> u64 {
-    86400 // 24 hours
-}
-
-pub fn default_api_key_header() -> String {
-    "Authorization".to_string()
 }
 
 pub fn default_role() -> String {

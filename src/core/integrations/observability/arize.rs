@@ -2,6 +2,7 @@
 //!
 //! Provides integration with Arize AI for ML observability, monitoring, and evaluation.
 
+use crate::core::types::config::defaults::default_true;
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -77,10 +78,6 @@ fn default_batch_size() -> usize {
 
 fn default_flush_interval() -> u64 {
     10000
-}
-
-fn default_true() -> bool {
-    true
 }
 
 impl Default for ArizeConfig {

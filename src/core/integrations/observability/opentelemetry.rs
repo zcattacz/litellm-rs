@@ -2,6 +2,7 @@
 //!
 //! Provides distributed tracing for LLM requests using OpenTelemetry.
 
+use crate::core::types::config::defaults::default_true;
 use async_trait::async_trait;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
@@ -79,10 +80,6 @@ fn default_endpoint() -> String {
 
 fn default_service_name() -> String {
     "litellm-gateway".to_string()
-}
-
-fn default_true() -> bool {
-    true
 }
 
 fn default_batch_interval() -> u64 {

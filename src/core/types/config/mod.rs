@@ -8,8 +8,6 @@
 #[doc(hidden)]
 pub mod defaults;
 #[doc(hidden)]
-pub mod health;
-#[doc(hidden)]
 pub mod middleware;
 #[doc(hidden)]
 pub mod observability;
@@ -19,12 +17,10 @@ pub mod provider;
 pub mod rate_limit;
 #[doc(hidden)]
 pub mod retry;
-#[doc(hidden)]
-pub mod routing;
 
 use self::{
     middleware::MiddlewareConfig, observability::ObservabilityConfig,
-    provider::ProviderConfigEntry, routing::RoutingConfig,
+    provider::ProviderConfigEntry,
 };
 use crate::config::models::server::ServerConfig;
 use serde::{Deserialize, Serialize};
@@ -39,8 +35,6 @@ pub struct LiteLLMConfig {
     pub server: ServerConfig,
     /// Provider configurations
     pub providers: Vec<ProviderConfigEntry>,
-    /// Routing configuration
-    pub routing: RoutingConfig,
     /// Middleware configuration
     pub middleware: MiddlewareConfig,
     /// Observability configuration

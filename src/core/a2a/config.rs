@@ -2,6 +2,7 @@
 //!
 //! Configuration types for A2A agents including authentication and provider settings.
 
+use crate::core::types::config::defaults::default_true;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -263,10 +264,6 @@ pub struct AgentCapabilities {
     /// Supported output content types
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub output_types: Vec<String>,
-}
-
-fn default_true() -> bool {
-    true
 }
 
 impl AgentCapabilities {

@@ -2,6 +2,7 @@
 //!
 //! Provides integration with DataDog for APM, metrics, and logging.
 
+use crate::core::types::config::defaults::default_true;
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -70,10 +71,6 @@ fn default_site() -> String {
 
 fn default_service() -> String {
     "litellm-gateway".to_string()
-}
-
-fn default_true() -> bool {
-    true
 }
 
 fn default_batch_size() -> usize {

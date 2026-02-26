@@ -257,10 +257,6 @@ impl CorsConfig {
     }
 }
 
-fn default_true() -> bool {
-    true
-}
-
 fn default_cors_methods() -> Vec<String> {
     vec![
         "GET".to_string(),

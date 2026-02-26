@@ -214,10 +214,6 @@ pub enum LogOutput {
     Syslog { facility: String },
 }
 
-fn default_true() -> bool {
-    true
-}
-
 fn default_interval_seconds() -> u64 {
     15
 }

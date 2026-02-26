@@ -2,7 +2,6 @@
 //!
 //! This module provides structured logging, monitoring, and debugging utilities.
 
-pub mod enhanced;
 pub mod utils;
 
 pub use utils::LoggingUtils;

@@ -67,7 +67,7 @@ pub fn default_jwt_algorithm() -> String {
 }
 
 pub fn default_jwt_expiration() -> u64 {
-    3600
+    86400 // 24 hours
 }
 
 pub fn default_api_key_header() -> String {
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     fn test_default_jwt_expiration() {
-        assert_eq!(default_jwt_expiration(), 3600);
+        assert_eq!(default_jwt_expiration(), 86400);
     }
 
     // ==================== API Key Default Tests ====================

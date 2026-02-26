@@ -1,5 +1,6 @@
 //! Core types for the IP Access Control system
 
+use crate::core::types::config::defaults::default_true;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 use std::str::FromStr;
@@ -58,10 +59,6 @@ pub struct IpRule {
     /// Whether this rule is enabled
     #[serde(default = "default_true")]
     pub enabled: bool,
-}
-
-fn default_true() -> bool {
-    true
 }
 
 impl IpRule {

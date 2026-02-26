@@ -2,6 +2,7 @@
 //!
 //! Exports LLM metrics to Prometheus for monitoring and alerting.
 
+use crate::core::types::config::defaults::default_true;
 use async_trait::async_trait;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
@@ -52,10 +53,6 @@ fn default_enabled() -> bool {
 
 fn default_prefix() -> String {
     "litellm".to_string()
-}
-
-fn default_true() -> bool {
-    true
 }
 
 fn default_latency_buckets() -> Vec<f64> {

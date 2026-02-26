@@ -1,7 +1,7 @@
 //! Main LiteLLM error types
 
 use super::config::ConfigError;
-use super::routing::RoutingError;
+use crate::core::router::error::RouterError;
 
 /// Top-level error type for the LiteLLM gateway
 #[derive(Debug, thiserror::Error)]
@@ -17,7 +17,7 @@ pub enum LiteLLMError {
 
     /// Request routing error
     #[error("Routing error: {0}")]
-    Routing(RoutingError),
+    Routing(RouterError),
 
     /// Configuration error
     #[error("Configuration error: {0}")]
@@ -79,8 +79,8 @@ pub enum LiteLLMError {
     UnsupportedOperation { operation: String },
 }
 
-impl From<RoutingError> for LiteLLMError {
-    fn from(err: RoutingError) -> Self {
+impl From<RouterError> for LiteLLMError {
+    fn from(err: RouterError) -> Self {
         LiteLLMError::Routing(err)
     }
 }

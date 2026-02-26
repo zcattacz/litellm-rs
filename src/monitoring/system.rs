@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 
 use super::types::*;
-use super::{alerts, health, metrics};
+use super::{alerts, metrics};
 
 /// Main monitoring system
 #[derive(Clone)]
@@ -21,8 +21,6 @@ pub struct MonitoringSystem {
     pub(super) storage: Arc<StorageLayer>,
     /// Metrics collector
     pub(super) metrics: Arc<metrics::MetricsCollector>,
-    /// Health checker
-    pub(super) health: Arc<health::checker::HealthChecker>,
     /// Alert manager
     pub(super) alerts: Option<Arc<alerts::AlertManager>>,
     /// System start time
@@ -40,9 +38,6 @@ impl MonitoringSystem {
         // Initialize metrics collector
         let metrics = Arc::new(metrics::MetricsCollector::new(&config).await?);
 
-        // Initialize health checker
-        let health = Arc::new(health::checker::HealthChecker::new(storage.clone()).await?);
-
         // Initialize alert manager (if enabled)
         let alerts = None; // TODO: Add alerting config to MonitoringConfig
 
@@ -52,7 +47,6 @@ impl MonitoringSystem {
             config,
             storage,
             metrics,
-            health,
             alerts,
             start_time: Instant::now(),
         })
@@ -64,9 +58,6 @@ impl MonitoringSystem {
 
         // Start metrics collection
         self.metrics.start().await?;
-
-        // Start health checking
-        self.health.start().await?;
 
         // Start alert manager
         if let Some(alerts) = &self.alerts {
@@ -86,9 +77,6 @@ impl MonitoringSystem {
 
         // Stop metrics collection
         self.metrics.stop().await?;
-
-        // Stop health checking
-        self.health.stop().await?;
 
         // Stop alert manager
         if let Some(alerts) = &self.alerts {
@@ -184,11 +172,6 @@ impl MonitoringSystem {
     /// Get system uptime
     pub fn get_uptime(&self) -> Duration {
         self.start_time.elapsed()
-    }
-
-    /// Get health status
-    pub async fn get_health_status(&self) -> Result<health::types::HealthStatus> {
-        self.health.get_status().await
     }
 
     /// Collect request metrics

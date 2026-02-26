@@ -3,6 +3,7 @@
 //! This module contains core type definitions for the dual cache system,
 //! including cache keys, entries, configuration, and eviction policies.
 
+use crate::core::types::config::defaults::default_true;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -294,10 +295,6 @@ fn default_max_size() -> usize {
 
 fn default_ttl() -> Duration {
     Duration::from_secs(3600) // 1 hour
-}
-
-fn default_true() -> bool {
-    true
 }
 
 fn default_cleanup_interval() -> Duration {

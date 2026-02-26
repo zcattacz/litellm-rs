@@ -387,7 +387,7 @@ mod tests {
         let config: JwtConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.secret, "my-secret");
         assert_eq!(config.algorithm, "HS256");
-        assert_eq!(config.expiration_seconds, 3600);
+        assert_eq!(config.expiration_seconds, 86400);
     }
 
     // ==================== ApiKeyConfig Tests ====================

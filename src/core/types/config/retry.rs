@@ -2,6 +2,11 @@
 
 use super::defaults::*;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
+
+fn default_backoff_multiplier() -> f64 {
+    2.0
+}
 
 /// Retry configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,9 +20,9 @@ pub struct RetryConfig {
     /// Maximum delay (milliseconds)
     #[serde(default = "default_max_delay_ms")]
     pub max_delay_ms: u64,
-    /// Use exponential backoff
-    #[serde(default = "default_true")]
-    pub exponential_backoff: bool,
+    /// Backoff multiplier for exponential backoff (set to 1.0 to disable)
+    #[serde(default = "default_backoff_multiplier")]
+    pub backoff_multiplier: f64,
     /// Add random jitter
     #[serde(default = "default_true")]
     pub jitter: bool,
@@ -32,7 +37,7 @@ impl Default for RetryConfig {
             max_retries: default_max_retries(),
             initial_delay_ms: default_initial_delay_ms(),
             max_delay_ms: default_max_delay_ms(),
-            exponential_backoff: true,
+            backoff_multiplier: 2.0,
             jitter: true,
             retryable_errors: vec![
                 "network_error".to_string(),
@@ -41,6 +46,26 @@ impl Default for RetryConfig {
                 "server_error".to_string(),
             ],
         }
+    }
+}
+
+impl RetryConfig {
+    /// Get initial delay as Duration
+    pub fn initial_delay(&self) -> Duration {
+        Duration::from_millis(self.initial_delay_ms)
+    }
+
+    /// Get max delay as Duration
+    pub fn max_delay(&self) -> Duration {
+        Duration::from_millis(self.max_delay_ms)
+    }
+
+    /// Calculate delay for a given retry attempt (0-indexed)
+    pub fn delay_for_attempt(&self, attempt: u32) -> Duration {
+        let delay_ms =
+            self.initial_delay_ms as f64 * self.backoff_multiplier.powi(attempt as i32);
+        let capped = delay_ms.min(self.max_delay_ms as f64);
+        Duration::from_millis(capped as u64)
     }
 }
 
@@ -56,7 +81,7 @@ mod tests {
         assert_eq!(config.max_retries, 3);
         assert_eq!(config.initial_delay_ms, 100);
         assert_eq!(config.max_delay_ms, 30000);
-        assert!(config.exponential_backoff);
+        assert!((config.backoff_multiplier - 2.0).abs() < f64::EPSILON);
         assert!(config.jitter);
         assert_eq!(config.retryable_errors.len(), 4);
     }
@@ -94,14 +119,14 @@ mod tests {
             max_retries: 5,
             initial_delay_ms: 200,
             max_delay_ms: 60000,
-            exponential_backoff: true,
+            backoff_multiplier: 2.0,
             jitter: false,
             retryable_errors: vec!["custom_error".to_string()],
         };
         assert_eq!(config.max_retries, 5);
         assert_eq!(config.initial_delay_ms, 200);
         assert_eq!(config.max_delay_ms, 60000);
-        assert!(config.exponential_backoff);
+        assert!((config.backoff_multiplier - 2.0).abs() < f64::EPSILON);
         assert!(!config.jitter);
         assert_eq!(config.retryable_errors.len(), 1);
     }
@@ -112,12 +137,12 @@ mod tests {
             max_retries: 0,
             initial_delay_ms: 100,
             max_delay_ms: 30000,
-            exponential_backoff: false,
+            backoff_multiplier: 1.0,
             jitter: false,
             retryable_errors: vec![],
         };
         assert_eq!(config.max_retries, 0);
-        assert!(!config.exponential_backoff);
+        assert!((config.backoff_multiplier - 1.0).abs() < f64::EPSILON);
         assert!(config.retryable_errors.is_empty());
     }
 
@@ -129,7 +154,7 @@ mod tests {
             max_retries: 3,
             initial_delay_ms: 100,
             max_delay_ms: 30000,
-            exponential_backoff: true,
+            backoff_multiplier: 2.0,
             jitter: true,
             retryable_errors: vec!["error1".to_string(), "error2".to_string()],
         };
@@ -137,7 +162,7 @@ mod tests {
         assert_eq!(json["max_retries"], 3);
         assert_eq!(json["initial_delay_ms"], 100);
         assert_eq!(json["max_delay_ms"], 30000);
-        assert_eq!(json["exponential_backoff"], true);
+        assert!((json["backoff_multiplier"].as_f64().unwrap() - 2.0).abs() < f64::EPSILON);
         assert_eq!(json["jitter"], true);
         assert!(json["retryable_errors"].is_array());
     }
@@ -148,7 +173,7 @@ mod tests {
             "max_retries": 10,
             "initial_delay_ms": 500,
             "max_delay_ms": 120000,
-            "exponential_backoff": false,
+            "backoff_multiplier": 1.0,
             "jitter": true,
             "retryable_errors": ["connection_refused", "dns_error"]
         }"#;
@@ -156,7 +181,7 @@ mod tests {
         assert_eq!(config.max_retries, 10);
         assert_eq!(config.initial_delay_ms, 500);
         assert_eq!(config.max_delay_ms, 120000);
-        assert!(!config.exponential_backoff);
+        assert!((config.backoff_multiplier - 1.0).abs() < f64::EPSILON);
         assert!(config.jitter);
         assert_eq!(config.retryable_errors.len(), 2);
     }
@@ -168,7 +193,7 @@ mod tests {
         assert_eq!(config.max_retries, 3);
         assert_eq!(config.initial_delay_ms, 100);
         assert_eq!(config.max_delay_ms, 30000);
-        assert!(config.exponential_backoff);
+        assert!((config.backoff_multiplier - 2.0).abs() < f64::EPSILON);
         assert!(config.jitter);
     }
 
@@ -178,7 +203,7 @@ mod tests {
         let config: RetryConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.max_retries, 7);
         assert_eq!(config.initial_delay_ms, 100);
-        assert!(config.exponential_backoff);
+        assert!((config.backoff_multiplier - 2.0).abs() < f64::EPSILON);
     }
 
     // ==================== RetryConfig Clone Tests ====================
@@ -189,7 +214,7 @@ mod tests {
             max_retries: 5,
             initial_delay_ms: 250,
             max_delay_ms: 60000,
-            exponential_backoff: true,
+            backoff_multiplier: 2.0,
             jitter: true,
             retryable_errors: vec!["error".to_string()],
         };

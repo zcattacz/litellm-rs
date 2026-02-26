@@ -56,12 +56,10 @@ mod config;
 mod litellm;
 mod macros;
 mod openai;
-mod routing;
 mod traits;
 
 // Re-export all types for backward compatibility
 pub use config::{ConfigError, ConfigResult};
 pub use litellm::{LiteLLMError, LiteLLMResult};
 pub use openai::{OpenAIError, OpenAIResult};
-pub use routing::{RoutingError, RoutingResult};
 pub use traits::ProviderErrorTrait;

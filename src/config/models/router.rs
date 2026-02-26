@@ -161,10 +161,6 @@ fn default_session_timeout() -> u64 {
     3600
 }
 
-fn default_true() -> bool {
-    true
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

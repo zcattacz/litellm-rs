@@ -1,5 +1,6 @@
 //! Configuration for the Audit Logging system
 
+use crate::core::types::config::defaults::default_true;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -75,10 +76,6 @@ pub struct AuditConfig {
     /// Patterns to redact
     #[serde(default = "default_redact_patterns")]
     pub redact_patterns: Vec<String>,
-}
-
-fn default_true() -> bool {
-    true
 }
 
 fn default_max_body_size() -> usize {

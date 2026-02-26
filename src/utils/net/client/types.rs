@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
 
+// Re-export canonical RetryConfig
+pub use crate::core::types::config::retry::RetryConfig;
+
 /// Configuration for HTTP client behavior
 #[derive(Debug, Clone)]
 pub struct HttpClientConfig {
@@ -22,28 +25,6 @@ impl Default for HttpClientConfig {
             proxy: None,
             user_agent: "litellm-rust/1.0".to_string(),
             default_headers: HashMap::new(),
-        }
-    }
-}
-
-/// Configuration for retry behavior with exponential backoff
-#[derive(Debug, Clone)]
-pub struct RetryConfig {
-    pub max_retries: u32,
-    pub initial_delay: Duration,
-    pub max_delay: Duration,
-    pub backoff_multiplier: f64,
-    pub jitter: bool,
-}
-
-impl Default for RetryConfig {
-    fn default() -> Self {
-        Self {
-            max_retries: 3,
-            initial_delay: Duration::from_millis(1000),
-            max_delay: Duration::from_secs(60),
-            backoff_multiplier: 2.0,
-            jitter: true,
         }
     }
 }
@@ -170,8 +151,8 @@ mod tests {
         let config = RetryConfig::default();
 
         assert_eq!(config.max_retries, 3);
-        assert_eq!(config.initial_delay, Duration::from_millis(1000));
-        assert_eq!(config.max_delay, Duration::from_secs(60));
+        assert_eq!(config.initial_delay_ms, 100);
+        assert_eq!(config.max_delay_ms, 30000);
         assert!((config.backoff_multiplier - 2.0).abs() < f64::EPSILON);
         assert!(config.jitter);
     }
@@ -180,14 +161,15 @@ mod tests {
     fn test_retry_config_custom() {
         let config = RetryConfig {
             max_retries: 5,
-            initial_delay: Duration::from_millis(500),
-            max_delay: Duration::from_secs(30),
+            initial_delay_ms: 500,
+            max_delay_ms: 30000,
             backoff_multiplier: 1.5,
             jitter: false,
+            retryable_errors: vec![],
         };
 
         assert_eq!(config.max_retries, 5);
-        assert_eq!(config.initial_delay, Duration::from_millis(500));
+        assert_eq!(config.initial_delay_ms, 500);
         assert!(!config.jitter);
     }
 
@@ -211,24 +193,18 @@ mod tests {
 
     #[test]
     fn test_retry_config_backoff_calculation() {
-        let config = RetryConfig::default();
+        let config = RetryConfig {
+            max_retries: 3,
+            initial_delay_ms: 1000,
+            max_delay_ms: 60000,
+            backoff_multiplier: 2.0,
+            jitter: false,
+            retryable_errors: vec![],
+        };
 
-        // Simulate backoff delays
-        let mut delay = config.initial_delay;
-        let delays: Vec<Duration> = (0..config.max_retries)
-            .map(|_| {
-                let current = delay;
-                delay = Duration::from_secs_f64(
-                    (delay.as_secs_f64() * config.backoff_multiplier)
-                        .min(config.max_delay.as_secs_f64()),
-                );
-                current
-            })
-            .collect();
-
-        assert_eq!(delays[0], Duration::from_millis(1000));
-        assert_eq!(delays[1], Duration::from_millis(2000));
-        assert_eq!(delays[2], Duration::from_millis(4000));
+        assert_eq!(config.delay_for_attempt(0), Duration::from_millis(1000));
+        assert_eq!(config.delay_for_attempt(1), Duration::from_millis(2000));
+        assert_eq!(config.delay_for_attempt(2), Duration::from_millis(4000));
     }
 
     #[test]
@@ -245,14 +221,15 @@ mod tests {
     fn test_retry_config_aggressive() {
         let config = RetryConfig {
             max_retries: 10,
-            initial_delay: Duration::from_millis(100),
-            max_delay: Duration::from_secs(10),
+            initial_delay_ms: 100,
+            max_delay_ms: 10000,
             backoff_multiplier: 1.2,
             jitter: true,
+            retryable_errors: vec![],
         };
 
         assert_eq!(config.max_retries, 10);
-        assert!(config.initial_delay < Duration::from_secs(1));
+        assert!(config.initial_delay_ms < 1000);
     }
 
     // ==================== ProviderRequestMetrics Tests ====================
@@ -403,12 +380,12 @@ mod tests {
 
         let retry_config = RetryConfig {
             max_retries: http_config.max_retries,
-            initial_delay: http_config.retry_delay,
+            initial_delay_ms: http_config.retry_delay.as_millis() as u64,
             ..RetryConfig::default()
         };
 
         assert_eq!(http_config.max_retries, retry_config.max_retries);
-        assert_eq!(http_config.retry_delay, retry_config.initial_delay);
+        assert_eq!(http_config.retry_delay.as_millis() as u64, retry_config.initial_delay_ms);
     }
 
     #[test]

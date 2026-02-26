@@ -4,7 +4,6 @@
 
 // Public submodules
 pub mod alerts;
-pub mod health;
 pub mod metrics;
 pub mod system;
 pub mod types;
