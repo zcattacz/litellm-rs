@@ -89,7 +89,6 @@ impl BaseConfig {
             "empower" => "https://api.empower.dev/v1",
             "exa_ai" => "https://api.exa.ai/v1",
             "firecrawl" => "https://api.firecrawl.dev/v1",
-            "aiml" => "https://api.aimlapi.com/v1",
             "deepl" => "https://api-free.deepl.com/v2",
             "fal_ai" => "https://fal.run",
             _ => "https://api.openai.com/v1",
@@ -618,9 +617,12 @@ mod tests {
     }
 
     #[test]
-    fn test_legacy_alias_fallback_still_works() {
-        let aiml = BaseConfig::for_provider("aiml");
-        assert_eq!(aiml.api_base, Some("https://api.aimlapi.com/v1".to_string()));
+    fn test_legacy_unknown_provider_fallback_default() {
+        let unknown = BaseConfig::for_provider("legacy_unknown");
+        assert_eq!(
+            unknown.api_base,
+            Some("https://api.openai.com/v1".to_string())
+        );
     }
 
     #[test]
