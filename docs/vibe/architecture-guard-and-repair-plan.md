@@ -77,3 +77,32 @@
   - example 与 schema 一致。
   - CORS 默认语义明确且安全。
 - 文档化：本文件与最终变更摘要可追溯。
+
+## 执行记录（本轮）
+1. `6339a11` `docs(vibe): add architecture guard and stepwise repair plan`
+- 新增本方案文档。
+
+2. `d630143` `fix(server): unify provider bootstrap and register by configured name`
+- `enabled=false` 不再初始化。
+- 使用配置名注册 provider，避免同类型覆盖。
+- Server 启动统一走 `create_provider(...)`。
+
+3. `0e45597` `feat(router): wire unified router into runtime model selection`
+- 接入 `GatewayRouterConfig -> RouterConfig` 映射。
+- 启动时构建 `UnifiedRouter`。
+- chat/completions/embeddings/images 路由选择支持 UnifiedRouter。
+
+4. `0b41376` `fix(config): align gateway example schema and deterministic startup config loading`
+- 重写 `config/gateway.yaml.example` 与当前 schema 对齐。
+- 启动配置改为 file -> env -> error，去除误导 fallback。
+
+5. `52a594e` `fix(security): tighten CORS default semantics and log pricing init status`
+- CORS 空 origins 改为默认收敛语义（不再等价 allow all）。
+- pricing 初始加载与自动刷新启动补充可观测日志。
+
+## 回归命令（本轮）
+- `cargo check`
+- `cargo test core::router::gateway_config::tests --lib`
+- `cargo test config::models::gateway::tests::test_gateway_config_validate_success --lib -- --exact`
+- `cargo test config::models::server::tests::test_cors_config_allows_all_origins_empty --lib -- --exact`
+- `cargo test config::models::server::tests::test_cors_config_validate_all_origins_with_credentials --lib -- --exact`
