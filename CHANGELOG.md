@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Provider Infra**: `BaseConfig::for_provider` now consults Tier-1 provider catalog defaults first, reducing duplicated base URL definitions while preserving existing fallback behavior.
 - **Provider Infra**: Removed the unused `CommonProviderConfig` duplicate from `core::providers::shared`, keeping provider base config responsibilities centralized in `core::providers::base` and reducing schema duplication.
 
 ### Added
