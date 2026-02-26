@@ -24,6 +24,15 @@ impl ProviderRegistry {
         self.providers.insert(name, provider);
     }
 
+    /// Register a provider with an explicit key.
+    ///
+    /// Use this when multiple providers of the same type are configured
+    /// under different logical names (for example `openai-primary`,
+    /// `openai-backup`).
+    pub fn register_with_key(&mut self, key: impl Into<String>, provider: Provider) {
+        self.providers.insert(key.into(), provider);
+    }
+
     /// Get provider by name
     pub fn get(&self, name: &str) -> Option<&Provider> {
         self.providers.get(name)

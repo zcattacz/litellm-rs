@@ -40,26 +40,14 @@ impl HttpServer {
         // Initialize providers from config
         if !config.gateway.providers.is_empty() {
             for provider_config in &config.gateway.providers {
-                let provider_type: crate::core::providers::ProviderType =
-                    provider_config.provider_type.as_str().into();
-
-                let mut settings = provider_config.settings.clone();
-                // Add api_key from config if not in settings
-                if !settings.contains_key("api_key") && !provider_config.api_key.is_empty() {
-                    settings.insert(
-                        "api_key".to_string(),
-                        serde_json::Value::String(provider_config.api_key.clone()),
-                    );
+                if !provider_config.enabled {
+                    info!("Skipping disabled provider: {}", provider_config.name);
+                    continue;
                 }
 
-                match crate::core::providers::Provider::from_config_async(
-                    provider_type.clone(),
-                    serde_json::Value::Object(settings.into_iter().collect()),
-                )
-                .await
-                {
+                match crate::core::providers::create_provider(provider_config.clone()).await {
                     Ok(provider) => {
-                        router.register(provider);
+                        router.register_with_key(provider_config.name.clone(), provider);
                         info!("Registered provider: {}", provider_config.name);
                     }
                     Err(e) => {
