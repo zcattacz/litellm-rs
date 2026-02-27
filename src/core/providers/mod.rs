@@ -581,34 +581,7 @@ impl Provider {
         UnifiedProviderError,
     > {
         use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
-        use futures::StreamExt;
-
-        match self {
-            Provider::OpenAI(p) => {
-                let stream = LLMProvider::chat_completion_stream(p, request, context).await?;
-                let mapped = stream.map(|result| result);
-                Ok(Box::pin(mapped))
-            }
-            Provider::Anthropic(p) => {
-                let stream = LLMProvider::chat_completion_stream(p, request, context).await?;
-                let mapped = stream.map(|result| result);
-                Ok(Box::pin(mapped))
-            }
-            Provider::AzureAI(p) => {
-                let stream = LLMProvider::chat_completion_stream(p, request, context).await?;
-                let mapped = stream.map(|result| result);
-                Ok(Box::pin(mapped))
-            }
-            Provider::OpenAILike(p) => {
-                let stream = LLMProvider::chat_completion_stream(p, request, context).await?;
-                let mapped = stream.map(|result| result);
-                Ok(Box::pin(mapped))
-            }
-            _ => Err(UnifiedProviderError::not_implemented(
-                "unknown",
-                format!("Streaming not implemented for {}", self.name()),
-            )),
-        }
+        dispatch_provider_async!(self, chat_completion_stream, request, context)
     }
 
     /// Create embeddings
@@ -1329,6 +1302,43 @@ mod tests {
         assert!(is_provider_selector_supported("openai_compatible"));
         assert!(is_provider_selector_supported("groq")); // Tier-1 catalog
         assert!(!is_provider_selector_supported("totally_unknown_provider"));
+    }
+
+    #[test]
+    fn test_catalog_entries_are_supported_selectors() {
+        for name in registry::PROVIDER_CATALOG.keys() {
+            assert!(
+                is_provider_selector_supported(name),
+                "Catalog provider '{}' must be a supported selector",
+                name
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_catalog_entries_are_creatable_via_factory() {
+        for (name, def) in registry::PROVIDER_CATALOG.iter() {
+            let config = crate::config::models::provider::ProviderConfig {
+                name: (*name).to_string(),
+                provider_type: (*name).to_string(),
+                api_key: if def.skip_api_key {
+                    String::new()
+                } else {
+                    "test-key".to_string()
+                },
+                ..Default::default()
+            };
+
+            let provider = create_provider(config)
+                .await
+                .unwrap_or_else(|e| panic!("Catalog provider '{}' should be creatable: {}", name, e));
+
+            assert!(
+                matches!(provider, Provider::OpenAILike(_)),
+                "Catalog provider '{}' must create OpenAILike variant",
+                name
+            );
+        }
     }
 
     #[test]
