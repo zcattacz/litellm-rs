@@ -75,12 +75,14 @@ impl BaseConfig {
     }
 
     fn catalog_default_base_url(provider: &str) -> Option<String> {
-        crate::core::providers::registry::get_definition(provider)
+        let normalized_provider = Self::normalize_provider_name(provider);
+        crate::core::providers::registry::get_definition(&normalized_provider)
             .map(|definition| definition.base_url.to_string())
     }
 
     fn legacy_default_base_url(provider: &str) -> &'static str {
-        match provider {
+        let normalized_provider = Self::normalize_provider_name(provider);
+        match normalized_provider.as_str() {
             "openai" => "https://api.openai.com/v1",
             "anthropic" => "https://api.anthropic.com",
             "azure" => "https://{instance}.openai.azure.com",
@@ -109,7 +111,8 @@ impl BaseConfig {
     }
 
     fn default_api_version(provider: &str) -> Option<&'static str> {
-        match provider {
+        let normalized_provider = Self::normalize_provider_name(provider);
+        match normalized_provider.as_str() {
             "anthropic" => Some("2023-06-01"),
             "azure" => Some("2024-02-01"),
             _ => None,
@@ -653,6 +656,19 @@ mod tests {
         let tier1_mixed_case = BaseConfig::for_provider(" Anyscale ");
         assert_eq!(
             tier1_mixed_case.api_base,
+            Some("https://api.endpoints.anyscale.com/v1".to_string())
+        );
+
+        assert_eq!(
+            BaseConfig::legacy_default_base_url(" OpenAI "),
+            "https://api.openai.com/v1"
+        );
+        assert_eq!(
+            BaseConfig::default_api_version(" Anthropic "),
+            Some("2023-06-01")
+        );
+        assert_eq!(
+            BaseConfig::catalog_default_base_url(" Anyscale "),
             Some("https://api.endpoints.anyscale.com/v1".to_string())
         );
     }
