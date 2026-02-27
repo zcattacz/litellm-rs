@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Provider Infra**: `BaseConfig::for_provider()` now delegates environment loading with the original provider input while keeping normalized default resolution in one place, removing duplicated normalization flow.
+- **Provider Infra**: `BaseConfig::provider_env_key()` env-key normalization now explicitly covers trimmed/case-variant provider input via regression test.
 - **Provider Infra**: `BaseConfig::provider_env_key()` now normalizes provider names internally, and `from_env()` reuses normalized env helpers directly to remove duplicated normalization flow.
 - **Provider Infra**: Centralized provider environment variable key/value resolution in `BaseConfig` helpers (`provider_env_key`, `env_value`) to remove repeated env lookup formatting.
 - **Provider Infra**: Centralized endpoint URL construction in `BaseConfig::build_endpoint()` and reused it for chat/embeddings endpoints to remove duplicated formatting logic.

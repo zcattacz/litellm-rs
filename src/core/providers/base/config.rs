@@ -136,7 +136,7 @@ impl BaseConfig {
     /// Default
     pub fn for_provider(provider: &str) -> Self {
         let normalized_provider = Self::normalize_provider_name(provider);
-        let mut config = Self::from_env(&normalized_provider);
+        let mut config = Self::from_env(provider);
 
         // Default
         if config.api_base.is_none() {
@@ -693,6 +693,10 @@ mod tests {
         assert_eq!(
             BaseConfig::provider_env_key("mixed_case", "TIMEOUT"),
             "MIXED_CASE_TIMEOUT"
+        );
+        assert_eq!(
+            BaseConfig::provider_env_key(" OpenAI ", "ORGANIZATION"),
+            "OPENAI_ORGANIZATION"
         );
     }
 
