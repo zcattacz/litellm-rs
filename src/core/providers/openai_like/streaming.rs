@@ -6,10 +6,7 @@ use bytes::Bytes;
 use futures::Stream;
 use std::pin::Pin;
 
-use super::error::OpenAILikeError;
 use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEStream};
-use crate::core::providers::unified_provider::ProviderError;
-use crate::core::types::responses::ChatChunk;
 
 /// OpenAI-like uses OpenAI-compatible SSE format
 pub type OpenAILikeStream = UnifiedSSEStream<
@@ -23,55 +20,6 @@ pub fn create_openai_like_stream(
 ) -> OpenAILikeStream {
     let transformer = OpenAICompatibleTransformer::new("openai_like");
     UnifiedSSEStream::new(Box::pin(stream), transformer)
-}
-
-/// Wrapper stream that converts ProviderError to OpenAILikeError for backward compatibility
-pub struct OpenAILikeStreamCompat {
-    inner: OpenAILikeStream,
-}
-
-impl OpenAILikeStreamCompat {
-    pub fn new(stream: impl Stream<Item = Result<Bytes, reqwest::Error>> + Send + 'static) -> Self {
-        Self {
-            inner: create_openai_like_stream(stream),
-        }
-    }
-}
-
-impl Stream for OpenAILikeStreamCompat {
-    type Item = Result<ChatChunk, OpenAILikeError>;
-
-    fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
-        use std::pin::Pin;
-        use std::task::Poll;
-
-        match Pin::new(&mut self.inner).poll_next(cx) {
-            Poll::Ready(Some(Ok(chunk))) => Poll::Ready(Some(Ok(chunk))),
-            Poll::Ready(Some(Err(e))) => Poll::Ready(Some(Err(provider_error_to_openai_like(e)))),
-            Poll::Ready(None) => Poll::Ready(None),
-            Poll::Pending => Poll::Pending,
-        }
-    }
-}
-
-/// Convert ProviderError to OpenAILikeError
-/// Since OpenAILikeError is now an alias for ProviderError, this is essentially a passthrough
-fn provider_error_to_openai_like(e: ProviderError) -> OpenAILikeError {
-    // Since OpenAILikeError is a type alias for ProviderError, we can just return it directly
-    // But we update the provider field to ensure consistency
-    match e {
-        ProviderError::ResponseParsing { message, .. } => {
-            OpenAILikeError::response_parsing("openai_like", message)
-        }
-        ProviderError::Network { message, .. } => OpenAILikeError::other("openai_like", message),
-        ProviderError::Streaming { message, .. } => {
-            OpenAILikeError::streaming_error("openai_like", "chat", None, None, message)
-        }
-        _ => OpenAILikeError::other("openai_like", e.to_string()),
-    }
 }
 
 #[cfg(test)]
@@ -132,19 +80,5 @@ mod tests {
 
         let second_chunk = openai_like_stream.next().await;
         assert!(second_chunk.is_none());
-    }
-
-    #[test]
-    fn test_provider_error_conversion() {
-        let provider_err = ProviderError::ResponseParsing {
-            provider: "test",
-            message: "Invalid JSON".to_string(),
-        };
-        let openai_like_err = provider_error_to_openai_like(provider_err);
-
-        assert!(matches!(
-            openai_like_err,
-            OpenAILikeError::ResponseParsing { .. }
-        ));
     }
 }

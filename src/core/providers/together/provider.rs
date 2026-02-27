@@ -425,7 +425,7 @@ impl LLMProvider for TogetherProvider {
         }
 
         // Create SSE stream
-        let stream = super::streaming::TogetherStream::new(response.bytes_stream());
+        let stream = super::streaming::create_together_stream(response.bytes_stream());
         Ok(Box::pin(stream))
     }
 

@@ -552,7 +552,7 @@ impl LLMProvider for WatsonxProvider {
         }
 
         // Create SSE stream
-        let stream = super::streaming::WatsonxStream::new(response.bytes_stream());
+        let stream = super::streaming::create_watsonx_stream(response.bytes_stream());
         Ok(Box::pin(stream))
     }
 

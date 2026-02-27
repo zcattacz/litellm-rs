@@ -3,9 +3,8 @@
 //! Uses the unified SSE parser for consistent streaming across providers.
 //! Together AI uses OpenAI-compatible SSE format.
 
-use super::error::TogetherError;
 use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEStream};
-use crate::core::providers::base::HttpErrorMapper;
+use crate::core::providers::unified_provider::ProviderError;
 use crate::core::types::responses::{ChatChunk, ChatDelta, ChatResponse, ChatStreamChoice};
 use crate::core::types::{message::MessageContent, message::MessageRole};
 use bytes::Bytes;
@@ -26,47 +25,11 @@ pub fn create_together_stream(
     UnifiedSSEStream::new(Box::pin(stream), transformer)
 }
 
-/// Wrapper stream that converts ProviderError to TogetherError for backward compatibility
-pub struct TogetherStream {
-    inner: TogetherStreamInner,
-}
-
-impl TogetherStream {
-    pub fn new(stream: impl Stream<Item = Result<Bytes, reqwest::Error>> + Send + 'static) -> Self {
-        Self {
-            inner: create_together_stream(stream),
-        }
-    }
-}
-
-impl Stream for TogetherStream {
-    type Item = Result<ChatChunk, TogetherError>;
-
-    fn poll_next(
-        mut self: Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
-        use std::pin::Pin;
-        use std::task::Poll;
-
-        match Pin::new(&mut self.inner).poll_next(cx) {
-            Poll::Ready(Some(Ok(chunk))) => Poll::Ready(Some(Ok(chunk))),
-            Poll::Ready(Some(Err(e))) => Poll::Ready(Some(Err(HttpErrorMapper::map_status_code(
-                "together",
-                500,
-                &format!("Streaming error: {}", e),
-            )))),
-            Poll::Ready(None) => Poll::Ready(None),
-            Poll::Pending => Poll::Pending,
-        }
-    }
-}
-
 /// Create a fake stream from a complete response
 /// Used when the API doesn't support streaming for certain features
 pub async fn create_fake_stream(
     response: ChatResponse,
-) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, TogetherError>> + Send>>, TogetherError> {
+) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, ProviderError>> + Send>>, ProviderError> {
     // Convert response to chunks
     let chunks = response_to_chunks(response);
     let stream = futures::stream::iter(chunks.into_iter().map(Ok));
