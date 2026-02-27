@@ -102,6 +102,17 @@ fn test_provider_config_all_types() {
 }
 
 #[test]
+fn test_provider_config_local_catalog_type_allows_empty_api_key() {
+    let config = ProviderConfig {
+        name: "local-vllm".to_string(),
+        provider_type: "vllm".to_string(),
+        api_key: "".to_string(),
+        ..Default::default()
+    };
+    assert!(config.validate().is_ok());
+}
+
+#[test]
 fn test_provider_config_weight_validation() {
     let mut config = ProviderConfig {
         name: "test".to_string(),

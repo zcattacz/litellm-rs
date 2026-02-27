@@ -121,7 +121,13 @@ impl Validate for ProviderConfig {
             ));
         }
 
-        if self.api_key.is_empty() {
+        let requires_api_key = crate::core::providers::registry::get_definition(
+            &provider_selector.to_lowercase(),
+        )
+        .map(|def| !def.skip_api_key)
+        .unwrap_or(true);
+
+        if requires_api_key && self.api_key.is_empty() {
             return Err(format!("Provider {} API key cannot be empty", self.name));
         }
 

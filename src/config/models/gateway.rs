@@ -136,11 +136,21 @@ fn load_providers_from_env() -> crate::utils::error::gateway_error::Result<Vec<P
     for name in provider_names {
         let type_key = provider_env_name(&name, "TYPE");
         let api_key_key = provider_env_name(&name, "API_KEY");
+        let provider_type = required_env(&type_key)?;
+        let selector = provider_type.to_lowercase();
+        let skip_api_key = crate::core::providers::registry::get_definition(&selector)
+            .map(|def| def.skip_api_key)
+            .unwrap_or(false);
+        let api_key = if skip_api_key {
+            env_var(&api_key_key).unwrap_or_default()
+        } else {
+            required_env(&api_key_key)?
+        };
 
         let mut provider = ProviderConfig {
             name: name.clone(),
-            provider_type: required_env(&type_key)?,
-            api_key: required_env(&api_key_key)?,
+            provider_type,
+            api_key,
             ..ProviderConfig::default()
         };
 
@@ -515,6 +525,25 @@ mod tests {
     }
 
     #[test]
+    fn test_gateway_config_from_env_allows_local_provider_without_api_key() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        clear_test_env();
+        unsafe {
+            env::set_var(ENV_ENABLE_JWT, "true");
+            env::set_var(ENV_JWT_SECRET, "StrongJwtSecretWithMixedCaseAndNumbers1234");
+            env::set_var(ENV_PROVIDERS, "vllm");
+            env::set_var("LITELLM_PROVIDER_VLLM_TYPE", "vllm");
+        }
+
+        let config = GatewayConfig::from_env().unwrap();
+        assert_eq!(config.providers.len(), 1);
+        assert_eq!(config.providers[0].provider_type, "vllm");
+        assert_eq!(config.providers[0].api_key, "");
+
+        clear_test_env();
+    }
+
+    #[test]
     fn test_gateway_config_from_env_requires_providers() {
         let _guard = ENV_LOCK.lock().unwrap();
         clear_test_env();
@@ -610,6 +639,14 @@ mod tests {
         let result = config.validate();
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("API key"));
+    }
+
+    #[test]
+    fn test_gateway_config_validate_local_provider_without_api_key() {
+        let mut config = create_valid_config();
+        config.providers[0].provider_type = "vllm".to_string();
+        config.providers[0].api_key = "".to_string();
+        assert!(config.validate().is_ok());
     }
 
     #[test]
