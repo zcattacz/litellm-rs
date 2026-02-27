@@ -64,8 +64,8 @@
 > - P0：`completed`（inventory/tracker 文档与基线测试已稳定）
 > - P1：`completed`（基础能力主路径收敛到 `base/*` + 统一 mapper）
 > - P2：`completed`（Router strategy 已与 runtime canonical 模型对齐，legacy 未支持策略已移除）
-> - P3：`in_progress`（Tier 1 catalog-first、streaming 分发去硬编码已落地，Tier 2/3 继续规范化）
-> - P4：`in_progress`（catalog/factory/dispatch 一致性守卫已接入 CI，legacy 兼容层删除仍在收尾）
+> - P3：`in_progress`（Tier 1 catalog-first、streaming 分发去硬编码已落地；openai_like/together/watsonx 的 stream compat wrapper 已移除，Tier 2/3 继续规范化）
+> - P4：`in_progress`（catalog/factory/dispatch 一致性守卫与 schema 重复检查守卫已接入 CI，legacy 兼容层删除仍在收尾）
 
 ## Phase P0：基线冻结与安全护栏（先做）
 

@@ -13,7 +13,7 @@
 | B2 | Tier 1（次批 8-15 个） | 统一配置 + 流式处理 | DONE | main 历史收敛 | 已合入 |
 | B3 | Tier 2（hooks） | 宏 + patch hooks | IN_PROGRESS | main | 持续中 |
 | B4 | Tier 3（特例） | 手写实现规范化 | IN_PROGRESS | main | 持续中 |
-| B5 | 收尾 | 删除兼容层 + CI 守卫 | IN_PROGRESS | main | 持续中 |
+| B5 | 收尾 | 删除兼容层 + CI 守卫 | IN_PROGRESS | main | 守卫已接入，兼容层继续收敛 |
 
 ---
 
@@ -43,7 +43,7 @@
 | openai | 3 | 手写 | 手写规范化 | ☑ | ☑ | ☑ | ☑ | ☑ | IN_PROGRESS | `from_config_async` 直接分支 |
 | anthropic | 3 | 手写 | 手写规范化 | ☑ | ☑ | ☑ | ☑ | ☑ | IN_PROGRESS | 非 OpenAI 协议 |
 | bedrock | 3 | 手写 | 手写规范化 | ☑ | ☑ | ☑ | ☑ | ☑ | IN_PROGRESS | SigV4 特例 |
-| azure | 2 | 混合 | 宏+hooks / 手写规范化 | ☑ | ☑ | ☑ | ☑ | ☑ | IN_PROGRESS | 需持续收敛 |
+| azure | 2 | 混合 | 宏+hooks / 手写规范化 | ☑ | ☑ | ☑ | ☑ | ☑ | IN_PROGRESS | 已移除 `AzureError` 兼容别名，统一 `ProviderError` |
 | cloudflare | 2 | 直接分支 | 手写规范化 | ☑ | ☑ | ☑ | ☑ | ☑ | IN_PROGRESS | `from_config_async` 直接分支 |
 | vllm | 1 | catalog(local, skip_api_key) | 统一骨架 | ☑ | ☑ | ☑ | ☑ | ☑ | DONE | 已支持无 key 创建（env + validate） |
 
@@ -60,11 +60,19 @@
 - `cargo test test_catalog_entries_are_supported_selectors --lib` ✅
 - `cargo test test_catalog_entries_are_creatable_via_factory --lib` ✅
 - `cargo test core::router::gateway_config::tests:: --lib` ✅
+- `bash scripts/guards/check_schema_duplicates.sh` ✅
+- `cargo test core::providers::azure:: --lib` ✅（399 passed）
+- `cargo test core::providers::openai_like::streaming::tests:: --lib` ✅
+- `cargo test core::providers::together:: --lib` ✅
+- `cargo test core::providers::watsonx:: --lib` ✅
+- `cargo check --all-features` ✅
+- `cargo test --all-features --lib` ✅（10213 passed）
+- `cargo test --all-features --test lib` ✅（126 passed）
 
 ---
 
 ## 4) 未完成项（下一步）
 
 1. **B3/B4 深化**：继续将 Tier 2/3 provider 的错误映射、流式和配置路径规范化，减少局部差异实现。
-2. **B5 收尾**：删除剩余 legacy 兼容层，并补齐 schema 重复检查守卫。
+2. **B5 收尾**：schema 重复检查守卫已接入；继续删除剩余 legacy 兼容层。
 3. 将本跟踪表扩展到全量 provider（当前先覆盖关键路径与代表性样本）。
