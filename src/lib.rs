@@ -115,9 +115,7 @@ pub use core::types::message::{MessageContent, MessageRole};
 
 // Export core functionality
 pub use core::models::{RequestContext, openai::*};
-pub use core::providers::{
-    Provider, ProviderError, ProviderRegistry, ProviderType, UnifiedProviderError,
-};
+pub use core::providers::{Provider, ProviderError, ProviderRegistry, ProviderType};
 
 // Export unified router
 pub use core::router::{

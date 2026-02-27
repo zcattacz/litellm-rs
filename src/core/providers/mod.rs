@@ -149,7 +149,7 @@ use crate::core::types::{context::RequestContext, model::ProviderCapability};
 use chrono::{DateTime, Utc};
 pub use contextual_error::ContextualError;
 pub use provider_registry::ProviderRegistry;
-pub use unified_provider::{ProviderError, UnifiedProviderError}; // Both for compatibility
+pub use unified_provider::ProviderError;
 
 /// Returns true if a provider selector can be instantiated by the current runtime.
 ///
@@ -530,7 +530,7 @@ impl Provider {
         &self,
         request: ChatRequest,
         context: RequestContext,
-    ) -> Result<ChatResponse, UnifiedProviderError> {
+    ) -> Result<ChatResponse, ProviderError> {
         use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
         dispatch_provider_async!(self, chat_completion, request, context)
     }
@@ -553,7 +553,7 @@ impl Provider {
         model: &str,
         input_tokens: u32,
         output_tokens: u32,
-    ) -> Result<f64, UnifiedProviderError> {
+    ) -> Result<f64, ProviderError> {
         // Use unified pricing database instead of each provider implementing its own
         let usage = crate::core::providers::base::pricing::Usage {
             prompt_tokens: input_tokens,
@@ -573,12 +573,12 @@ impl Provider {
     ) -> Result<
         std::pin::Pin<
             Box<
-                dyn futures::Stream<Item = Result<ChatChunk, UnifiedProviderError>>
+                dyn futures::Stream<Item = Result<ChatChunk, ProviderError>>
                     + Send
                     + 'static,
             >,
         >,
-        UnifiedProviderError,
+        ProviderError,
     > {
         use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
         dispatch_provider_async!(self, chat_completion_stream, request, context)
@@ -589,13 +589,13 @@ impl Provider {
         &self,
         request: EmbeddingRequest,
         context: RequestContext,
-    ) -> Result<EmbeddingResponse, UnifiedProviderError> {
+    ) -> Result<EmbeddingResponse, ProviderError> {
         use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 
         match self {
             Provider::OpenAI(p) => LLMProvider::embeddings(p, request, context).await,
             Provider::Azure(p) => LLMProvider::embeddings(p, request, context).await,
-            _ => Err(UnifiedProviderError::not_implemented(
+            _ => Err(ProviderError::not_implemented(
                 "unknown",
                 format!("Embeddings not supported by {}", self.name()),
             )),
@@ -607,12 +607,12 @@ impl Provider {
         &self,
         request: ImageGenerationRequest,
         context: RequestContext,
-    ) -> Result<ImageGenerationResponse, UnifiedProviderError> {
+    ) -> Result<ImageGenerationResponse, ProviderError> {
         use crate::core::traits::provider::llm_provider::trait_definition::LLMProvider;
 
         match self {
             Provider::OpenAI(p) => LLMProvider::image_generation(p, request, context).await,
-            _ => Err(UnifiedProviderError::not_implemented(
+            _ => Err(ProviderError::not_implemented(
                 "unknown",
                 format!("Image generation not supported by {}", self.name()),
             )),
@@ -623,7 +623,7 @@ impl Provider {
     pub async fn get_model(
         &self,
         model_id: &str,
-    ) -> Result<Option<crate::core::types::model::ModelInfo>, UnifiedProviderError> {
+    ) -> Result<Option<crate::core::types::model::ModelInfo>, ProviderError> {
         // Look through available models for this provider
         let models = self.list_models();
         for model in models {

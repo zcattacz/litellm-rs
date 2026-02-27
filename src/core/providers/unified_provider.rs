@@ -734,9 +734,6 @@ impl ProviderError {
 
 // Error conversions are in provider_error_conversions.rs module
 
-/// Type alias for backward compatibility
-pub type UnifiedProviderError = ProviderError;
-
 /// Generate standard provider error helper functions.
 ///
 /// Creates 9 free functions for a provider: `{prefix}_config_error`, `{prefix}_auth_error`,
