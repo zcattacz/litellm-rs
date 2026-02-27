@@ -46,6 +46,9 @@ jobs:
         cargo test test_catalog_entries_are_creatable_via_factory --lib
         cargo test core::router::gateway_config::tests:: --lib
 
+    - name: Schema duplication guards
+      run: bash scripts/guards/check_schema_duplicates.sh
+
   # 测试 + 覆盖率 (合并，避免重复编译)
   test:
     name: Test & Coverage
