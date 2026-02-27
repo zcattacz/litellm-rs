@@ -7,48 +7,20 @@ use super::config::RouterConfig;
 use super::deployment::{Deployment, DeploymentConfig};
 use super::error::RouterError;
 use super::unified::Router;
-use crate::config::models::router::{GatewayRouterConfig, RoutingStrategyConfig};
+use crate::config::models::router::GatewayRouterConfig;
 use crate::config::models::provider::ProviderConfig;
 use crate::core::providers::{Provider, create_provider};
 
 /// Build runtime router config from gateway YAML router config.
-pub fn runtime_router_config_from_gateway(config: &GatewayRouterConfig) -> Result<RouterConfig, String> {
-    let routing_strategy = match &config.strategy {
-        RoutingStrategyConfig::RoundRobin => super::config::RoutingStrategy::RoundRobin,
-        RoutingStrategyConfig::LeastLatency => super::config::RoutingStrategy::LatencyBased,
-        RoutingStrategyConfig::LeastCost => super::config::RoutingStrategy::CostBased,
-        RoutingStrategyConfig::Random => super::config::RoutingStrategy::SimpleShuffle,
-        RoutingStrategyConfig::Weighted { .. } => {
-            return Err(
-                "router.strategy.type=weighted is not yet supported by runtime unified router".to_string(),
-            );
-        }
-        RoutingStrategyConfig::Priority { .. } => {
-            return Err(
-                "router.strategy.type=priority is not yet supported by runtime unified router".to_string(),
-            );
-        }
-        RoutingStrategyConfig::ABTest { .. } => {
-            return Err(
-                "router.strategy.type=ab_test is not yet supported by runtime unified router".to_string(),
-            );
-        }
-        RoutingStrategyConfig::Custom { .. } => {
-            return Err(
-                "router.strategy.type=custom is not yet supported by runtime unified router".to_string(),
-            );
-        }
-    };
-
-    Ok(RouterConfig {
-        routing_strategy,
+pub fn runtime_router_config_from_gateway(config: &GatewayRouterConfig) -> RouterConfig {
+    RouterConfig {
+        routing_strategy: config.strategy,
         // Gateway circuit-breaker thresholds are the closest semantic mapping here.
         allowed_fails: config.circuit_breaker.failure_threshold,
         cooldown_time_secs: config.circuit_breaker.recovery_timeout,
-        // Keep other defaults until the gateway/router schemas are fully unified.
         enable_pre_call_checks: config.load_balancer.health_check_enabled,
         ..RouterConfig::default()
-    })
+    }
 }
 
 impl Router {
@@ -164,18 +136,18 @@ mod tests {
     #[test]
     fn test_runtime_router_config_from_gateway_round_robin() {
         let gateway = GatewayRouterConfig::default();
-        let runtime = runtime_router_config_from_gateway(&gateway).unwrap();
+        let runtime = runtime_router_config_from_gateway(&gateway);
         assert_eq!(runtime.routing_strategy, super::super::config::RoutingStrategy::RoundRobin);
     }
 
     #[test]
     fn test_runtime_router_config_from_gateway_strategy_mapping() {
         let gateway = GatewayRouterConfig {
-            strategy: RoutingStrategyConfig::LeastLatency,
+            strategy: RoutingStrategyConfig::LatencyBased,
             circuit_breaker: CircuitBreakerConfig::default(),
             load_balancer: LoadBalancerConfig::default(),
         };
-        let runtime = runtime_router_config_from_gateway(&gateway).unwrap();
+        let runtime = runtime_router_config_from_gateway(&gateway);
         assert_eq!(
             runtime.routing_strategy,
             super::super::config::RoutingStrategy::LatencyBased
@@ -194,21 +166,8 @@ mod tests {
             },
             load_balancer: LoadBalancerConfig::default(),
         };
-        let runtime = runtime_router_config_from_gateway(&gateway).unwrap();
+        let runtime = runtime_router_config_from_gateway(&gateway);
         assert_eq!(runtime.allowed_fails, 8);
         assert_eq!(runtime.cooldown_time_secs, 45);
-    }
-
-    #[test]
-    fn test_runtime_router_config_from_gateway_rejects_weighted() {
-        let gateway = GatewayRouterConfig {
-            strategy: RoutingStrategyConfig::Weighted {
-                weights: std::collections::HashMap::new(),
-            },
-            circuit_breaker: CircuitBreakerConfig::default(),
-            load_balancer: LoadBalancerConfig::default(),
-        };
-        let result = runtime_router_config_from_gateway(&gateway);
-        assert!(result.is_err());
     }
 }

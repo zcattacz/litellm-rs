@@ -17,7 +17,8 @@
 /// - **CostBased**: Select deployment with lowest cost (good for cost optimization)
 /// - **RateLimitAware**: Avoid deployments near rate limits (good for avoiding 429s)
 /// - **RoundRobin**: Simple round-robin selection (good for predictable distribution)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum RoutingStrategy {
     /// Weighted random selection (considers deployment weights)
     #[default]
