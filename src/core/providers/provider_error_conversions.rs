@@ -43,7 +43,7 @@ impl From<crate::core::types::errors::OpenAIError> for ProviderError {
     }
 }
 
-// AzureError is now a type alias for ProviderError, no conversion needed
+// Azure provider uses ProviderError directly, no conversion needed
 
 // Add more error type conversions for better interoperability
 impl From<Box<dyn std::error::Error + Send + Sync>> for ProviderError {

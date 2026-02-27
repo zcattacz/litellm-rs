@@ -12,7 +12,7 @@ use crate::core::types::{
 };
 
 use super::config::AzureConfig;
-use super::error::{AzureError, azure_api_error, azure_config_error, azure_header_error};
+use super::error::{azure_api_error, azure_config_error, azure_header_error};
 use super::utils::{AzureEndpointType, AzureUtils};
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::provider::ProviderConfig;
@@ -27,7 +27,7 @@ pub struct AzureEmbeddingHandler {
 
 impl AzureEmbeddingHandler {
     /// Create new embedding handler
-    pub fn new(config: AzureConfig) -> Result<Self, AzureError> {
+    pub fn new(config: AzureConfig) -> Result<Self, ProviderError> {
         let client = create_custom_client(ProviderConfig::timeout(&config))
             .map_err(|e| azure_config_error(format!("Failed to create HTTP client: {}", e)))?;
 
@@ -35,7 +35,7 @@ impl AzureEmbeddingHandler {
     }
 
     /// Build request headers
-    async fn build_headers(&self) -> Result<HeaderMap, AzureError> {
+    async fn build_headers(&self) -> Result<HeaderMap, ProviderError> {
         let mut headers = HeaderMap::new();
 
         // Add API key
@@ -78,7 +78,7 @@ impl AzureEmbeddingHandler {
         &self,
         request: EmbeddingRequest,
         _context: RequestContext,
-    ) -> Result<EmbeddingResponse, AzureError> {
+    ) -> Result<EmbeddingResponse, ProviderError> {
         // Validate request
         AzureEmbeddingUtils::validate_request(&request)?;
 
@@ -137,7 +137,7 @@ pub struct AzureEmbeddingUtils;
 
 impl AzureEmbeddingUtils {
     /// Validate embedding request
-    pub fn validate_request(request: &EmbeddingRequest) -> Result<(), AzureError> {
+    pub fn validate_request(request: &EmbeddingRequest) -> Result<(), ProviderError> {
         // Check if input is empty based on the enum variant
         let is_empty = match &request.input {
             crate::core::types::embedding::EmbeddingInput::Text(text) => text.is_empty(),
@@ -163,7 +163,7 @@ impl AzureEmbeddingUtils {
     }
 
     /// Transform request to Azure format
-    pub fn transform_request(request: &EmbeddingRequest) -> Result<Value, AzureError> {
+    pub fn transform_request(request: &EmbeddingRequest) -> Result<Value, ProviderError> {
         let mut body = json!({
             "model": request.model,
         });
@@ -198,7 +198,7 @@ impl AzureEmbeddingUtils {
     pub fn transform_response(
         response: Value,
         model: &str,
-    ) -> Result<EmbeddingResponse, AzureError> {
+    ) -> Result<EmbeddingResponse, ProviderError> {
         let data = response["data"]
             .as_array()
             .ok_or_else(|| ProviderError::serialization("azure", "Missing data array"))?
@@ -219,7 +219,7 @@ impl AzureEmbeddingUtils {
                     object: "embedding".to_string(),
                 })
             })
-            .collect::<Result<Vec<_>, AzureError>>()?;
+            .collect::<Result<Vec<_>, ProviderError>>()?;
 
         // Calculate usage
         let usage = response["usage"]

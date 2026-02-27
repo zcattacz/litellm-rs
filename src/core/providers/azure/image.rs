@@ -12,7 +12,7 @@ use crate::core::types::{
 };
 
 use super::config::AzureConfig;
-use super::error::{AzureError, azure_api_error, azure_config_error, azure_header_error};
+use super::error::{azure_api_error, azure_config_error, azure_header_error};
 use super::utils::{AzureEndpointType, AzureUtils};
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::provider::ProviderConfig;
@@ -27,7 +27,7 @@ pub struct AzureImageHandler {
 
 impl AzureImageHandler {
     /// Create new image generation handler
-    pub fn new(config: AzureConfig) -> Result<Self, AzureError> {
+    pub fn new(config: AzureConfig) -> Result<Self, ProviderError> {
         let client = create_custom_client(ProviderConfig::timeout(&config))
             .map_err(|e| azure_config_error(format!("Failed to create HTTP client: {}", e)))?;
 
@@ -35,7 +35,7 @@ impl AzureImageHandler {
     }
 
     /// Build request headers
-    async fn build_headers(&self) -> Result<HeaderMap, AzureError> {
+    async fn build_headers(&self) -> Result<HeaderMap, ProviderError> {
         let mut headers = HeaderMap::new();
 
         // Add API key
@@ -78,7 +78,7 @@ impl AzureImageHandler {
         &self,
         request: ImageGenerationRequest,
         _context: RequestContext,
-    ) -> Result<ImageGenerationResponse, AzureError> {
+    ) -> Result<ImageGenerationResponse, ProviderError> {
         // Validate request
         AzureImageUtils::validate_request(&request)?;
 
@@ -137,7 +137,7 @@ impl AzureImageHandler {
         &self,
         request: ImageEditRequest,
         _context: RequestContext,
-    ) -> Result<ImageGenerationResponse, AzureError> {
+    ) -> Result<ImageGenerationResponse, ProviderError> {
         // Get deployment name
         let model_name = request.model.as_str();
         let deployment = self.config.get_effective_deployment_name(model_name);
@@ -217,7 +217,7 @@ pub struct AzureImageUtils;
 
 impl AzureImageUtils {
     /// Validate image generation request
-    pub fn validate_request(request: &ImageGenerationRequest) -> Result<(), AzureError> {
+    pub fn validate_request(request: &ImageGenerationRequest) -> Result<(), ProviderError> {
         if request.prompt.is_empty() {
             return Err(azure_config_error("Prompt cannot be empty"));
         }
@@ -266,7 +266,7 @@ impl AzureImageUtils {
     }
 
     /// Transform request to Azure format
-    pub fn transform_request(request: &ImageGenerationRequest) -> Result<Value, AzureError> {
+    pub fn transform_request(request: &ImageGenerationRequest) -> Result<Value, ProviderError> {
         let mut body = json!({
             "prompt": request.prompt,
         });
@@ -300,7 +300,7 @@ impl AzureImageUtils {
     }
 
     /// Transform Azure response to standard format
-    pub fn transform_response(response: Value) -> Result<ImageGenerationResponse, AzureError> {
+    pub fn transform_response(response: Value) -> Result<ImageGenerationResponse, ProviderError> {
         let created = response["created"].as_u64().unwrap_or_else(|| {
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

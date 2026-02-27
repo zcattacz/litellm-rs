@@ -85,7 +85,6 @@ pub trait BaseBatchHandler {
 }
 use crate::core::providers::azure::client::AzureClient;
 use crate::core::providers::azure::config::AzureConfig;
-use crate::core::providers::azure::error::AzureError;
 use crate::core::providers::azure::utils::AzureUtils;
 
 #[derive(Debug)]
@@ -94,7 +93,7 @@ pub struct AzureBatchHandler {
 }
 
 impl AzureBatchHandler {
-    pub fn new(config: AzureConfig) -> Result<Self, AzureError> {
+    pub fn new(config: AzureConfig) -> Result<Self, ProviderError> {
         let client = AzureClient::new(config)?;
         Ok(Self { client })
     }

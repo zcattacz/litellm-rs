@@ -198,7 +198,6 @@ pub trait BaseAssistantHandler {
 }
 use super::client::AzureClient;
 use super::config::AzureConfig;
-use super::error::AzureError;
 use super::utils::AzureUtils;
 
 #[derive(Debug)]
@@ -207,7 +206,7 @@ pub struct AzureAssistantHandler {
 }
 
 impl AzureAssistantHandler {
-    pub fn new(config: AzureConfig) -> Result<Self, AzureError> {
+    pub fn new(config: AzureConfig) -> Result<Self, ProviderError> {
         let client = AzureClient::new(config)?;
         Ok(Self { client })
     }

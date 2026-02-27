@@ -17,10 +17,11 @@ pub mod utils;
 pub use client::{AzureClient, AzureConfigFactory, AzureRateLimitInfo};
 pub use config::{AzureConfig, AzureModelInfo};
 pub use error::{
-    AzureError, AzureErrorMapper, azure_ad_error, azure_api_error, azure_config_error,
+    AzureErrorMapper, azure_ad_error, azure_api_error, azure_config_error,
     azure_deployment_error, azure_header_error,
 };
 pub use utils::{AzureEndpointType, AzureUtils};
+pub use crate::core::providers::unified_provider::ProviderError;
 
 // Use the new unified cost calculation system
 pub use crate::core::cost::providers::azure::{
@@ -75,7 +76,7 @@ pub struct AzureOpenAIProvider {
 
 impl AzureOpenAIProvider {
     /// Create new Azure OpenAI provider
-    pub fn new(config: AzureConfig) -> Result<Self, AzureError> {
+    pub fn new(config: AzureConfig) -> Result<Self, ProviderError> {
         let chat_handler = AzureChatHandler::new(config.clone())?;
         let embedding_handler = AzureEmbeddingHandler::new(config.clone())?;
         let image_handler = AzureImageHandler::new(config.clone())?;
@@ -91,7 +92,7 @@ impl AzureOpenAIProvider {
     }
 
     /// Create from configuration
-    pub fn from_config(config: AzureConfig) -> Result<Self, AzureError> {
+    pub fn from_config(config: AzureConfig) -> Result<Self, ProviderError> {
         Self::new(config)
     }
 
@@ -106,7 +107,7 @@ impl AzureOpenAIProvider {
     }
 
     /// Create from environment variables
-    pub fn from_env() -> Result<Self, AzureError> {
+    pub fn from_env() -> Result<Self, ProviderError> {
         let config = AzureConfig::new();
         Self::new(config)
     }
@@ -115,7 +116,7 @@ impl AzureOpenAIProvider {
     pub fn with_api_key(
         api_key: impl Into<String>,
         endpoint: impl Into<String>,
-    ) -> Result<Self, AzureError> {
+    ) -> Result<Self, ProviderError> {
         let config = AzureConfig::new()
             .with_api_key(api_key.into())
             .with_azure_endpoint(endpoint.into());
@@ -129,7 +130,7 @@ impl AzureOpenAIProvider {
 #[async_trait]
 impl LLMProvider for AzureOpenAIProvider {
     type Config = AzureConfig;
-    type Error = AzureError;
+    type Error = ProviderError;
     type ErrorMapper = AzureErrorMapper;
 
     fn name(&self) -> &'static str {
@@ -272,18 +273,18 @@ pub struct AzureProviderFactory;
 
 impl AzureProviderFactory {
     /// Create provider with default configuration
-    pub fn create_default() -> Result<AzureOpenAIProvider, AzureError> {
+    pub fn create_default() -> Result<AzureOpenAIProvider, ProviderError> {
         let config = AzureConfig::new();
         AzureOpenAIProvider::new(config)
     }
 
     /// Create provider with custom configuration
-    pub fn create_with_config(config: AzureConfig) -> Result<AzureOpenAIProvider, AzureError> {
+    pub fn create_with_config(config: AzureConfig) -> Result<AzureOpenAIProvider, ProviderError> {
         AzureOpenAIProvider::new(config)
     }
 
     /// Create provider from environment variables
-    pub fn create_from_env() -> Result<AzureOpenAIProvider, AzureError> {
+    pub fn create_from_env() -> Result<AzureOpenAIProvider, ProviderError> {
         AzureOpenAIProvider::from_env()
     }
 }

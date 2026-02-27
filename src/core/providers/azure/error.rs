@@ -91,9 +91,6 @@ pub fn extract_azure_error_message(response: &serde_json::Value) -> String {
     response.to_string()
 }
 
-// Re-export ProviderError as AzureError for backward compatibility (temporary)
-pub type AzureError = ProviderError;
-
 #[cfg(test)]
 mod tests {
     use super::*;

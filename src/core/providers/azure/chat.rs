@@ -19,7 +19,7 @@ use crate::core::types::{
 };
 
 use super::config::AzureConfig;
-use super::error::{AzureError, azure_api_error, azure_config_error};
+use super::error::{azure_api_error, azure_config_error};
 use super::utils::{AzureEndpointType, AzureUtils};
 use crate::core::providers::base::{
     HeaderPair, apply_headers, header, header_owned, header_static,
@@ -37,7 +37,7 @@ pub struct AzureChatHandler {
 
 impl AzureChatHandler {
     /// Create new chat handler
-    pub fn new(config: AzureConfig) -> Result<Self, AzureError> {
+    pub fn new(config: AzureConfig) -> Result<Self, ProviderError> {
         let client = create_custom_client(ProviderConfig::timeout(&config))
             .map_err(|e| azure_config_error(format!("Failed to create HTTP client: {}", e)))?;
 
@@ -45,7 +45,7 @@ impl AzureChatHandler {
     }
 
     /// Build request headers using the unified HeaderPair pattern.
-    async fn get_request_headers(&self) -> Result<Vec<HeaderPair>, AzureError> {
+    async fn get_request_headers(&self) -> Result<Vec<HeaderPair>, ProviderError> {
         let mut headers = Vec::with_capacity(4);
 
         // Add API key
@@ -73,7 +73,7 @@ impl AzureChatHandler {
         &self,
         request: ChatRequest,
         _context: RequestContext,
-    ) -> Result<ChatResponse, AzureError> {
+    ) -> Result<ChatResponse, ProviderError> {
         // Get deployment name
         let deployment = self.config.get_effective_deployment_name(&request.model);
 
@@ -124,7 +124,7 @@ impl AzureChatHandler {
         &self,
         mut request: ChatRequest,
         _context: RequestContext,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, AzureError>> + Send>>, AzureError> {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatChunk, ProviderError>> + Send>>, ProviderError> {
         // Force streaming
         request.stream = true;
 
@@ -210,7 +210,7 @@ impl AzureChatHandler {
     }
 
     /// Transform request to Azure format
-    pub fn transform_request(&self, request: &ChatRequest) -> Result<Value, AzureError> {
+    pub fn transform_request(&self, request: &ChatRequest) -> Result<Value, ProviderError> {
         let mut body = json!({
             "messages": request.messages.iter().map(|msg| {
                 self.transform_message(msg)
@@ -262,7 +262,7 @@ impl AzureChatHandler {
     }
 
     /// Transform message to Azure format
-    fn transform_message(&self, message: &ChatMessage) -> Result<Value, AzureError> {
+    fn transform_message(&self, message: &ChatMessage) -> Result<Value, ProviderError> {
         let mut msg = json!({
             "role": match message.role {
                 MessageRole::System => "system",
@@ -308,7 +308,7 @@ impl AzureChatHandler {
         &self,
         response: Value,
         model: &str,
-    ) -> Result<ChatResponse, AzureError> {
+    ) -> Result<ChatResponse, ProviderError> {
         let choices = response["choices"]
             .as_array()
             .ok_or_else(|| {
@@ -386,7 +386,7 @@ impl AzureChatHandler {
     }
 
     /// Transform streaming chunk
-    fn transform_streaming_chunk(chunk: Value, model: &str) -> Result<ChatChunk, AzureError> {
+    fn transform_streaming_chunk(chunk: Value, model: &str) -> Result<ChatChunk, ProviderError> {
         let choices = if let Some(choices_array) = chunk["choices"].as_array() {
             choices_array
                 .iter()
@@ -452,7 +452,7 @@ pub struct AzureChatUtils;
 
 impl AzureChatUtils {
     /// Validate chat request
-    pub fn validate_request(request: &ChatRequest) -> Result<(), AzureError> {
+    pub fn validate_request(request: &ChatRequest) -> Result<(), ProviderError> {
         if request.messages.is_empty() {
             return Err(azure_config_error("Messages cannot be empty".to_string()));
         }
