@@ -7,11 +7,16 @@ use super::config::RouterConfig;
 use super::deployment::{Deployment, DeploymentConfig};
 use super::error::RouterError;
 use super::unified::Router;
-use crate::config::models::router::GatewayRouterConfig;
 use crate::config::models::provider::ProviderConfig;
+use crate::config::models::router::GatewayRouterConfig;
 use crate::core::providers::{Provider, create_provider};
 
 /// Build runtime router config from gateway YAML router config.
+///
+/// Note: `GatewayRouterConfig` fields `circuit_breaker.min_requests`,
+/// `circuit_breaker.success_threshold`, `load_balancer.sticky_sessions`, and
+/// `load_balancer.session_timeout` are currently not mapped because runtime
+/// `RouterConfig` has no corresponding fields yet.
 pub fn runtime_router_config_from_gateway(config: &GatewayRouterConfig) -> RouterConfig {
     RouterConfig {
         routing_strategy: config.strategy,
@@ -41,12 +46,14 @@ impl Router {
             }
 
             // Create provider instance via the single canonical factory.
-            let provider = create_provider(provider_config.clone()).await.map_err(|e| {
-                RouterError::DeploymentNotFound(format!(
-                    "Failed to create provider {}: {}",
-                    provider_config.name, e
-                ))
-            })?;
+            let provider = create_provider(provider_config.clone())
+                .await
+                .map_err(|e| {
+                    RouterError::DeploymentNotFound(format!(
+                        "Failed to create provider {}: {}",
+                        provider_config.name, e
+                    ))
+                })?;
 
             // Determine which models this deployment serves
             let models: Vec<String> = if !provider_config.models.is_empty() {
@@ -137,7 +144,10 @@ mod tests {
     fn test_runtime_router_config_from_gateway_round_robin() {
         let gateway = GatewayRouterConfig::default();
         let runtime = runtime_router_config_from_gateway(&gateway);
-        assert_eq!(runtime.routing_strategy, super::super::config::RoutingStrategy::RoundRobin);
+        assert_eq!(
+            runtime.routing_strategy,
+            super::super::config::RoutingStrategy::RoundRobin
+        );
     }
 
     #[test]

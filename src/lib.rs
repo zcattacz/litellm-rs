@@ -145,10 +145,30 @@ impl Gateway {
         Ok(Self { config, server })
     }
 
+    /// Build a redacted startup summary suitable for logs.
+    fn startup_summary(&self) -> String {
+        let gateway = &self.config.gateway;
+        format!(
+            "server={{host:{}, port:{}, workers:{:?}}}, providers={}, features={{jwt_auth:{}, api_key_auth:{}, metrics:{}, tracing:{}, caching:{}, semantic_cache:{}, rate_limiting:{}, enterprise:{}}}",
+            gateway.server.host,
+            gateway.server.port,
+            gateway.server.workers,
+            gateway.providers.len(),
+            gateway.auth.enable_jwt,
+            gateway.auth.enable_api_key,
+            gateway.monitoring.metrics.enabled,
+            gateway.monitoring.tracing.enabled,
+            gateway.cache.enabled,
+            gateway.cache.semantic_cache,
+            gateway.rate_limit.enabled,
+            gateway.enterprise.enabled,
+        )
+    }
+
     /// Run the gateway server
     pub async fn run(self) -> Result<()> {
         info!("Starting LiteLLM Gateway");
-        info!("Configuration: {:#?}", self.config);
+        info!("Configuration: {}", self.startup_summary());
 
         // Start HTTP server
         self.server.start().await?;

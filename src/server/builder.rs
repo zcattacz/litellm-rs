@@ -88,7 +88,6 @@ pub async fn run_server() -> Result<()> {
     info!("   GET  /health - Health check");
     info!("   GET  /v1/models - Model list");
     info!("   POST /v1/chat/completions - Chat completions");
-    info!("   POST /v1/completions - Text completions");
     info!("   POST /v1/embeddings - Text embeddings");
 
     server.start().await

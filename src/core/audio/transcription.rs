@@ -1,21 +1,17 @@
 //! Audio transcription functionality
 
-use crate::core::providers::ProviderRegistry;
 use crate::utils::error::gateway_error::{GatewayError, Result};
-use std::sync::Arc;
 use tracing::info;
 
 use super::types::{TranscriptionRequest, TranscriptionResponse};
 
 /// Audio service for handling audio transcription requests
-pub struct TranscriptionService {
-    provider_registry: Arc<ProviderRegistry>,
-}
+pub struct TranscriptionService;
 
 impl TranscriptionService {
     /// Create a new transcription service
-    pub fn new(provider_registry: Arc<ProviderRegistry>) -> Self {
-        Self { provider_registry }
+    pub fn new() -> Self {
+        Self
     }
 
     /// Transcribe audio to text
@@ -31,31 +27,16 @@ impl TranscriptionService {
             return Err(GatewayError::validation("Audio file too large (max 25MB)"));
         }
 
-        // Determine provider from model name
-        let (provider_name, _actual_model) = parse_model_string(&request.model);
-
-        // Find provider
-        let providers = self.provider_registry.all();
-        let provider = providers
-            .iter()
-            .find(|p| p.name() == provider_name)
-            .ok_or_else(|| {
-                GatewayError::internal(format!(
-                    "No provider found for audio transcription: {}",
-                    provider_name
-                ))
-            })?;
-
-        // Route to appropriate provider
-        Err(GatewayError::internal(format!(
-            "Provider {} does not support audio transcription",
-            provider.name()
+        Err(GatewayError::not_implemented(format!(
+            "Audio transcription is not implemented for model {}",
+            request.model
         )))
     }
 }
 
 /// Parse model string to extract provider and model name
 /// Format: "provider/model" or just "model"
+#[allow(dead_code)]
 pub(crate) fn parse_model_string(model: &str) -> (&str, &str) {
     if let Some(idx) = model.find('/') {
         let provider = &model[..idx];

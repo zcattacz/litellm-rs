@@ -93,7 +93,6 @@ impl ErrorMapper<ProviderError> for ReplicateErrorMapper {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

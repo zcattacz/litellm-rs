@@ -4,7 +4,7 @@ use crate::core::models::openai::{
     ChatChoice, ChatCompletionRequest, ChatCompletionResponse, ContentLogprob, Logprobs, Tool,
     ToolChoice, TopLogprob, Usage,
 };
-use crate::core::providers::ProviderRegistry;
+use crate::core::providers::ProviderError;
 use crate::core::streaming::types::{
     ChatCompletionChunk, ChatCompletionChunkChoice, ChatCompletionDelta, Event,
 };
@@ -16,7 +16,7 @@ use crate::server::state::AppState;
 use crate::utils::data::validation::RequestValidator;
 use crate::utils::error::gateway_error::GatewayError;
 use actix_web::http::header::{CACHE_CONTROL, CONTENT_TYPE};
-use actix_web::{HttpRequest, HttpResponse, Result as ActixResult, web};
+use actix_web::{HttpRequest, HttpResponse, ResponseError, Result as ActixResult, web};
 use futures::StreamExt;
 use serde_json::json;
 use tracing::{error, info, warn};
@@ -54,11 +54,13 @@ pub async fn chat_completions(
         handle_streaming_chat_completion(state.get_ref(), request.into_inner(), context).await
     } else {
         // Handle non-streaming request
-        match handle_chat_completion_with_state(state.get_ref(), request.into_inner(), context).await {
+        match handle_chat_completion_with_state(state.get_ref(), request.into_inner(), context)
+            .await
+        {
             Ok(response) => Ok(HttpResponse::Ok().json(response)),
             Err(e) => {
                 error!("Chat completion error: {}", e);
-                Ok(errors::gateway_error_to_response(e))
+                Ok(e.error_response())
             }
         }
     }
@@ -75,27 +77,52 @@ async fn handle_streaming_chat_completion(
         request.model
     );
 
-    let selection = match select_provider_for_model(
-        &state.router,
-        state.unified_router.as_deref(),
+    let unified_router = &state.unified_router;
+
+    // Keep provider selection for capability validation before execution.
+    if let Err(e) = select_provider_for_model(
+        unified_router,
         &request.model,
         ProviderCapability::ChatCompletionStream,
     ) {
-        Ok(selection) => selection,
-        Err(e) => return Ok(errors::gateway_error_to_response(e)),
-    };
+        return Ok(e.error_response());
+    }
 
-    let core_request = match build_core_chat_request(request, selection.model.clone(), true) {
+    let requested_model = request.model.clone();
+    let core_request = match build_core_chat_request(request, requested_model, true) {
         Ok(req) => req,
-        Err(e) => return Ok(errors::gateway_error_to_response(e)),
+        Err(e) => return Ok(e.error_response()),
     };
 
-    match selection
-        .provider
-        .chat_completion_stream(core_request, context)
+    let requested_model = core_request.model.clone();
+    let context_for_execution = context.clone();
+    match unified_router
+        .execute_with_retry(&requested_model, move |deployment_id| {
+            let core_request = core_request.clone();
+            let context = context_for_execution.clone();
+            async move {
+                let deployment =
+                    unified_router
+                        .get_deployment(&deployment_id)
+                        .ok_or_else(|| {
+                            ProviderError::other("router", "Selected deployment not found")
+                        })?;
+
+                let provider = deployment.provider.clone();
+                let selected_model = deployment.model.clone();
+                drop(deployment);
+
+                let mut request_for_provider = core_request.clone();
+                request_for_provider.model = selected_model;
+                let stream = provider
+                    .chat_completion_stream(request_for_provider, context)
+                    .await?;
+                Ok((stream, 0))
+            }
+        })
         .await
     {
-        Ok(mut stream) => {
+        Ok((mut stream, _, _, _)) => {
             let sse_stream = async_stream::stream! {
                 while let Some(chunk_result) = stream.next().await {
                     match chunk_result {
@@ -113,7 +140,7 @@ async fn handle_streaming_chat_completion(
                         }
                         Err(e) => {
                             error!("Stream chunk error: {}", e);
-                            yield Err(GatewayError::internal(format!("Stream chunk error: {}", e)));
+                            yield Err(GatewayError::Provider(e));
                         }
                     }
                 }
@@ -128,55 +155,73 @@ async fn handle_streaming_chat_completion(
                 .insert_header(("Connection", "keep-alive"))
                 .streaming(sse_stream))
         }
-        Err(e) => {
+        Err((e, _)) => {
             error!("Failed to create streaming response: {}", e);
-            Ok(errors::gateway_error_to_response(GatewayError::internal(
-                format!("Streaming error: {}", e),
-            )))
+            Ok(GatewayError::Provider(e).error_response())
         }
     }
 }
 
-/// Handle chat completion via provider pool
-#[allow(dead_code)] // Compatibility path for direct pool-based invocations/tests.
-pub async fn handle_chat_completion_via_pool(
-    pool: &ProviderRegistry,
-    request: ChatCompletionRequest,
-    context: RequestContext,
-) -> Result<ChatCompletionResponse, GatewayError> {
-    handle_chat_completion_internal(pool, None, request, context).await
-}
-
-/// Handle chat completion with app state (supports unified router)
+/// Handle chat completion with app state (UnifiedRouter only)
 pub async fn handle_chat_completion_with_state(
     state: &AppState,
     request: ChatCompletionRequest,
     context: RequestContext,
 ) -> Result<ChatCompletionResponse, GatewayError> {
-    handle_chat_completion_internal(&state.router, state.unified_router.as_deref(), request, context).await
+    let unified_router = &state.unified_router;
+    handle_chat_completion_internal(unified_router, request, context).await
 }
 
 async fn handle_chat_completion_internal(
-    pool: &ProviderRegistry,
-    unified_router: Option<&crate::core::router::UnifiedRouter>,
+    unified_router: &crate::core::router::UnifiedRouter,
     request: ChatCompletionRequest,
     context: RequestContext,
 ) -> Result<ChatCompletionResponse, GatewayError> {
-    let selection = select_provider_for_model(
-        pool,
+    // Keep provider selection for capability validation before execution.
+    select_provider_for_model(
         unified_router,
         &request.model,
         ProviderCapability::ChatCompletion,
     )?;
 
-    let core_request = build_core_chat_request(request, selection.model.clone(), false)?;
-    let core_response = selection
-        .provider
-        .chat_completion(core_request, context)
-        .await
-        .map_err(|e| GatewayError::internal(format!("Chat completion error: {}", e)))?;
+    let requested_model = request.model.clone();
+    let core_request = build_core_chat_request(request, requested_model, false)?;
+    let requested_model = core_request.model.clone();
+    let context_for_execution = context.clone();
 
-    Ok(convert_core_chat_response(core_response))
+    let execution = unified_router
+        .execute_with_retry(&requested_model, move |deployment_id| {
+            let core_request = core_request.clone();
+            let context = context_for_execution.clone();
+            async move {
+                let deployment =
+                    unified_router
+                        .get_deployment(&deployment_id)
+                        .ok_or_else(|| {
+                            ProviderError::other("router", "Selected deployment not found")
+                        })?;
+
+                let provider = deployment.provider.clone();
+                let selected_model = deployment.model.clone();
+                drop(deployment);
+
+                let mut request_for_provider = core_request.clone();
+                request_for_provider.model = selected_model;
+                let response = provider
+                    .chat_completion(request_for_provider, context)
+                    .await?;
+                let tokens = response
+                    .usage
+                    .as_ref()
+                    .map(|usage| u64::from(usage.total_tokens))
+                    .unwrap_or_default();
+                Ok((response, tokens))
+            }
+        })
+        .await
+        .map_err(|(e, _)| GatewayError::Provider(e))?;
+
+    Ok(convert_core_chat_response(execution.0))
 }
 
 fn build_core_chat_request(

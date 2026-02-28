@@ -1,0 +1,8 @@
+id=agent-a59dcac1
+worktree=.claude/worktrees/agent-a59dcac1
+branch=worktree-agent-a59dcac1
+head=9e23284c2f307e6341a1da6f2d1b5e9f84ab7507
+status_lines=23
+working_diff_bytes=36528
+staged_diff_bytes=0
+untracked_count=0

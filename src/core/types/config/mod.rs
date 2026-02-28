@@ -19,8 +19,7 @@ pub mod rate_limit;
 pub mod retry;
 
 use self::{
-    middleware::MiddlewareConfig, observability::ObservabilityConfig,
-    provider::ProviderConfigEntry,
+    middleware::MiddlewareConfig, observability::ObservabilityConfig, provider::ProviderConfigEntry,
 };
 use crate::config::models::server::ServerConfig;
 use serde::{Deserialize, Serialize};

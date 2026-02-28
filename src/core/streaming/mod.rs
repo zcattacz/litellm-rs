@@ -3,11 +3,11 @@
 //! This module provides Server-Sent Events (SSE) streaming support for real-time AI responses.
 
 #[cfg(feature = "gateway")]
+use crate::utils::error::gateway_error::Result;
+#[cfg(feature = "gateway")]
 use actix_web::http::header::{CACHE_CONTROL, CONTENT_TYPE};
 #[cfg(feature = "gateway")]
 use actix_web::{HttpResponse, web};
-#[cfg(feature = "gateway")]
-use crate::utils::error::gateway_error::Result;
 #[cfg(feature = "gateway")]
 use futures::stream::Stream;
 

@@ -3,7 +3,7 @@
 use super::llm_client::LLMClient;
 use crate::sdk::{errors::*, types::*};
 use std::time::SystemTime;
-use tracing::{debug, error, warn};
+use tracing::{debug, error};
 
 impl LLMClient {
     /// Send chat message (using load balancing)
@@ -68,13 +68,10 @@ impl LLMClient {
             crate::sdk::config::ProviderType::Google => {
                 self.call_google_api(provider, request).await
             }
-            _ => {
-                warn!(
-                    "Provider type {:?} not fully implemented, using mock response",
-                    provider.provider_type
-                );
-                self.create_mock_response(provider, &request.messages).await
-            }
+            _ => Err(SDKError::ProviderError(format!(
+                "Provider type {:?} is not implemented in SDK client",
+                provider.provider_type
+            ))),
         }
     }
 
@@ -84,32 +81,17 @@ impl LLMClient {
         provider_id: &str,
         _messages: Vec<Message>,
     ) -> Result<impl futures::Stream<Item = Result<ChatChunk>>> {
-        let _provider = self
+        let provider = self
             .config
             .providers
             .iter()
             .find(|p| p.id == provider_id)
             .ok_or_else(|| SDKError::ProviderNotFound(provider_id.to_string()))?;
 
-        // Stream implementation
-        // Currently returns a simple mock stream
-        use futures::stream;
-
-        let chunk = ChatChunk {
-            id: "stream-test".to_string(),
-            model: "test-model".to_string(),
-            choices: vec![ChunkChoice {
-                index: 0,
-                delta: MessageDelta {
-                    role: Some(Role::Assistant),
-                    content: Some("Streaming response...".to_string()),
-                    tool_calls: None,
-                },
-                finish_reason: Some("stop".to_string()),
-            }],
-        };
-
-        Ok(stream::once(async move { Ok(chunk) }))
+        Err::<futures::stream::Empty<Result<ChatChunk>>, _>(SDKError::ProviderError(format!(
+            "Streaming is not implemented for provider type {:?}",
+            provider.provider_type
+        )))
     }
 
     /// Call Anthropic API
@@ -240,60 +222,12 @@ impl LLMClient {
     async fn call_google_api(
         &self,
         provider: &crate::sdk::config::SdkProviderConfig,
-        request: SdkChatRequest,
+        _request: SdkChatRequest,
     ) -> Result<ChatResponse> {
-        // Google API implementation placeholder
-        warn!("Google API not fully implemented, using mock response");
-        self.create_mock_response(provider, &request.messages).await
-    }
-
-    /// Create mock response for testing
-    async fn create_mock_response(
-        &self,
-        provider: &crate::sdk::config::SdkProviderConfig,
-        messages: &[Message],
-    ) -> Result<ChatResponse> {
-        let user_message = messages
-            .iter()
-            .rfind(|m| matches!(m.role, Role::User))
-            .and_then(|m| match &m.content {
-                Some(Content::Text(text)) => Some(text.as_str()),
-                _ => None,
-            })
-            .unwrap_or("Hello");
-
-        let mock_content = format!(
-            "Mock response from {} provider. You said: \"{}\"",
-            provider.name, user_message
-        );
-
-        Ok(ChatResponse {
-            id: format!("mock-{}", uuid::Uuid::new_v4()),
-            model: provider
-                .models
-                .first()
-                .unwrap_or(&"mock-model".to_string())
-                .clone(),
-            choices: vec![ChatChoice {
-                index: 0,
-                message: Message {
-                    role: Role::Assistant,
-                    content: Some(Content::Text(mock_content)),
-                    name: None,
-                    tool_calls: None,
-                },
-                finish_reason: Some("stop".to_string()),
-            }],
-            usage: Usage {
-                prompt_tokens: 10,
-                completion_tokens: 15,
-                total_tokens: 25,
-            },
-            created: SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-        })
+        Err(SDKError::ProviderError(format!(
+            "Provider '{}' (Google) is not implemented in SDK client",
+            provider.id
+        )))
     }
 
     /// Convert messages to Anthropic format

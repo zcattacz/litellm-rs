@@ -41,7 +41,9 @@ impl ErrorMapper<ProviderError> for HerokuErrorMapper {
                     .unwrap_or_else(|| response_body.to_string());
                 ProviderError::invalid_request(PROVIDER_NAME, message)
             }
-            500..=599 => HttpErrorMapper::map_status_code(PROVIDER_NAME, status_code, response_body),
+            500..=599 => {
+                HttpErrorMapper::map_status_code(PROVIDER_NAME, status_code, response_body)
+            }
             _ => HttpErrorMapper::map_status_code(PROVIDER_NAME, status_code, response_body),
         }
     }
@@ -73,7 +75,6 @@ fn extract_error_message(response_body: &str) -> Option<String> {
                 .map(|s| s.to_string())
         })
 }
-
 
 #[cfg(test)]
 mod tests {

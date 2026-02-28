@@ -2,14 +2,16 @@
 
 use crate::core::audio::AudioService;
 use crate::core::audio::types::TranslationRequest;
-use crate::server::routes::{ApiResponse, errors};
+use crate::core::types::model::ProviderCapability;
+use crate::server::routes::ApiResponse;
 use crate::server::state::AppState;
 use actix_multipart::Multipart;
-use actix_web::{HttpRequest, HttpResponse, Result as ActixResult, web};
+use actix_web::{HttpRequest, HttpResponse, ResponseError, Result as ActixResult, web};
 use futures::StreamExt;
 use tracing::{error, info};
 
 use crate::server::routes::ai::context::get_request_context;
+use crate::server::routes::ai::provider_selection::select_provider_for_model;
 
 /// Audio translations endpoint
 ///
@@ -108,22 +110,33 @@ pub async fn audio_translations(
         }
     };
 
+    let unified_router = &state.unified_router;
+
+    let selection = match select_provider_for_model(
+        unified_router,
+        &model,
+        ProviderCapability::AudioTranslation,
+    ) {
+        Ok(selection) => selection,
+        Err(e) => return Ok(e.error_response()),
+    };
+
     let translation_request = TranslationRequest {
         file,
         filename,
-        model,
+        model: selection.model,
         prompt,
         response_format,
         temperature,
     };
 
-    let audio_service = AudioService::new(state.router.clone());
+    let audio_service = AudioService::new();
 
     match audio_service.translate(translation_request).await {
         Ok(response) => Ok(HttpResponse::Ok().json(response)),
         Err(e) => {
             error!("Translation error: {}", e);
-            Ok(errors::gateway_error_to_response(e))
+            Ok(e.error_response())
         }
     }
 }

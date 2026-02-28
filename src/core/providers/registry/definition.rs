@@ -65,10 +65,9 @@ impl ProviderDefinition {
         match self.auth_type {
             AuthType::ApiKeyHeader(header_name) => {
                 if let Some(key) = api_key {
-                    config.custom_headers.insert(
-                        header_name.to_string(),
-                        key.to_string(),
-                    );
+                    config
+                        .custom_headers
+                        .insert(header_name.to_string(), key.to_string());
                     // Clear the base api_key so Bearer isn't also sent
                     config.base.api_key = None;
                 }

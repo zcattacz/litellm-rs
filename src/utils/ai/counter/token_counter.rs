@@ -122,6 +122,10 @@ impl TokenCounter {
                 // Use a reasonable default
                 Ok(100)
             }
+            ContentPart::Image { .. } => Ok(85),
+            ContentPart::Document { .. } => Ok(1000),
+            ContentPart::ToolResult { .. } => Ok(50),
+            ContentPart::ToolUse { .. } => Ok(100),
         }
     }
 

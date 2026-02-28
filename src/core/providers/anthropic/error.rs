@@ -84,7 +84,6 @@ impl AnthropicErrorMapper {
         // Default error
         ProviderError::api_error("anthropic", 500, "Unknown API error")
     }
-
 }
 
 // Standard error helper functions

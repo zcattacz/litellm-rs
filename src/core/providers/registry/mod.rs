@@ -9,5 +9,5 @@
 pub mod catalog;
 pub mod definition;
 
-pub use catalog::{get_definition, is_tier1_provider, PROVIDER_CATALOG};
+pub use catalog::{PROVIDER_CATALOG, get_definition, is_tier1_provider};
 pub use definition::{AuthType, ProviderDefinition};

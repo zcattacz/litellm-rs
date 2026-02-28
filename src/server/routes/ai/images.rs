@@ -1,7 +1,7 @@
 //! Image generation endpoint
 
 use crate::core::models::openai::{ImageGenerationRequest, ImageGenerationResponse};
-use crate::core::providers::ProviderRegistry;
+use crate::core::providers::ProviderError;
 use crate::core::types::context::RequestContext;
 use crate::core::types::image::ImageGenerationRequest as CoreImageRequest;
 use crate::core::types::model::ProviderCapability;
@@ -32,42 +32,31 @@ pub async fn image_generations(
     .await
 }
 
-/// Handle image generation with app state (supports unified router when model is provided)
+/// Handle image generation with app state (UnifiedRouter only)
 pub async fn handle_image_generation_with_state(
     state: &AppState,
     request: ImageGenerationRequest,
     context: RequestContext,
 ) -> Result<ImageGenerationResponse, GatewayError> {
-    handle_image_generation_internal(&state.router, state.unified_router.as_deref(), request, context)
-        .await
-}
-
-/// Handle image generation via provider pool
-#[allow(dead_code)] // Compatibility path for direct pool-based invocations/tests.
-pub async fn handle_image_generation_via_pool(
-    pool: &ProviderRegistry,
-    request: ImageGenerationRequest,
-    context: RequestContext,
-) -> Result<ImageGenerationResponse, GatewayError> {
-    handle_image_generation_internal(pool, None, request, context).await
+    let unified_router = &state.unified_router;
+    handle_image_generation_internal(unified_router, request, context).await
 }
 
 async fn handle_image_generation_internal(
-    pool: &ProviderRegistry,
-    unified_router: Option<&crate::core::router::UnifiedRouter>,
+    unified_router: &crate::core::router::UnifiedRouter,
     request: ImageGenerationRequest,
     context: RequestContext,
 ) -> Result<ImageGenerationResponse, GatewayError> {
-    let selection = select_provider_for_optional_model(
-        pool,
+    let (provider_hint, selected_model) = select_provider_for_optional_model(
         unified_router,
         request.model.as_deref(),
         ProviderCapability::ImageGeneration,
     )?;
+    drop(provider_hint);
 
     let core_request = CoreImageRequest {
         prompt: request.prompt,
-        model: selection.1,
+        model: Some(selected_model.clone()),
         n: request.n,
         size: request.size,
         response_format: request.response_format,
@@ -76,11 +65,35 @@ async fn handle_image_generation_internal(
         style: None,
     };
 
-    let core_response = selection
-        .0
-        .create_images(core_request, context)
+    let context_for_execution = context.clone();
+    let execution = unified_router
+        .execute_with_retry(&selected_model, move |deployment_id| {
+            let core_request = core_request.clone();
+            let context = context_for_execution.clone();
+            async move {
+                let deployment =
+                    unified_router
+                        .get_deployment(&deployment_id)
+                        .ok_or_else(|| {
+                            ProviderError::other("router", "Selected deployment not found")
+                        })?;
+
+                let provider = deployment.provider.clone();
+                let selected_model = deployment.model.clone();
+                drop(deployment);
+
+                let mut request_for_provider = core_request.clone();
+                request_for_provider.model = Some(selected_model);
+                let response = provider
+                    .create_images(request_for_provider, context)
+                    .await?;
+                Ok((response, 0))
+            }
+        })
         .await
-        .map_err(|e| GatewayError::internal(format!("Image generation error: {}", e)))?;
+        .map_err(|(e, _)| GatewayError::Provider(e))?;
+
+    let core_response = execution.0;
 
     // Convert core response to OpenAI format
     let response = ImageGenerationResponse {

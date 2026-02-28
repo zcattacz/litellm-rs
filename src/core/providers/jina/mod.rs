@@ -12,8 +12,8 @@ use std::pin::Pin;
 use tracing::debug;
 
 use crate::core::providers::base::{
-    BaseHttpClient, BaseConfig, HttpErrorMapper, UrlBuilder, apply_headers, get_pricing_db,
-    header, header_static,
+    BaseConfig, BaseHttpClient, HttpErrorMapper, UrlBuilder, apply_headers, get_pricing_db, header,
+    header_static,
 };
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{

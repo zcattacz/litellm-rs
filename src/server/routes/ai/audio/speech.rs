@@ -2,13 +2,15 @@
 
 use crate::core::audio::AudioService;
 use crate::core::audio::types::SpeechRequest;
-use crate::server::routes::{ApiResponse, errors};
+use crate::core::types::model::ProviderCapability;
+use crate::server::routes::ApiResponse;
 use crate::server::state::AppState;
-use actix_web::{HttpRequest, HttpResponse, Result as ActixResult, web};
+use actix_web::{HttpRequest, HttpResponse, ResponseError, Result as ActixResult, web};
 use serde::Deserialize;
 use tracing::{error, info};
 
 use crate::server::routes::ai::context::get_request_context;
+use crate::server::routes::ai::provider_selection::select_provider_for_model;
 
 /// Audio speech generation request
 #[derive(Debug, Deserialize)]
@@ -54,15 +56,26 @@ pub async fn audio_speech(
         }
     };
 
+    let unified_router = &state.unified_router;
+
+    let selection = match select_provider_for_model(
+        unified_router,
+        &request.model,
+        ProviderCapability::TextToSpeech,
+    ) {
+        Ok(selection) => selection,
+        Err(e) => return Ok(e.error_response()),
+    };
+
     let speech_request = SpeechRequest {
         input: request.input.clone(),
-        model: request.model.clone(),
+        model: selection.model,
         voice: request.voice.clone(),
         response_format: request.response_format.clone(),
         speed: request.speed,
     };
 
-    let audio_service = AudioService::new(state.router.clone());
+    let audio_service = AudioService::new();
 
     match audio_service.speech(speech_request).await {
         Ok(response) => Ok(HttpResponse::Ok()
@@ -70,7 +83,7 @@ pub async fn audio_speech(
             .body(response.audio)),
         Err(e) => {
             error!("Speech generation error: {}", e);
-            Ok(errors::gateway_error_to_response(e))
+            Ok(e.error_response())
         }
     }
 }

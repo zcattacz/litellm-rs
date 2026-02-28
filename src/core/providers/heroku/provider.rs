@@ -11,7 +11,8 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::core::providers::base::{
-    GlobalPoolManager, HeaderPair, HttpErrorMapper, HttpMethod, get_pricing_db, header, header_owned,
+    GlobalPoolManager, HeaderPair, HttpErrorMapper, HttpMethod, get_pricing_db, header,
+    header_owned,
 };
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{

@@ -359,6 +359,33 @@ pub enum OpenAIContentPart {
     ImageUrl { image_url: OpenAIImageUrl },
     #[serde(rename = "input_audio")]
     InputAudio { input_audio: OpenAIInputAudio },
+    #[serde(rename = "image")]
+    Image {
+        source: OpenAIImageSource,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        image_url: Option<OpenAIImageUrl>,
+    },
+    #[serde(rename = "document")]
+    Document {
+        source: OpenAIDocumentSource,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<OpenAICacheControl>,
+    },
+    #[serde(rename = "tool_result")]
+    ToolResult {
+        tool_use_id: String,
+        content: serde_json::Value,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        is_error: Option<bool>,
+    },
+    #[serde(rename = "tool_use")]
+    ToolUse {
+        id: String,
+        name: String,
+        input: serde_json::Value,
+    },
 }
 
 impl OpenAIContentPart {
@@ -377,6 +404,45 @@ impl OpenAIContentPart {
                     format: audio.format,
                 },
             },
+            crate::core::models::openai::ContentPart::Image {
+                source,
+                detail,
+                image_url,
+            } => Self::Image {
+                source: OpenAIImageSource {
+                    media_type: source.media_type,
+                    data: source.data,
+                },
+                detail,
+                image_url: image_url.map(|url| OpenAIImageUrl {
+                    url: url.url,
+                    detail: url.detail,
+                }),
+            },
+            crate::core::models::openai::ContentPart::Document {
+                source,
+                cache_control,
+            } => Self::Document {
+                source: OpenAIDocumentSource {
+                    media_type: source.media_type,
+                    data: source.data,
+                },
+                cache_control: cache_control.map(|cc| OpenAICacheControl {
+                    cache_type: cc.cache_type,
+                }),
+            },
+            crate::core::models::openai::ContentPart::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            } => Self::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            },
+            crate::core::models::openai::ContentPart::ToolUse { id, name, input } => {
+                Self::ToolUse { id, name, input }
+            }
         }
     }
 
@@ -395,6 +461,45 @@ impl OpenAIContentPart {
                     format: input_audio.format,
                 },
             },
+            Self::Image {
+                source,
+                detail,
+                image_url,
+            } => crate::core::models::openai::ContentPart::Image {
+                source: crate::core::models::openai::ImageSource {
+                    media_type: source.media_type,
+                    data: source.data,
+                },
+                detail,
+                image_url: image_url.map(|url| crate::core::models::openai::ImageUrl {
+                    url: url.url,
+                    detail: url.detail,
+                }),
+            },
+            Self::Document {
+                source,
+                cache_control,
+            } => crate::core::models::openai::ContentPart::Document {
+                source: crate::core::models::openai::DocumentSource {
+                    media_type: source.media_type,
+                    data: source.data,
+                },
+                cache_control: cache_control.map(|cc| crate::core::models::openai::CacheControl {
+                    cache_type: cc.cache_type,
+                }),
+            },
+            Self::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            } => crate::core::models::openai::ContentPart::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            },
+            Self::ToolUse { id, name, input } => {
+                crate::core::models::openai::ContentPart::ToolUse { id, name, input }
+            }
         }
     }
 }
@@ -412,6 +517,24 @@ pub struct OpenAIImageUrl {
 pub struct OpenAIInputAudio {
     pub data: String,
     pub format: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenAIImageSource {
+    pub media_type: String,
+    pub data: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenAIDocumentSource {
+    pub media_type: String,
+    pub data: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenAICacheControl {
+    #[serde(rename = "type")]
+    pub cache_type: String,
 }
 
 /// OpenAI Tool Choice

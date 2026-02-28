@@ -63,7 +63,6 @@ impl ErrorMapper<ProviderError> for RunwayMLErrorMapper {
     }
 }
 
-
 // Note: Task-specific error handling is done directly using ProviderError factory methods
 // in provider.rs. See poll_task() for usage of:
 // - ProviderError::api_error(PROVIDER_NAME, 500, ...) for task failures

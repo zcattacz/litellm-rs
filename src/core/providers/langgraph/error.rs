@@ -89,7 +89,6 @@ fn parse_error_message(response_body: &str) -> Option<String> {
     None
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

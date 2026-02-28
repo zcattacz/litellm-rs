@@ -141,8 +141,9 @@ impl BaseConfig {
         // Default
         if config.api_base.is_none() {
             config.api_base = Some(
-                Self::catalog_default_base_url(&normalized_provider)
-                    .unwrap_or_else(|| Self::legacy_default_base_url(&normalized_provider).to_string()),
+                Self::catalog_default_base_url(&normalized_provider).unwrap_or_else(|| {
+                    Self::legacy_default_base_url(&normalized_provider).to_string()
+                }),
             );
         }
 
@@ -159,7 +160,10 @@ impl BaseConfig {
     fn build_endpoint(&self, path: &str) -> String {
         format!(
             "{}/{}",
-            self.api_base.as_deref().unwrap_or_default().trim_end_matches('/'),
+            self.api_base
+                .as_deref()
+                .unwrap_or_default()
+                .trim_end_matches('/'),
             path.trim_start_matches('/')
         )
     }

@@ -7,35 +7,13 @@
 mod tests {
     use litellm_rs::core::audio::AudioService;
     use litellm_rs::core::audio::types::{TranscriptionRequest, TranslationRequest};
-    use litellm_rs::core::providers::ProviderRegistry;
-    use std::sync::Arc;
-
-    /// Helper to create a provider registry with Groq via catalog
-    async fn create_provider_registry() -> Arc<ProviderRegistry> {
-        use litellm_rs::core::providers::Provider;
-        use litellm_rs::core::providers::openai_like::OpenAILikeProvider;
-        use litellm_rs::core::providers::registry;
-
-        let api_key =
-            std::env::var("GROQ_API_KEY").expect("GROQ_API_KEY environment variable not set");
-
-        let def = registry::get_definition("groq").unwrap();
-        let config = def.to_openai_like_config(Some(&api_key), None);
-        let provider = OpenAILikeProvider::new(config).await.unwrap();
-
-        let mut registry = ProviderRegistry::new();
-        registry.register(Provider::OpenAILike(provider));
-
-        Arc::new(registry)
-    }
 
     /// E2E test for audio transcription with Groq Whisper
     /// Requires GROQ_API_KEY environment variable
     #[tokio::test]
     #[ignore]
     async fn test_audio_transcription_groq() {
-        let registry = create_provider_registry().await;
-        let audio_service = AudioService::new(registry);
+        let audio_service = AudioService::new();
 
         // Create a minimal valid MP3 file (silent audio)
         // This is a minimal valid MP3 frame (silent)
@@ -76,8 +54,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_audio_translation_groq() {
-        let registry = create_provider_registry().await;
-        let audio_service = AudioService::new(registry);
+        let audio_service = AudioService::new();
 
         let audio_data = create_test_audio_mp3();
 
@@ -116,8 +93,7 @@ mod tests {
 
         let audio_data = std::fs::read(audio_path).expect("Failed to read test audio file");
 
-        let registry = create_provider_registry().await;
-        let audio_service = AudioService::new(registry);
+        let audio_service = AudioService::new();
 
         let request = TranscriptionRequest {
             file: audio_data,

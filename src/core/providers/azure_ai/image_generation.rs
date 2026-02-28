@@ -83,7 +83,11 @@ impl AzureAIImageHandler {
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(HttpErrorMapper::map_status_code("azure_ai", status, &error_body));
+            return Err(HttpErrorMapper::map_status_code(
+                "azure_ai",
+                status,
+                &error_body,
+            ));
         }
 
         // Parse response

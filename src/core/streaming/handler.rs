@@ -36,10 +36,7 @@ impl StreamingHandler {
     }
 
     /// Create a streaming response from a provider stream for Actix-web
-    pub fn create_sse_stream<S>(
-        mut self,
-        provider_stream: S,
-    ) -> impl Stream<Item = Result<Bytes>>
+    pub fn create_sse_stream<S>(mut self, provider_stream: S) -> impl Stream<Item = Result<Bytes>>
     where
         S: Stream<Item = Result<String>> + Send + 'static,
     {

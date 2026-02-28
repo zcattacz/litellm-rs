@@ -251,7 +251,11 @@ impl LlamaClient {
             StatusCode::NOT_FOUND => {
                 Err(ProviderError::model_not_found(PROVIDER_NAME, error_message))
             }
-            _ => Err(HttpErrorMapper::map_status_code(PROVIDER_NAME, status.as_u16(), &error_message)),
+            _ => Err(HttpErrorMapper::map_status_code(
+                PROVIDER_NAME,
+                status.as_u16(),
+                &error_message,
+            )),
         }
     }
 

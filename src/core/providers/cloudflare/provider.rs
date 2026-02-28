@@ -112,9 +112,10 @@ impl CloudflareProvider {
         endpoint: &str,
         body: serde_json::Value,
     ) -> Result<serde_json::Value, ProviderError> {
-        let account_id = self.config.get_account_id().ok_or_else(|| {
-            ProviderError::configuration("cloudflare", "Account ID is required")
-        })?;
+        let account_id = self
+            .config
+            .get_account_id()
+            .ok_or_else(|| ProviderError::configuration("cloudflare", "Account ID is required"))?;
 
         let url = format!(
             "{}/accounts/{}/ai/run/{}",

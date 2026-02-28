@@ -62,8 +62,7 @@ impl RetryConfig {
 
     /// Calculate delay for a given retry attempt (0-indexed)
     pub fn delay_for_attempt(&self, attempt: u32) -> Duration {
-        let delay_ms =
-            self.initial_delay_ms as f64 * self.backoff_multiplier.powi(attempt as i32);
+        let delay_ms = self.initial_delay_ms as f64 * self.backoff_multiplier.powi(attempt as i32);
         let capped = delay_ms.min(self.max_delay_ms as f64);
         Duration::from_millis(capped as u64)
     }

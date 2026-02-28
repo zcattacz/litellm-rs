@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::debug;
 
+use crate::core::providers::base::HttpErrorMapper;
 use crate::core::{
     traits::{error_mapper::trait_def::ErrorMapper, provider::LLMProvider},
     types::{
@@ -19,7 +20,6 @@ use crate::core::{
         responses::{ChatResponse, EmbeddingResponse, ImageGenerationResponse},
     },
 };
-use crate::core::providers::base::HttpErrorMapper;
 use crate::utils::net::http::create_custom_client;
 use std::collections::HashMap;
 

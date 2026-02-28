@@ -1,0 +1,760 @@
+diff --git a/src/core/providers/anthropic/provider.rs b/src/core/providers/anthropic/provider.rs
+index 0fa839b..037bdc3 100644
+--- a/src/core/providers/anthropic/provider.rs
++++ b/src/core/providers/anthropic/provider.rs
+@@ -68,7 +68,7 @@ impl AnthropicProvider {
+         })?;
+ 
+         // Common validation: empty messages + max_tokens
+-        crate::core::providers::base_provider::validate_chat_request_common(
++        crate::core::providers::base::validate_chat_request_common(
+             "anthropic",
+             request,
+             model_spec.limits.max_output_tokens,
+diff --git a/src/core/providers/bedrock/client.rs b/src/core/providers/bedrock/client.rs
+index 774db1c..ad257e9 100644
+--- a/src/core/providers/bedrock/client.rs
++++ b/src/core/providers/bedrock/client.rs
+@@ -12,7 +12,7 @@ use super::config::BedrockConfig;
+ use super::error::{BedrockError, BedrockErrorMapper};
+ use super::sigv4::SigV4Signer;
+ use super::utils::{AwsAuth, validate_region};
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::error_mapper::trait_def::ErrorMapper;
+ 
+@@ -32,12 +32,12 @@ impl BedrockClient {
+         validate_region(&config.aws_region)?;
+ 
+         // Create base HTTP client
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: None,  // Bedrock uses AWS credentials
+             api_base: None, // Dynamic based on region and model
+             timeout: Some(config.timeout_seconds),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/cohere/provider.rs b/src/core/providers/cohere/provider.rs
+index 363868b..fd9f365 100644
+--- a/src/core/providers/cohere/provider.rs
++++ b/src/core/providers/cohere/provider.rs
+@@ -17,8 +17,8 @@ use super::config::CohereConfig;
+ use super::embed::CohereEmbeddingHandler;
+ use super::rerank::{CohereRerankHandler, RerankRequest, RerankResponse};
+ use super::streaming::create_cohere_stream;
+-use crate::core::providers::base_provider::{
+-    BaseHttpClient, BaseProviderConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
++use crate::core::providers::base::{
++    BaseHttpClient, BaseConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
+ };
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+@@ -86,12 +86,12 @@ impl CohereProvider {
+             .validate()
+             .map_err(|e| ProviderError::configuration("cohere", e))?;
+ 
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: Some(config.api_key.clone()),
+             api_base: Some(config.api_base.clone()),
+             timeout: Some(config.timeout_seconds),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/friendliai/mod.rs b/src/core/providers/friendliai/mod.rs
+index 1e5b5ba..3b7d513 100644
+--- a/src/core/providers/friendliai/mod.rs
++++ b/src/core/providers/friendliai/mod.rs
+@@ -10,8 +10,8 @@ use std::collections::HashMap;
+ use std::pin::Pin;
+ use tracing::debug;
+ 
+-use crate::core::providers::base_provider::{
+-    BaseHttpClient, BaseProviderConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
++use crate::core::providers::base::{
++    BaseHttpClient, BaseConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
+     OpenAIRequestTransformer, UrlBuilder,
+ };
+ use crate::core::providers::unified_provider::ProviderError;
+@@ -137,12 +137,12 @@ impl FriendliAIProvider {
+             .validate()
+             .map_err(|e| ProviderError::configuration("friendliai", e))?;
+ 
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: Some(config.api_key.clone()),
+             api_base: Some(config.api_base.clone()),
+             timeout: Some(config.timeout_seconds),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/galadriel/mod.rs b/src/core/providers/galadriel/mod.rs
+index ae71c6d..fc84c87 100644
+--- a/src/core/providers/galadriel/mod.rs
++++ b/src/core/providers/galadriel/mod.rs
+@@ -10,8 +10,8 @@ use std::collections::HashMap;
+ use std::pin::Pin;
+ use tracing::debug;
+ 
+-use crate::core::providers::base_provider::{
+-    BaseHttpClient, BaseProviderConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
++use crate::core::providers::base::{
++    BaseHttpClient, BaseConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
+     OpenAIRequestTransformer, UrlBuilder,
+ };
+ use crate::core::providers::unified_provider::ProviderError;
+@@ -136,12 +136,12 @@ impl GaladrielProvider {
+             .validate()
+             .map_err(|e| ProviderError::configuration("galadriel", e))?;
+ 
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: Some(config.api_key.clone()),
+             api_base: Some(config.api_base.clone()),
+             timeout: Some(config.timeout_seconds),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/gemini/provider.rs b/src/core/providers/gemini/provider.rs
+index 2f2648a..335c00a 100644
+--- a/src/core/providers/gemini/provider.rs
++++ b/src/core/providers/gemini/provider.rs
+@@ -75,7 +75,7 @@ impl GeminiProvider {
+             .ok_or_else(|| gemini_model_error(format!("Unsupported model: {}", request.model)))?;
+ 
+         // Common validation: empty messages + max_tokens
+-        crate::core::providers::base_provider::validate_chat_request_common(
++        crate::core::providers::base::validate_chat_request_common(
+             "gemini",
+             request,
+             model_spec.limits.max_output_tokens,
+diff --git a/src/core/providers/gigachat/mod.rs b/src/core/providers/gigachat/mod.rs
+index f7bb94c..37cca28 100644
+--- a/src/core/providers/gigachat/mod.rs
++++ b/src/core/providers/gigachat/mod.rs
+@@ -10,8 +10,8 @@ use std::collections::HashMap;
+ use std::pin::Pin;
+ use tracing::debug;
+ 
+-use crate::core::providers::base_provider::{
+-    BaseHttpClient, BaseProviderConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
++use crate::core::providers::base::{
++    BaseHttpClient, BaseConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
+     OpenAIRequestTransformer, UrlBuilder,
+ };
+ use crate::core::providers::unified_provider::ProviderError;
+@@ -140,12 +140,12 @@ impl GigaChatProvider {
+             .validate()
+             .map_err(|e| ProviderError::configuration("gigachat", e))?;
+ 
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: Some(config.api_key.clone()),
+             api_base: Some(config.api_base.clone()),
+             timeout: Some(config.timeout_seconds),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/google_pse/mod.rs b/src/core/providers/google_pse/mod.rs
+index 1638954..02a6ef3 100644
+--- a/src/core/providers/google_pse/mod.rs
++++ b/src/core/providers/google_pse/mod.rs
+@@ -10,8 +10,8 @@ use std::collections::HashMap;
+ use std::pin::Pin;
+ use tracing::debug;
+ 
+-use crate::core::providers::base_provider::{
+-    BaseHttpClient, BaseProviderConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
++use crate::core::providers::base::{
++    BaseHttpClient, BaseConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
+     OpenAIRequestTransformer, UrlBuilder,
+ };
+ use crate::core::providers::unified_provider::ProviderError;
+@@ -141,12 +141,12 @@ impl GooglePSEProvider {
+             .validate()
+             .map_err(|e| ProviderError::configuration("google_pse", e))?;
+ 
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: Some(config.api_key.clone()),
+             api_base: Some(config.api_base.clone()),
+             timeout: Some(config.timeout_seconds),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/huggingface/provider.rs b/src/core/providers/huggingface/provider.rs
+index c918390..aae6602 100644
+--- a/src/core/providers/huggingface/provider.rs
++++ b/src/core/providers/huggingface/provider.rs
+@@ -9,8 +9,8 @@ use std::collections::HashMap;
+ use std::pin::Pin;
+ use tracing::{debug, warn};
+ 
+-use crate::core::providers::base_provider::{
+-    BaseHttpClient, BaseProviderConfig, HeaderBuilder, HttpErrorMapper,
++use crate::core::providers::base::{
++    BaseHttpClient, BaseConfig, HeaderBuilder, HttpErrorMapper,
+ };
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -85,12 +85,12 @@ impl HuggingFaceProvider {
+             .map_err(|e| HuggingFaceError::configuration("huggingface", e))?;
+ 
+         // Create base HTTP client
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: Some(config.api_key.clone()),
+             api_base: config.api_base.clone(),
+             timeout: Some(config.timeout_seconds),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/jina/mod.rs b/src/core/providers/jina/mod.rs
+index b08276c..5c36cf4 100644
+--- a/src/core/providers/jina/mod.rs
++++ b/src/core/providers/jina/mod.rs
+@@ -11,8 +11,8 @@ use std::collections::HashMap;
+ use std::pin::Pin;
+ use tracing::debug;
+ 
+-use crate::core::providers::base_provider::{
+-    BaseHttpClient, BaseProviderConfig, CostCalculator, HeaderBuilder, HttpErrorMapper, UrlBuilder,
++use crate::core::providers::base::{
++    BaseHttpClient, BaseConfig, CostCalculator, HeaderBuilder, HttpErrorMapper, UrlBuilder,
+ };
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+@@ -194,12 +194,12 @@ impl JinaProvider {
+             .map_err(|e| ProviderError::configuration("jina", e))?;
+ 
+         // Create base HTTP client
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: Some(config.api_key.clone()),
+             api_base: Some(config.api_base.clone()),
+             timeout: Some(config.timeout_seconds),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/meta_llama/mod.rs b/src/core/providers/meta_llama/mod.rs
+index 2161117..f7f0757 100644
+--- a/src/core/providers/meta_llama/mod.rs
++++ b/src/core/providers/meta_llama/mod.rs
+@@ -94,7 +94,7 @@ impl Default for LlamaProviderConfig {
+             organization_id: None,
+             timeout: Some(30),
+             max_retries: Some(3),
+-            headers: None,
++            headers: HashMap::new(),
+             supported_models: vec![
+                 // LLaMA 4 series (2025 - Latest)
+                 "llama4-scout".to_string(),
+diff --git a/src/core/providers/mistral/mod.rs b/src/core/providers/mistral/mod.rs
+index 488b205..d2e02e8 100644
+--- a/src/core/providers/mistral/mod.rs
++++ b/src/core/providers/mistral/mod.rs
+@@ -12,8 +12,8 @@ use std::pin::Pin;
+ use tracing::debug;
+ 
+ // Use base infrastructure instead of common_utils
+-use crate::core::providers::base_provider::{
+-    BaseHttpClient, BaseProviderConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
++use crate::core::providers::base::{
++    BaseHttpClient, BaseConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
+     OpenAIRequestTransformer, UrlBuilder,
+ };
+ use crate::core::providers::unified_provider::ProviderError;
+@@ -146,12 +146,12 @@ impl MistralProvider {
+             .map_err(|e| ProviderError::configuration("mistral", e))?;
+ 
+         // Create base HTTP client using our infrastructure
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: Some(config.api_key.clone()),
+             api_base: Some(config.api_base.clone()),
+             timeout: Some(config.timeout_seconds),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/qwen/mod.rs b/src/core/providers/qwen/mod.rs
+index 0db7e1d..024db2e 100644
+--- a/src/core/providers/qwen/mod.rs
++++ b/src/core/providers/qwen/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -88,12 +88,12 @@ pub struct QwenProvider {
+ impl QwenProvider {
+     /// Create new Qwen provider
+     pub fn new(config: QwenConfig) -> Result<Self, ProviderError> {
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: config.api_key.clone(),
+             api_base: config.api_base.clone(),
+             timeout: Some(config.timeout),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/recraft/mod.rs b/src/core/providers/recraft/mod.rs
+index 9563c4f..e6d2ef2 100644
+--- a/src/core/providers/recraft/mod.rs
++++ b/src/core/providers/recraft/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -82,12 +82,12 @@ pub struct RecraftProvider {
+ impl RecraftProvider {
+     /// Create new Recraft provider
+     pub fn new(config: RecraftConfig) -> Result<Self, RecraftError> {
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: config.api_key.clone(),
+             api_base: config.api_base.clone(),
+             timeout: Some(config.timeout),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/sambanova/mod.rs b/src/core/providers/sambanova/mod.rs
+index 4588eb3..516972e 100644
+--- a/src/core/providers/sambanova/mod.rs
++++ b/src/core/providers/sambanova/mod.rs
+@@ -13,8 +13,8 @@ use std::collections::HashMap;
+ use std::pin::Pin;
+ use tracing::debug;
+ 
+-use crate::core::providers::base_provider::{
+-    BaseHttpClient, BaseProviderConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
++use crate::core::providers::base::{
++    BaseHttpClient, BaseConfig, CostCalculator, HeaderBuilder, HttpErrorMapper,
+     OpenAIRequestTransformer, UrlBuilder,
+ };
+ use crate::core::providers::unified_provider::ProviderError;
+@@ -146,12 +146,12 @@ impl SambanovaProvider {
+             .map_err(|e| ProviderError::configuration("sambanova", e))?;
+ 
+         // Create base HTTP client
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: Some(config.api_key.clone()),
+             api_base: Some(config.api_base.clone()),
+             timeout: Some(config.timeout_seconds),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/sap_ai/mod.rs b/src/core/providers/sap_ai/mod.rs
+index 41adfc5..e06cd1f 100644
+--- a/src/core/providers/sap_ai/mod.rs
++++ b/src/core/providers/sap_ai/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -85,12 +85,12 @@ pub struct SapAIProvider {
+ impl SapAIProvider {
+     /// Create new SAP AI provider
+     pub fn new(config: SapAIConfig) -> Result<Self, SapAIError> {
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: config.api_key.clone(),
+             api_base: config.api_base.clone(),
+             timeout: Some(config.timeout),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/searxng/mod.rs b/src/core/providers/searxng/mod.rs
+index c1f992f..56e7afc 100644
+--- a/src/core/providers/searxng/mod.rs
++++ b/src/core/providers/searxng/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -82,12 +82,12 @@ pub struct SearXNGProvider {
+ impl SearXNGProvider {
+     /// Create new SearXNG provider
+     pub fn new(config: SearXNGConfig) -> Result<Self, SearXNGError> {
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: config.api_key.clone(),
+             api_base: config.api_base.clone(),
+             timeout: Some(config.timeout),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/spark/provider.rs b/src/core/providers/spark/provider.rs
+index aea42e9..28ba2bb 100644
+--- a/src/core/providers/spark/provider.rs
++++ b/src/core/providers/spark/provider.rs
+@@ -8,7 +8,7 @@ use serde_json::Value;
+ use std::collections::HashMap;
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -43,12 +43,12 @@ impl SparkProvider {
+             .validate()
+             .map_err(|e| ProviderError::configuration("spark", e))?;
+ 
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: config.api_key.clone(),
+             api_base: Some(config.api_base.clone()),
+             timeout: Some(config.request_timeout),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+@@ -79,7 +79,7 @@ impl SparkProvider {
+         })?;
+ 
+         // Common validation: empty messages + max_tokens
+-        crate::core::providers::base_provider::validate_chat_request_common(
++        crate::core::providers::base::validate_chat_request_common(
+             "spark",
+             request,
+             model_spec.limits.max_output_tokens,
+diff --git a/src/core/providers/tavily/mod.rs b/src/core/providers/tavily/mod.rs
+index c9aa355..9fdf33f 100644
+--- a/src/core/providers/tavily/mod.rs
++++ b/src/core/providers/tavily/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -82,12 +82,12 @@ pub struct TavilyProvider {
+ impl TavilyProvider {
+     /// Create new Tavily provider
+     pub fn new(config: TavilyConfig) -> Result<Self, TavilyError> {
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: config.api_key.clone(),
+             api_base: config.api_base.clone(),
+             timeout: Some(config.timeout),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/topaz/mod.rs b/src/core/providers/topaz/mod.rs
+index a2fefa1..f102358 100644
+--- a/src/core/providers/topaz/mod.rs
++++ b/src/core/providers/topaz/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -82,12 +82,12 @@ pub struct TopazProvider {
+ impl TopazProvider {
+     /// Create new Topaz provider
+     pub fn new(config: TopazConfig) -> Result<Self, TopazError> {
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: config.api_key.clone(),
+             api_base: config.api_base.clone(),
+             timeout: Some(config.timeout),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/transform/tests_module.rs b/src/core/providers/transform/tests_module.rs
+index 30733b1..a87853d 100644
+--- a/src/core/providers/transform/tests_module.rs
++++ b/src/core/providers/transform/tests_module.rs
+@@ -32,7 +32,7 @@ fn test_chat_request_serialization_full() {
+         seed: Some(42),
+         logit_bias: None,
+         user: Some("test-user".to_string()),
+-        extra_headers: None,
++        extra_headers: HashMap::new(),
+         extra_body: None,
+         thinking: None,
+     };
+@@ -64,7 +64,7 @@ fn test_chat_request_minimal() {
+         seed: None,
+         logit_bias: None,
+         user: None,
+-        extra_headers: None,
++        extra_headers: HashMap::new(),
+         extra_body: None,
+         thinking: None,
+     };
+@@ -491,7 +491,7 @@ async fn test_validate_request_compatibility_anthropic() {
+         seed: None,
+         logit_bias: Some(HashMap::new()), // Also not supported
+         user: None,
+-        extra_headers: None,
++        extra_headers: HashMap::new(),
+         extra_body: None,
+         thinking: None,
+     };
+@@ -526,7 +526,7 @@ async fn test_validate_request_compatibility_vertexai() {
+         seed: None,
+         logit_bias: None,
+         user: None,
+-        extra_headers: None,
++        extra_headers: HashMap::new(),
+         extra_body: None,
+         thinking: None,
+     };
+@@ -560,7 +560,7 @@ async fn test_validate_request_compatibility_no_issues() {
+         seed: None,
+         logit_bias: None,
+         user: None,
+-        extra_headers: None,
++        extra_headers: HashMap::new(),
+         extra_body: None,
+         thinking: None,
+     };
+@@ -641,7 +641,7 @@ fn test_chat_request_clone() {
+         seed: None,
+         logit_bias: None,
+         user: None,
+-        extra_headers: None,
++        extra_headers: HashMap::new(),
+         extra_body: None,
+         thinking: None,
+     };
+diff --git a/src/core/providers/vercel_ai/mod.rs b/src/core/providers/vercel_ai/mod.rs
+index 62c82df..8b14815 100644
+--- a/src/core/providers/vercel_ai/mod.rs
++++ b/src/core/providers/vercel_ai/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -86,12 +86,12 @@ pub struct VercelAIProvider {
+ impl VercelAIProvider {
+     /// Create new Vercel AI provider
+     pub fn new(config: VercelAIConfig) -> Result<Self, VercelAIError> {
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: config.api_key.clone(),
+             api_base: config.api_base.clone(),
+             timeout: Some(config.timeout),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/vertex_ai/auth.rs b/src/core/providers/vertex_ai/auth.rs
+index 9830586..df89c3a 100644
+--- a/src/core/providers/vertex_ai/auth.rs
++++ b/src/core/providers/vertex_ai/auth.rs
+@@ -549,7 +549,7 @@ mod tests {
+         let source = CredentialSource {
+             file: Some("/path/to/token".to_string()),
+             url: None,
+-            headers: None,
++            headers: HashMap::new(),
+             environment_id: None,
+             regional_cred_verification_url: None,
+         };
+@@ -619,7 +619,7 @@ mod tests {
+             credential_source: CredentialSource {
+                 file: Some("/var/run/secrets/token".to_string()),
+                 url: None,
+-                headers: None,
++                headers: HashMap::new(),
+                 environment_id: None,
+                 regional_cred_verification_url: None,
+             },
+diff --git a/src/core/providers/wandb/logger.rs b/src/core/providers/wandb/logger.rs
+index 5844f20..9435682 100644
+--- a/src/core/providers/wandb/logger.rs
++++ b/src/core/providers/wandb/logger.rs
+@@ -12,7 +12,7 @@ use tokio::sync::RwLock;
+ use tracing::{debug, error, warn};
+ 
+ use super::config::{PROVIDER_NAME, WandbConfig};
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig, HeaderBuilder};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig, HeaderBuilder};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::provider::ProviderConfig;
+ 
+@@ -291,12 +291,12 @@ impl WandbLogger {
+             .validate()
+             .map_err(|e| ProviderError::configuration(PROVIDER_NAME, e))?;
+ 
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: config.get_effective_api_key(),
+             api_base: Some(config.api_base.clone()),
+             timeout: Some(config.timeout_seconds),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/wandb/provider.rs b/src/core/providers/wandb/provider.rs
+index bd3db34..b6199b3 100644
+--- a/src/core/providers/wandb/provider.rs
++++ b/src/core/providers/wandb/provider.rs
+@@ -17,7 +17,7 @@ use tracing::debug;
+ 
+ use super::config::{PROVIDER_NAME, WandbConfig};
+ use super::logger::{LLMCallLog, WandbLogger};
+-use crate::core::providers::base_provider::HttpErrorMapper;
++use crate::core::providers::base::HttpErrorMapper;
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+diff --git a/src/core/providers/watsonx/error.rs b/src/core/providers/watsonx/error.rs
+index 64571b8..4e60eb9 100644
+--- a/src/core/providers/watsonx/error.rs
++++ b/src/core/providers/watsonx/error.rs
+@@ -2,7 +2,7 @@
+ //!
+ //! This module provides Watsonx-specific error handling using the unified ProviderError type.
+ 
+-use crate::core::providers::base_provider::HttpErrorMapper;
++use crate::core::providers::base::HttpErrorMapper;
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::error_mapper::trait_def::ErrorMapper;
+ use serde_json::Value;
+diff --git a/src/core/providers/xiaomi_mimo/mod.rs b/src/core/providers/xiaomi_mimo/mod.rs
+index 665c05c..1a66a00 100644
+--- a/src/core/providers/xiaomi_mimo/mod.rs
++++ b/src/core/providers/xiaomi_mimo/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -86,12 +86,12 @@ pub struct XiaomiMIMOProvider {
+ impl XiaomiMIMOProvider {
+     /// Create new Xiaomi MIMO provider
+     pub fn new(config: XiaomiMIMOConfig) -> Result<Self, XiaomiMIMOError> {
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: config.api_key.clone(),
+             api_base: config.api_base.clone(),
+             timeout: Some(config.timeout),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };
+diff --git a/src/core/providers/zhipu/mod.rs b/src/core/providers/zhipu/mod.rs
+index 2c78899..d1d727c 100644
+--- a/src/core/providers/zhipu/mod.rs
++++ b/src/core/providers/zhipu/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -86,12 +86,12 @@ pub struct ZhipuProvider {
+ impl ZhipuProvider {
+     /// Create new Zhipu AI provider
+     pub fn new(config: ZhipuConfig) -> Result<Self, ZhipuError> {
+-        let base_config = BaseProviderConfig {
++        let base_config = BaseConfig {
+             api_key: config.api_key.clone(),
+             api_base: config.api_base.clone(),
+             timeout: Some(config.timeout),
+             max_retries: Some(config.max_retries),
+-            headers: None,
++            headers: HashMap::new(),
+             organization: None,
+             api_version: None,
+         };

@@ -1,0 +1,8 @@
+id=agent-aa12d503
+worktree=.claude/worktrees/agent-aa12d503
+branch=worktree-agent-aa12d503
+head=9e23284c2f307e6341a1da6f2d1b5e9f84ab7507
+status_lines=29
+working_diff_bytes=32372
+staged_diff_bytes=0
+untracked_count=0

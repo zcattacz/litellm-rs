@@ -52,9 +52,11 @@ pub mod manager;
 pub mod observability;
 
 // Re-export commonly used types
-pub use langfuse::{LangfuseConfig, LangfuseLogger, LlmCallback, LlmError, LlmRequest, LlmResponse};
 #[cfg(feature = "gateway")]
 pub use langfuse::LangfuseTracing;
+pub use langfuse::{
+    LangfuseConfig, LangfuseLogger, LlmCallback, LlmError, LlmRequest, LlmResponse,
+};
 pub use manager::{IntegrationManager, IntegrationManagerConfig};
 pub use observability::{
     ArizeConfig, ArizeIntegration, DataDogConfig, DataDogIntegration, HeliconeConfig,

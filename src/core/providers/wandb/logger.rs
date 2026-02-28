@@ -12,7 +12,9 @@ use tokio::sync::RwLock;
 use tracing::{debug, error, warn};
 
 use super::config::{PROVIDER_NAME, WandbConfig};
-use crate::core::providers::base::{BaseHttpClient, BaseConfig, HttpErrorMapper, apply_headers, header, header_static};
+use crate::core::providers::base::{
+    BaseConfig, BaseHttpClient, HttpErrorMapper, apply_headers, header, header_static,
+};
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::provider::ProviderConfig;
 
@@ -541,7 +543,11 @@ impl WandbLogger {
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.unwrap_or_default();
-            return Err(HttpErrorMapper::map_status_code(PROVIDER_NAME, status, &body));
+            return Err(HttpErrorMapper::map_status_code(
+                PROVIDER_NAME,
+                status,
+                &body,
+            ));
         }
 
         Ok(())

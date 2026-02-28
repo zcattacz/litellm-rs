@@ -185,6 +185,56 @@ impl RequestValidator {
                 Self::validate_audio_data(&audio.data)?;
                 Self::validate_audio_format(&audio.format)?;
             }
+            ContentPart::Image {
+                source,
+                detail,
+                image_url,
+            } => {
+                if source.media_type.trim().is_empty()
+                    || !source.media_type.to_ascii_lowercase().starts_with("image/")
+                {
+                    return Err(GatewayError::Validation(format!(
+                        "Image part at message {} part {} must have image/* media_type",
+                        message_index, part_index
+                    )));
+                }
+                Self::validate_base64_payload(&source.data, "image")?;
+                if let Some(detail) = detail {
+                    if !["low", "high", "auto"].contains(&detail.as_str()) {
+                        return Err(GatewayError::Validation(
+                            "Image detail must be 'low', 'high', or 'auto'".to_string(),
+                        ));
+                    }
+                }
+                if let Some(url) = image_url {
+                    Self::validate_image_url(&url.url)?;
+                }
+            }
+            ContentPart::Document { source, .. } => {
+                if source.media_type.trim().is_empty() {
+                    return Err(GatewayError::Validation(format!(
+                        "Document part at message {} part {} must have media_type",
+                        message_index, part_index
+                    )));
+                }
+                Self::validate_base64_payload(&source.data, "document")?;
+            }
+            ContentPart::ToolResult { tool_use_id, .. } => {
+                if tool_use_id.trim().is_empty() {
+                    return Err(GatewayError::Validation(format!(
+                        "Tool result at message {} part {} must have non-empty tool_use_id",
+                        message_index, part_index
+                    )));
+                }
+            }
+            ContentPart::ToolUse { id, name, .. } => {
+                if id.trim().is_empty() || name.trim().is_empty() {
+                    return Err(GatewayError::Validation(format!(
+                        "Tool use at message {} part {} must have non-empty id/name",
+                        message_index, part_index
+                    )));
+                }
+            }
         }
 
         Ok(())
@@ -269,9 +319,14 @@ impl RequestValidator {
 
     /// Validate audio data
     fn validate_audio_data(data: &str) -> Result<()> {
-        // Validate base64 encoded audio data
-        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, data)
-            .map_err(|e| GatewayError::Validation(format!("Invalid base64 audio data: {}", e)))?;
+        Self::validate_base64_payload(data, "audio")?;
+        Ok(())
+    }
+
+    fn validate_base64_payload(data: &str, kind: &str) -> Result<()> {
+        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, data).map_err(|e| {
+            GatewayError::Validation(format!("Invalid base64 {} data: {}", kind, e))
+        })?;
         Ok(())
     }
 

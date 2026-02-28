@@ -69,7 +69,6 @@ fn extract_model_name(response_body: &str) -> String {
     "Unknown model".to_string()
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

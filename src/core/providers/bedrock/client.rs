@@ -12,7 +12,7 @@ use super::config::BedrockConfig;
 use super::error::BedrockErrorMapper;
 use super::sigv4::SigV4Signer;
 use super::utils::{AwsAuth, validate_region};
-use crate::core::providers::base::{BaseHttpClient, BaseConfig};
+use crate::core::providers::base::{BaseConfig, BaseHttpClient};
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 

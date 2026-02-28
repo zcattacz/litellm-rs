@@ -32,8 +32,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_deepseek_chat_completion() {
-        let api_key =
-            std::env::var("DEEPSEEK_API_KEY").expect("DEEPSEEK_API_KEY not set");
+        let api_key = std::env::var("DEEPSEEK_API_KEY").expect("DEEPSEEK_API_KEY not set");
 
         let def = registry::get_definition("deepseek").unwrap();
         let config = def.to_openai_like_config(Some(&api_key), None);

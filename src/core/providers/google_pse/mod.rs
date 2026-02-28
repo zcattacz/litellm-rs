@@ -11,7 +11,7 @@ use std::pin::Pin;
 use tracing::debug;
 
 use crate::core::providers::base::{
-    BaseHttpClient, BaseConfig, HttpErrorMapper, OpenAIRequestTransformer, UrlBuilder,
+    BaseConfig, BaseHttpClient, HttpErrorMapper, OpenAIRequestTransformer, UrlBuilder,
     apply_headers, get_pricing_db, header_static,
 };
 use crate::core::providers::unified_provider::ProviderError;
@@ -281,7 +281,11 @@ impl LLMProvider for GooglePSEProvider {
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = response.text().await.unwrap_or_default();
-            return Err(HttpErrorMapper::map_status_code("google_pse", status, &body));
+            return Err(HttpErrorMapper::map_status_code(
+                "google_pse",
+                status,
+                &body,
+            ));
         }
 
         let search_response: Value = response

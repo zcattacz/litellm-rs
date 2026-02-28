@@ -19,7 +19,10 @@ pub mod tools;
 
 // Re-export all public types for backward compatibility
 pub use audio::{AudioContent, AudioDelta, AudioParams};
-pub use messages::{ChatMessage, ContentPart, ImageUrl, MessageContent, MessageRole};
+pub use messages::{
+    CacheControl, ChatMessage, ContentPart, DocumentSource, ImageSource, ImageUrl, MessageContent,
+    MessageRole,
+};
 pub use requests::{
     ChatCompletionRequest, CompletionRequest, EmbeddingRequest, ImageGenerationRequest,
     ResponseFormat, StreamOptions,

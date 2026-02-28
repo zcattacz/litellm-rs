@@ -221,7 +221,9 @@ async fn test_calculate_cost_embed_model() {
 async fn test_calculate_cost_rerank_model() {
     let provider = CohereProvider::with_api_key("key").await.unwrap();
 
-    let cost = provider.calculate_cost("rerank-english-v3.0", 1000, 0).await;
+    let cost = provider
+        .calculate_cost("rerank-english-v3.0", 1000, 0)
+        .await;
     assert!(matches!(cost, Ok(v) if v >= 0.0));
 }
 

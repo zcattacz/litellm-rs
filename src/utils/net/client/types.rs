@@ -385,7 +385,10 @@ mod tests {
         };
 
         assert_eq!(http_config.max_retries, retry_config.max_retries);
-        assert_eq!(http_config.retry_delay.as_millis() as u64, retry_config.initial_delay_ms);
+        assert_eq!(
+            http_config.retry_delay.as_millis() as u64,
+            retry_config.initial_delay_ms
+        );
     }
 
     #[test]

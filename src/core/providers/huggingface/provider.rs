@@ -10,7 +10,7 @@ use std::pin::Pin;
 use tracing::{debug, warn};
 
 use crate::core::providers::base::{
-    BaseHttpClient, BaseConfig, HttpErrorMapper, apply_headers, header, header_static,
+    BaseConfig, BaseHttpClient, HttpErrorMapper, apply_headers, header, header_static,
 };
 use crate::core::traits::{
     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,

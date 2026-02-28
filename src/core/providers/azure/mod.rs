@@ -14,14 +14,14 @@ pub mod responses;
 pub mod utils;
 
 // Re-export core utilities
+pub use crate::core::providers::unified_provider::ProviderError;
 pub use client::{AzureClient, AzureConfigFactory, AzureRateLimitInfo};
 pub use config::{AzureConfig, AzureModelInfo};
 pub use error::{
-    AzureErrorMapper, azure_ad_error, azure_api_error, azure_config_error,
-    azure_deployment_error, azure_header_error,
+    AzureErrorMapper, azure_ad_error, azure_api_error, azure_config_error, azure_deployment_error,
+    azure_header_error,
 };
 pub use utils::{AzureEndpointType, AzureUtils};
-pub use crate::core::providers::unified_provider::ProviderError;
 
 // Use the new unified cost calculation system
 pub use crate::core::cost::providers::azure::{

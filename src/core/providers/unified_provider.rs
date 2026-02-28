@@ -920,7 +920,6 @@ pub fn parse_error_message_from_body(response_body: &str) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-
 /// Generate a standard `ErrorMapper` implementation for a provider.
 ///
 /// Creates:

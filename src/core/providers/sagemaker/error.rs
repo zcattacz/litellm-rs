@@ -1,7 +1,7 @@
 //! Error types for Sagemaker provider.
 
-pub use crate::core::providers::unified_provider::ProviderError;
 use crate::core::providers::base::HttpErrorMapper;
+pub use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::error_mapper::trait_def::ErrorMapper;
 
 /// Sagemaker error type (alias to unified ProviderError)

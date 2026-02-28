@@ -1,11 +1,10 @@
 //! Model listing and retrieval endpoints
 
 use crate::core::models::openai::{Model, ModelListResponse};
-use crate::core::providers::ProviderRegistry;
-use crate::server::routes::ApiResponse;
+use crate::core::router::UnifiedRouter;
 use crate::server::state::AppState;
 use crate::utils::error::gateway_error::GatewayError;
-use actix_web::{HttpResponse, Result as ActixResult, web};
+use actix_web::{HttpResponse, ResponseError, Result as ActixResult, web};
 use tracing::{debug, error};
 
 /// List available models
@@ -14,8 +13,9 @@ use tracing::{debug, error};
 pub async fn list_models(state: web::Data<AppState>) -> ActixResult<HttpResponse> {
     debug!("Listing available models");
 
-    // TODO: Implement proper model listing through ProviderRegistry
-    match get_models_from_pool(&state.router).await {
+    let unified_router = &state.unified_router;
+
+    match get_models_from_router(unified_router).await {
         Ok(models) => {
             let response = ModelListResponse {
                 object: "list".to_string(),
@@ -25,8 +25,7 @@ pub async fn list_models(state: web::Data<AppState>) -> ActixResult<HttpResponse
         }
         Err(e) => {
             error!("Failed to list models: {}", e);
-            Ok(HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error("Error".to_string())))
+            Ok(e.error_response())
         }
     }
 }
@@ -40,46 +39,65 @@ pub async fn get_model(
 ) -> ActixResult<HttpResponse> {
     debug!("Getting model info for: {}", model_id);
 
-    // TODO: Implement proper model retrieval through ProviderRegistry
-    match get_model_from_pool(&state.router, &model_id).await {
+    let unified_router = &state.unified_router;
+
+    match get_model_from_router(unified_router, &model_id).await {
         Ok(Some(model)) => Ok(HttpResponse::Ok().json(model)),
         Ok(None) => {
-            Ok(HttpResponse::NotFound().json(ApiResponse::<()>::error("Error".to_string())))
+            Ok(GatewayError::not_found(format!("Model not found: {}", model_id)).error_response())
         }
         Err(e) => {
             error!("Failed to get model {}: {}", model_id, e);
-            Ok(HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error("Error".to_string())))
+            Ok(e.error_response())
         }
     }
 }
 
-/// Get all models from provider pool
-pub async fn get_models_from_pool(pool: &ProviderRegistry) -> Result<Vec<Model>, GatewayError> {
-    let mut all_models = Vec::new();
+/// Get all models from UnifiedRouter
+pub async fn get_models_from_router(router: &UnifiedRouter) -> Result<Vec<Model>, GatewayError> {
+    let mut models = Vec::new();
 
-    // Get models from all providers
-    let providers = pool.all();
-    for provider in providers {
-        let models = provider.list_models();
-        for model_info in models {
-            all_models.push(Model {
-                id: model_info.id.clone(),
-                object: "model".to_string(),
-                created: chrono::Utc::now().timestamp() as u64,
-                owned_by: model_info.provider.clone(),
-            });
-        }
+    for model_name in router.list_models() {
+        let owned_by = router
+            .get_deployments_for_model(&model_name)
+            .into_iter()
+            .find_map(|deployment_id| {
+                router
+                    .get_deployment(&deployment_id)
+                    .map(|deployment| deployment.provider.name().to_string())
+            })
+            .unwrap_or_else(|| "unknown".to_string());
+
+        models.push(Model {
+            id: model_name,
+            object: "model".to_string(),
+            created: chrono::Utc::now().timestamp() as u64,
+            owned_by,
+        });
     }
 
-    Ok(all_models)
+    models.sort_by(|a, b| a.id.cmp(&b.id));
+    Ok(models)
 }
 
-/// Get specific model from provider pool
-pub async fn get_model_from_pool(
-    _pool: &ProviderRegistry,
-    _model_id: &str,
+/// Get specific model from UnifiedRouter
+pub async fn get_model_from_router(
+    router: &UnifiedRouter,
+    model_id: &str,
 ) -> Result<Option<Model>, GatewayError> {
-    // TODO: Get specific model from providers in pool
-    Ok(None) // Return None for now
+    let deployment_ids = router.get_deployments_for_model(model_id);
+    if let Some(owner) = deployment_ids.into_iter().find_map(|deployment_id| {
+        router
+            .get_deployment(&deployment_id)
+            .map(|deployment| deployment.provider.name().to_string())
+    }) {
+        return Ok(Some(Model {
+            id: model_id.to_string(),
+            object: "model".to_string(),
+            created: chrono::Utc::now().timestamp() as u64,
+            owned_by: owner,
+        }));
+    }
+
+    Ok(None)
 }

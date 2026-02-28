@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::pin::Pin;
 
-use crate::core::providers::base::{BaseHttpClient, BaseConfig, HttpErrorMapper};
+use crate::core::providers::base::{BaseConfig, BaseHttpClient, HttpErrorMapper};
 use crate::core::providers::unified_provider::ProviderError;
 use crate::core::traits::{
     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,

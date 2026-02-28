@@ -16,6 +16,34 @@ impl Validate for GatewayRouterConfig {
         self.circuit_breaker.validate()?;
         self.load_balancer.validate()?;
 
+        if self.circuit_breaker.min_requests != crate::config::models::default_min_requests() {
+            return Err(
+                "router.circuit_breaker.min_requests is not supported by runtime router yet"
+                    .to_string(),
+            );
+        }
+
+        if self.circuit_breaker.success_threshold != 3 {
+            return Err(
+                "router.circuit_breaker.success_threshold is not supported by runtime router yet"
+                    .to_string(),
+            );
+        }
+
+        if self.load_balancer.sticky_sessions {
+            return Err(
+                "router.load_balancer.sticky_sessions is not supported by runtime router yet"
+                    .to_string(),
+            );
+        }
+
+        if self.load_balancer.session_timeout != 3600 {
+            return Err(
+                "router.load_balancer.session_timeout is not supported by runtime router yet"
+                    .to_string(),
+            );
+        }
+
         Ok(())
     }
 }

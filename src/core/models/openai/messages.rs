@@ -4,6 +4,7 @@
 //! for multimodal interactions.
 
 use serde::{Deserialize, Serialize};
+use std::hash::{Hash, Hasher};
 
 use super::audio::AudioContent;
 use super::tools::{FunctionCall, ToolCall};
@@ -44,7 +45,7 @@ pub enum MessageRole {
 }
 
 /// Message content (can be string or array of content parts)
-#[derive(Debug, Clone, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum MessageContent {
     /// Plain text content
@@ -54,7 +55,7 @@ pub enum MessageContent {
 }
 
 /// Content part for multimodal messages
-#[derive(Debug, Clone, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ContentPart {
     /// Text content part
@@ -75,6 +76,48 @@ pub enum ContentPart {
         /// Audio content details
         audio: AudioContent,
     },
+    /// Base64 image part
+    #[serde(rename = "image")]
+    Image {
+        /// Base64 image source
+        source: ImageSource,
+        /// Detail level
+        #[serde(skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
+        /// URL compatibility field
+        #[serde(skip_serializing_if = "Option::is_none")]
+        image_url: Option<ImageUrl>,
+    },
+    /// Document part
+    #[serde(rename = "document")]
+    Document {
+        /// Document source
+        source: DocumentSource,
+        /// Cache control
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cache_control: Option<CacheControl>,
+    },
+    /// Tool result
+    #[serde(rename = "tool_result")]
+    ToolResult {
+        /// Tool use ID
+        tool_use_id: String,
+        /// Result payload
+        content: serde_json::Value,
+        /// Error flag
+        #[serde(skip_serializing_if = "Option::is_none")]
+        is_error: Option<bool>,
+    },
+    /// Tool use
+    #[serde(rename = "tool_use")]
+    ToolUse {
+        /// Tool use ID
+        id: String,
+        /// Tool name
+        name: String,
+        /// Tool input payload
+        input: serde_json::Value,
+    },
 }
 
 /// Image URL content
@@ -84,6 +127,107 @@ pub struct ImageUrl {
     pub url: String,
     /// Detail level
     pub detail: Option<String>,
+}
+
+/// Image source content
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImageSource {
+    /// MIME type
+    pub media_type: String,
+    /// Base64 data
+    pub data: String,
+}
+
+/// Document source content
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DocumentSource {
+    /// MIME type
+    pub media_type: String,
+    /// Base64 data
+    pub data: String,
+}
+
+/// Cache control metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CacheControl {
+    /// Cache type
+    #[serde(rename = "type")]
+    pub cache_type: String,
+}
+
+impl Hash for MessageContent {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Text(text) => {
+                0u8.hash(state);
+                text.hash(state);
+            }
+            Self::Parts(parts) => {
+                1u8.hash(state);
+                parts.len().hash(state);
+                for part in parts {
+                    part.hash(state);
+                }
+            }
+        }
+    }
+}
+
+impl Hash for ContentPart {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Text { text } => {
+                0u8.hash(state);
+                text.hash(state);
+            }
+            Self::ImageUrl { image_url } => {
+                1u8.hash(state);
+                image_url.hash(state);
+            }
+            Self::Audio { audio } => {
+                2u8.hash(state);
+                audio.hash(state);
+            }
+            Self::Image {
+                source,
+                detail,
+                image_url,
+            } => {
+                3u8.hash(state);
+                source.media_type.hash(state);
+                source.data.hash(state);
+                detail.hash(state);
+                image_url.hash(state);
+            }
+            Self::Document {
+                source,
+                cache_control,
+            } => {
+                4u8.hash(state);
+                source.media_type.hash(state);
+                source.data.hash(state);
+                cache_control.as_ref().map(|c| &c.cache_type).hash(state);
+            }
+            Self::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            } => {
+                5u8.hash(state);
+                tool_use_id.hash(state);
+                serde_json::to_string(content)
+                    .unwrap_or_default()
+                    .hash(state);
+                is_error.hash(state);
+            }
+            Self::ToolUse { id, name, input } => {
+                6u8.hash(state);
+                id.hash(state);
+                name.hash(state);
+                serde_json::to_string(input).unwrap_or_default().hash(state);
+            }
+        }
+    }
 }
 
 impl From<MessageRole> for crate::core::types::message::MessageRole {
@@ -126,6 +270,43 @@ impl From<ContentPart> for crate::core::types::content::ContentPart {
                     format: Some(audio.format),
                 },
             },
+            ContentPart::Image {
+                source,
+                detail,
+                image_url,
+            } => Self::Image {
+                source: crate::core::types::content::ImageSource {
+                    media_type: source.media_type,
+                    data: source.data,
+                },
+                detail,
+                image_url: image_url.map(|url| crate::core::types::content::ImageUrl {
+                    url: url.url,
+                    detail: url.detail,
+                }),
+            },
+            ContentPart::Document {
+                source,
+                cache_control,
+            } => Self::Document {
+                source: crate::core::types::content::DocumentSource {
+                    media_type: source.media_type,
+                    data: source.data,
+                },
+                cache_control: cache_control.map(|cc| crate::core::types::content::CacheControl {
+                    cache_type: cc.cache_type,
+                }),
+            },
+            ContentPart::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            } => Self::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            },
+            ContentPart::ToolUse { id, name, input } => Self::ToolUse { id, name, input },
         }
     }
 }
@@ -143,12 +324,48 @@ impl From<crate::core::types::content::ContentPart> for ContentPart {
             crate::core::types::content::ContentPart::Audio { audio } => Self::Audio {
                 audio: AudioContent {
                     data: audio.data,
-                    format: audio.format.unwrap_or_else(|| "unknown".to_string()),
+                    format: audio.format.unwrap_or_else(|| "mp3".to_string()),
                 },
             },
-            _ => Self::Text {
-                text: "[unsupported content part]".to_string(),
+            crate::core::types::content::ContentPart::Image {
+                source,
+                detail,
+                image_url,
+            } => Self::Image {
+                source: ImageSource {
+                    media_type: source.media_type,
+                    data: source.data,
+                },
+                detail,
+                image_url: image_url.map(|url| ImageUrl {
+                    url: url.url,
+                    detail: url.detail,
+                }),
             },
+            crate::core::types::content::ContentPart::Document {
+                source,
+                cache_control,
+            } => Self::Document {
+                source: DocumentSource {
+                    media_type: source.media_type,
+                    data: source.data,
+                },
+                cache_control: cache_control.map(|cc| CacheControl {
+                    cache_type: cc.cache_type,
+                }),
+            },
+            crate::core::types::content::ContentPart::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            } => Self::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            },
+            crate::core::types::content::ContentPart::ToolUse { id, name, input } => {
+                Self::ToolUse { id, name, input }
+            }
         }
     }
 }
@@ -262,5 +479,46 @@ mod tests {
         assert_eq!(openai_msg.role, MessageRole::User);
         assert!(matches!(openai_msg.content, Some(MessageContent::Text(_))));
         assert!(openai_msg.audio.is_none());
+    }
+
+    #[test]
+    fn test_content_part_roundtrip_document() {
+        let part = ContentPart::Document {
+            source: DocumentSource {
+                media_type: "application/pdf".to_string(),
+                data: "base64pdf".to_string(),
+            },
+            cache_control: Some(CacheControl {
+                cache_type: "ephemeral".to_string(),
+            }),
+        };
+
+        let core: crate::core::types::content::ContentPart = part.clone().into();
+        let back: ContentPart = core.into();
+        match back {
+            ContentPart::Document { source, .. } => {
+                assert_eq!(source.media_type, "application/pdf");
+            }
+            _ => panic!("expected document"),
+        }
+    }
+
+    #[test]
+    fn test_content_part_roundtrip_tool_use() {
+        let part = ContentPart::ToolUse {
+            id: "tool-1".to_string(),
+            name: "search".to_string(),
+            input: serde_json::json!({"q":"hello"}),
+        };
+
+        let core: crate::core::types::content::ContentPart = part.clone().into();
+        let back: ContentPart = core.into();
+        match back {
+            ContentPart::ToolUse { id, name, .. } => {
+                assert_eq!(id, "tool-1");
+                assert_eq!(name, "search");
+            }
+            _ => panic!("expected tool_use"),
+        }
     }
 }

@@ -18,7 +18,7 @@ use super::embed::CohereEmbeddingHandler;
 use super::rerank::{CohereRerankHandler, RerankRequest, RerankResponse};
 use super::streaming::create_cohere_stream;
 use crate::core::providers::base::{
-    BaseHttpClient, BaseConfig, HttpErrorMapper, apply_headers, get_pricing_db, header,
+    BaseConfig, BaseHttpClient, HttpErrorMapper, apply_headers, get_pricing_db, header,
     header_static,
 };
 use crate::core::providers::unified_provider::ProviderError;
@@ -534,7 +534,10 @@ impl LLMProvider for CohereProvider {
 
         match apply_headers(
             self.client.inner().get(&url),
-            vec![header("Authorization", format!("Bearer {}", self.config.api_key))],
+            vec![header(
+                "Authorization",
+                format!("Bearer {}", self.config.api_key),
+            )],
         )
         .send()
         .await

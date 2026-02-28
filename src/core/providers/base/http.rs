@@ -60,9 +60,10 @@ impl HttpErrorMapper {
                 provider,
                 "Invalid API key or authentication failed".to_string(),
             ),
-            403 => {
-                ProviderError::authentication(provider, "Forbidden: insufficient permissions".to_string())
-            }
+            403 => ProviderError::authentication(
+                provider,
+                "Forbidden: insufficient permissions".to_string(),
+            ),
             404 => ProviderError::model_not_found(provider, body.to_string()),
             429 => ProviderError::rate_limit(provider, None),
             402 => ProviderError::quota_exceeded(provider, "Quota exceeded".to_string()),

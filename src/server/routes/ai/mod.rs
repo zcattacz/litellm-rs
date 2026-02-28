@@ -5,7 +5,6 @@
 // Module declarations
 mod audio;
 mod chat;
-mod completions;
 mod context;
 mod embeddings;
 mod images;
@@ -15,7 +14,6 @@ mod provider_selection;
 // Public re-exports for backward compatibility
 pub use audio::{audio_speech, audio_transcriptions, audio_translations};
 pub use chat::chat_completions;
-pub use completions::completions;
 pub use context::{
     check_permission, get_authenticated_api_key, get_authenticated_user, get_request_context,
     handle_ai_request, log_api_usage,
@@ -32,8 +30,6 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         web::scope("/v1")
             // Chat completions
             .route("/chat/completions", web::post().to(chat_completions))
-            // Text completions (legacy)
-            .route("/completions", web::post().to(completions))
             // Embeddings
             .route("/embeddings", web::post().to(embeddings))
             // Image generation

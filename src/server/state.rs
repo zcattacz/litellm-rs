@@ -17,10 +17,8 @@ pub struct AppState {
     pub config: Arc<Config>,
     /// Authentication system
     pub auth: Arc<crate::auth::AuthSystem>,
-    /// Request router (legacy ProviderRegistry)
-    pub router: Arc<crate::core::providers::ProviderRegistry>,
     /// Unified router (new UnifiedRouter implementation)
-    pub unified_router: Option<Arc<crate::core::router::UnifiedRouter>>,
+    pub unified_router: Arc<crate::core::router::UnifiedRouter>,
     /// Storage layer
     pub storage: Arc<crate::storage::StorageLayer>,
     /// Unified pricing service
@@ -28,29 +26,10 @@ pub struct AppState {
 }
 
 impl AppState {
-    /// Create a new AppState with shared resources
-    pub fn new(
-        config: Config,
-        auth: crate::auth::AuthSystem,
-        router: crate::core::providers::ProviderRegistry,
-        storage: crate::storage::StorageLayer,
-        pricing: Arc<PricingService>,
-    ) -> Self {
-        Self {
-            config: Arc::new(config),
-            auth: Arc::new(auth),
-            router: Arc::new(router),
-            unified_router: None,
-            storage: Arc::new(storage),
-            pricing,
-        }
-    }
-
     /// Create a new AppState with unified router
     pub fn new_with_unified_router(
         config: Config,
         auth: crate::auth::AuthSystem,
-        router: crate::core::providers::ProviderRegistry,
         unified_router: crate::core::router::UnifiedRouter,
         storage: crate::storage::StorageLayer,
         pricing: Arc<PricingService>,
@@ -58,8 +37,7 @@ impl AppState {
         Self {
             config: Arc::new(config),
             auth: Arc::new(auth),
-            router: Arc::new(router),
-            unified_router: Some(Arc::new(unified_router)),
+            unified_router: Arc::new(unified_router),
             storage: Arc::new(storage),
             pricing,
         }

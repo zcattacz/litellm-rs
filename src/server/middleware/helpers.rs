@@ -71,7 +71,6 @@ pub fn is_admin_route(path: &str) -> bool {
 pub fn is_api_route(path: &str) -> bool {
     const API_ROUTES: &[&str] = &[
         "/v1/chat/completions",
-        "/v1/completions",
         "/v1/embeddings",
         "/v1/images",
         "/v1/audio",

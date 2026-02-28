@@ -6,7 +6,7 @@
 
 #[cfg(test)]
 mod tests {
-    use litellm_rs::core::providers::{create_provider, Provider, ProviderType};
+    use litellm_rs::core::providers::{Provider, ProviderType, create_provider};
     use serde_json::json;
 
     /// Test creating OpenAI provider from config

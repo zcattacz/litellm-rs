@@ -13,7 +13,7 @@ use tracing::debug;
 
 // Use base infrastructure instead of common_utils
 use crate::core::providers::base::{
-    BaseHttpClient, BaseConfig, HttpErrorMapper, OpenAIRequestTransformer, UrlBuilder,
+    BaseConfig, BaseHttpClient, HttpErrorMapper, OpenAIRequestTransformer, UrlBuilder,
     apply_headers, get_pricing_db, header, header_static,
 };
 use crate::core::providers::unified_provider::ProviderError;
@@ -499,7 +499,10 @@ impl LLMProvider for MistralProvider {
 
         match apply_headers(
             self.base_client.inner().get(&url),
-            vec![header("Authorization", format!("Bearer {}", self.config.api_key))],
+            vec![header(
+                "Authorization",
+                format!("Bearer {}", self.config.api_key),
+            )],
         )
         .send()
         .await

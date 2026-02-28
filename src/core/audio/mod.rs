@@ -11,9 +11,7 @@ mod translation;
 // Make types module publicly accessible
 pub mod types;
 
-use crate::core::providers::ProviderRegistry;
 use crate::utils::error::gateway_error::Result;
-use std::sync::Arc;
 
 // Internal service imports
 use speech::SpeechService;
@@ -35,11 +33,11 @@ pub struct AudioService {
 
 impl AudioService {
     /// Create a new audio service
-    pub fn new(provider_registry: Arc<ProviderRegistry>) -> Self {
+    pub fn new() -> Self {
         Self {
-            transcription_service: TranscriptionService::new(Arc::clone(&provider_registry)),
-            translation_service: TranslationService::new(Arc::clone(&provider_registry)),
-            speech_service: SpeechService::new(provider_registry),
+            transcription_service: TranscriptionService::new(),
+            translation_service: TranslationService::new(),
+            speech_service: SpeechService::new(),
         }
     }
 

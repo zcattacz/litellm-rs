@@ -1,0 +1,838 @@
+diff --git a/src/core/providers/azure/assistants.rs b/src/core/providers/azure/assistants.rs
+index 16bd872..540c374 100644
+--- a/src/core/providers/azure/assistants.rs
++++ b/src/core/providers/azure/assistants.rs
+@@ -158,6 +158,7 @@ pub struct CancelRunResponse {
+     pub object: String,
+ }
+ 
++use crate::core::providers::base_provider::HttpErrorMapper;
+ use crate::core::providers::unified_provider::ProviderError;
+ 
+ /// AssistantError is a type alias for ProviderError (unified error handling)
+@@ -284,11 +285,9 @@ impl BaseAssistantHandler for AzureAssistantHandler {
+             .map_err(|e| ProviderError::network("azure", e.to_string()))?;
+ 
+         if !response.status().is_success() {
+-            return Err(ProviderError::api_error(
+-                "azure",
+-                response.status().as_u16(),
+-                response.text().await.unwrap_or_default(),
+-            ));
++            let status = response.status().as_u16();
++            let body = response.text().await.unwrap_or_default();
++            return Err(HttpErrorMapper::map_status_code("azure", status, &body));
+         }
+ 
+         response
+@@ -361,11 +360,9 @@ impl BaseAssistantHandler for AzureAssistantHandler {
+             .map_err(|e| ProviderError::network("azure", e.to_string()))?;
+ 
+         if !response.status().is_success() {
+-            return Err(ProviderError::api_error(
+-                "azure",
+-                response.status().as_u16(),
+-                response.text().await.unwrap_or_default(),
+-            ));
++            let status = response.status().as_u16();
++            let body = response.text().await.unwrap_or_default();
++            return Err(HttpErrorMapper::map_status_code("azure", status, &body));
+         }
+ 
+         response
+@@ -416,11 +413,9 @@ impl BaseAssistantHandler for AzureAssistantHandler {
+             .map_err(|e| ProviderError::network("azure", e.to_string()))?;
+ 
+         if !response.status().is_success() {
+-            return Err(ProviderError::api_error(
+-                "azure",
+-                response.status().as_u16(),
+-                response.text().await.unwrap_or_default(),
+-            ));
++            let status = response.status().as_u16();
++            let body = response.text().await.unwrap_or_default();
++            return Err(HttpErrorMapper::map_status_code("azure", status, &body));
+         }
+ 
+         response
+@@ -473,11 +468,9 @@ impl BaseAssistantHandler for AzureAssistantHandler {
+             .map_err(|e| ProviderError::network("azure", e.to_string()))?;
+ 
+         if !response.status().is_success() {
+-            return Err(ProviderError::api_error(
+-                "azure",
+-                response.status().as_u16(),
+-                response.text().await.unwrap_or_default(),
+-            ));
++            let status = response.status().as_u16();
++            let body = response.text().await.unwrap_or_default();
++            return Err(HttpErrorMapper::map_status_code("azure", status, &body));
+         }
+ 
+         response
+@@ -528,11 +521,9 @@ impl BaseAssistantHandler for AzureAssistantHandler {
+             .map_err(|e| ProviderError::network("azure", e.to_string()))?;
+ 
+         if !response.status().is_success() {
+-            return Err(ProviderError::api_error(
+-                "azure",
+-                response.status().as_u16(),
+-                response.text().await.unwrap_or_default(),
+-            ));
++            let status = response.status().as_u16();
++            let body = response.text().await.unwrap_or_default();
++            return Err(HttpErrorMapper::map_status_code("azure", status, &body));
+         }
+ 
+         response
+@@ -580,11 +571,9 @@ impl BaseAssistantHandler for AzureAssistantHandler {
+             .map_err(|e| ProviderError::network("azure",e.to_string()))?;
+ 
+         if !response.status().is_success() {
+-            return Err(ProviderError::api_error(
+-                "azure",
+-                response.status().as_u16(),
+-                response.text().await.unwrap_or_default(),
+-            ));
++            let status = response.status().as_u16();
++            let body = response.text().await.unwrap_or_default();
++            return Err(HttpErrorMapper::map_status_code("azure", status, &body));
+         }
+ 
+         response.json().await
+diff --git a/src/core/providers/azure_ai/chat.rs b/src/core/providers/azure_ai/chat.rs
+index 3f039f3..500edf6 100644
+--- a/src/core/providers/azure_ai/chat.rs
++++ b/src/core/providers/azure_ai/chat.rs
+@@ -18,6 +18,7 @@ use crate::core::types::{
+ };
+ 
+ use super::config::{AzureAIConfig, AzureAIEndpointType};
++use crate::core::providers::base_provider::HttpErrorMapper;
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::utils::net::http::create_custom_client_with_headers;
+ 
+@@ -89,7 +90,7 @@ impl AzureAIChatHandler {
+                 .text()
+                 .await
+                 .unwrap_or_else(|_| "Unknown error".to_string());
+-            return Err(ProviderError::api_error("azure_ai", status, &error_body));
++            return Err(HttpErrorMapper::map_status_code("azure_ai", status, &error_body));
+         }
+ 
+         // Parse response
+@@ -137,7 +138,7 @@ impl AzureAIChatHandler {
+                 .text()
+                 .await
+                 .unwrap_or_else(|_| "Unknown error".to_string());
+-            return Err(ProviderError::api_error("azure_ai", status, &error_body));
++            return Err(HttpErrorMapper::map_status_code("azure_ai", status, &error_body));
+         }
+ 
+         // Create SSE stream
+diff --git a/src/core/providers/azure_ai/embed.rs b/src/core/providers/azure_ai/embed.rs
+index 64690d9..d6dc22d 100644
+--- a/src/core/providers/azure_ai/embed.rs
++++ b/src/core/providers/azure_ai/embed.rs
+@@ -6,6 +6,7 @@ use reqwest::header::HeaderMap;
+ use serde_json::{Value, json};
+ 
+ use super::config::{AzureAIConfig, AzureAIEndpointType};
++use crate::core::providers::base_provider::HttpErrorMapper;
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::types::{
+     context::RequestContext,
+@@ -88,7 +89,7 @@ impl AzureAIEmbeddingHandler {
+                 .text()
+                 .await
+                 .unwrap_or_else(|_| "Unknown error".to_string());
+-            return Err(ProviderError::api_error("azure_ai", status, &error_body));
++            return Err(HttpErrorMapper::map_status_code("azure_ai", status, &error_body));
+         }
+ 
+         // Parse response
+diff --git a/src/core/providers/azure_ai/image_generation.rs b/src/core/providers/azure_ai/image_generation.rs
+index 6c69994..7dd720e 100644
+--- a/src/core/providers/azure_ai/image_generation.rs
++++ b/src/core/providers/azure_ai/image_generation.rs
+@@ -6,6 +6,7 @@
+ use serde_json::{Value, json};
+ 
+ use super::config::{AzureAIConfig, AzureAIEndpointType};
++use crate::core::providers::base_provider::HttpErrorMapper;
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::types::{
+     context::RequestContext,
+@@ -82,7 +83,7 @@ impl AzureAIImageHandler {
+                 .text()
+                 .await
+                 .unwrap_or_else(|_| "Unknown error".to_string());
+-            return Err(ProviderError::api_error("azure_ai", status, &error_body));
++            return Err(HttpErrorMapper::map_status_code("azure_ai", status, &error_body));
+         }
+ 
+         // Parse response
+diff --git a/src/core/providers/azure_ai/rerank.rs b/src/core/providers/azure_ai/rerank.rs
+index dcbd5c3..8723b98 100644
+--- a/src/core/providers/azure_ai/rerank.rs
++++ b/src/core/providers/azure_ai/rerank.rs
+@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
+ use serde_json::{Value, json};
+ 
+ use super::config::{AzureAIConfig, AzureAIEndpointType};
++use crate::core::providers::base_provider::HttpErrorMapper;
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::utils::net::http::create_custom_client_with_headers;
+ 
+@@ -74,7 +75,7 @@ impl AzureAIRerankHandler {
+                 .text()
+                 .await
+                 .unwrap_or_else(|_| "Unknown error".to_string());
+-            return Err(ProviderError::api_error("azure_ai", status, &error_body));
++            return Err(HttpErrorMapper::map_status_code("azure_ai", status, &error_body));
+         }
+ 
+         // Parse response
+diff --git a/src/core/providers/cohere/provider.rs b/src/core/providers/cohere/provider.rs
+index 363868b..7009a09 100644
+--- a/src/core/providers/cohere/provider.rs
++++ b/src/core/providers/cohere/provider.rs
+@@ -334,7 +334,7 @@ impl CohereProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("cohere", status, body));
++            return Err(HttpErrorMapper::map_status_code("cohere", status, &body));
+         }
+ 
+         let response_json: Value = response
+@@ -448,7 +448,7 @@ impl LLMProvider for CohereProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("cohere", status, body));
++            return Err(HttpErrorMapper::map_status_code("cohere", status, &body));
+         }
+ 
+         let response_json: Value = response
+@@ -491,7 +491,7 @@ impl LLMProvider for CohereProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("cohere", status, body));
++            return Err(HttpErrorMapper::map_status_code("cohere", status, &body));
+         }
+ 
+         // Create stream using unified SSE infrastructure
+@@ -531,7 +531,7 @@ impl LLMProvider for CohereProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("cohere", status, body));
++            return Err(HttpErrorMapper::map_status_code("cohere", status, &body));
+         }
+ 
+         let response_json: Value = response
+diff --git a/src/core/providers/friendliai/mod.rs b/src/core/providers/friendliai/mod.rs
+index 1e5b5ba..2f2fd27 100644
+--- a/src/core/providers/friendliai/mod.rs
++++ b/src/core/providers/friendliai/mod.rs
+@@ -296,7 +296,7 @@ impl LLMProvider for FriendliAIProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("friendliai", status, body));
++            return Err(HttpErrorMapper::map_status_code("friendliai", status, &body));
+         }
+ 
+         response
+@@ -339,7 +339,7 @@ impl LLMProvider for FriendliAIProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("friendliai", status, body));
++            return Err(HttpErrorMapper::map_status_code("friendliai", status, &body));
+         }
+ 
+         use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEParser};
+diff --git a/src/core/providers/galadriel/mod.rs b/src/core/providers/galadriel/mod.rs
+index ae71c6d..c282d82 100644
+--- a/src/core/providers/galadriel/mod.rs
++++ b/src/core/providers/galadriel/mod.rs
+@@ -286,7 +286,7 @@ impl LLMProvider for GaladrielProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("galadriel", status, body));
++            return Err(HttpErrorMapper::map_status_code("galadriel", status, &body));
+         }
+ 
+         response
+@@ -329,7 +329,7 @@ impl LLMProvider for GaladrielProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("galadriel", status, body));
++            return Err(HttpErrorMapper::map_status_code("galadriel", status, &body));
+         }
+ 
+         use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEParser};
+diff --git a/src/core/providers/gigachat/mod.rs b/src/core/providers/gigachat/mod.rs
+index f7bb94c..3c0d77c 100644
+--- a/src/core/providers/gigachat/mod.rs
++++ b/src/core/providers/gigachat/mod.rs
+@@ -307,7 +307,7 @@ impl LLMProvider for GigaChatProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("gigachat", status, body));
++            return Err(HttpErrorMapper::map_status_code("gigachat", status, &body));
+         }
+ 
+         response
+@@ -350,7 +350,7 @@ impl LLMProvider for GigaChatProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("gigachat", status, body));
++            return Err(HttpErrorMapper::map_status_code("gigachat", status, &body));
+         }
+ 
+         use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEParser};
+@@ -417,7 +417,7 @@ impl LLMProvider for GigaChatProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("gigachat", status, body));
++            return Err(HttpErrorMapper::map_status_code("gigachat", status, &body));
+         }
+ 
+         response
+diff --git a/src/core/providers/google_pse/mod.rs b/src/core/providers/google_pse/mod.rs
+index 1638954..49fe277 100644
+--- a/src/core/providers/google_pse/mod.rs
++++ b/src/core/providers/google_pse/mod.rs
+@@ -288,7 +288,7 @@ impl LLMProvider for GooglePSEProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("google_pse", status, body));
++            return Err(HttpErrorMapper::map_status_code("google_pse", status, &body));
+         }
+ 
+         let search_response: Value = response
+diff --git a/src/core/providers/jina/mod.rs b/src/core/providers/jina/mod.rs
+index b08276c..85e9bfb 100644
+--- a/src/core/providers/jina/mod.rs
++++ b/src/core/providers/jina/mod.rs
+@@ -402,7 +402,7 @@ impl JinaProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("jina", status, body));
++            return Err(HttpErrorMapper::map_status_code("jina", status, &body));
+         }
+ 
+         // Parse and transform response
+@@ -643,7 +643,7 @@ impl LLMProvider for JinaProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("jina", status, body));
++            return Err(HttpErrorMapper::map_status_code("jina", status, &body));
+         }
+ 
+         response
+diff --git a/src/core/providers/meta_llama/mod.rs b/src/core/providers/meta_llama/mod.rs
+index 2161117..a6e5945 100644
+--- a/src/core/providers/meta_llama/mod.rs
++++ b/src/core/providers/meta_llama/mod.rs
+@@ -34,6 +34,7 @@ pub use chat::{LlamaChatHandler, LlamaChatTransformation};
+ pub use common_utils::{LlamaClient, LlamaConfig, LlamaUtils};
+ 
+ // Import unified error system
++use crate::core::providers::base_provider::HttpErrorMapper;
+ use crate::core::providers::unified_provider::ProviderError;
+ 
+ // use super::base_llm::{BaseLLMProvider, BaseLLMError};
+@@ -536,7 +537,7 @@ pub struct UnifiedErrorMapper;
+ 
+ impl ErrorMapper<ProviderError> for UnifiedErrorMapper {
+     fn map_http_error(&self, status_code: u16, response_body: &str) -> ProviderError {
+-        ProviderError::api_error("meta", status_code, response_body.to_string())
++        HttpErrorMapper::map_status_code("meta", status_code, response_body)
+     }
+ 
+     fn map_json_error(&self, _error_response: &serde_json::Value) -> ProviderError {
+diff --git a/src/core/providers/mistral/mod.rs b/src/core/providers/mistral/mod.rs
+index 488b205..a0235ce 100644
+--- a/src/core/providers/mistral/mod.rs
++++ b/src/core/providers/mistral/mod.rs
+@@ -390,7 +390,7 @@ impl LLMProvider for MistralProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("mistral", status, body));
++            return Err(HttpErrorMapper::map_status_code("mistral", status, &body));
+         }
+ 
+         response
+@@ -435,7 +435,7 @@ impl LLMProvider for MistralProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("mistral", status, body));
++            return Err(HttpErrorMapper::map_status_code("mistral", status, &body));
+         }
+ 
+         // Parse SSE stream using shared infrastructure
+@@ -506,7 +506,7 @@ impl LLMProvider for MistralProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("mistral", status, body));
++            return Err(HttpErrorMapper::map_status_code("mistral", status, &body));
+         }
+ 
+         response
+diff --git a/src/core/providers/qwen/mod.rs b/src/core/providers/qwen/mod.rs
+index 0db7e1d..5805c31 100644
+--- a/src/core/providers/qwen/mod.rs
++++ b/src/core/providers/qwen/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig, HttpErrorMapper};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -190,31 +190,7 @@ pub struct QwenErrorMapper;
+ 
+ impl ErrorMapper<ProviderError> for QwenErrorMapper {
+     fn map_http_error(&self, status_code: u16, response_body: &str) -> ProviderError {
+-        match status_code {
+-            401 => ProviderError::authentication(
+-                PROVIDER_NAME,
+-                format!("Invalid API key: {}", response_body),
+-            ),
+-            403 => ProviderError::authentication(
+-                PROVIDER_NAME,
+-                format!("Permission denied: {}", response_body),
+-            ),
+-            404 => ProviderError::model_not_found(
+-                PROVIDER_NAME,
+-                format!("Model not found: {}", response_body),
+-            ),
+-            429 => ProviderError::rate_limit(PROVIDER_NAME, None),
+-            500..=599 => ProviderError::api_error(
+-                PROVIDER_NAME,
+-                status_code,
+-                format!("Server error: {}", response_body),
+-            ),
+-            _ => ProviderError::api_error(
+-                PROVIDER_NAME,
+-                status_code,
+-                format!("HTTP {}: {}", status_code, response_body),
+-            ),
+-        }
++        HttpErrorMapper::map_status_code(PROVIDER_NAME, status_code, response_body)
+     }
+ }
+ 
+diff --git a/src/core/providers/recraft/mod.rs b/src/core/providers/recraft/mod.rs
+index 9563c4f..740af3b 100644
+--- a/src/core/providers/recraft/mod.rs
++++ b/src/core/providers/recraft/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig, HttpErrorMapper};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -105,31 +105,7 @@ pub struct RecraftErrorMapper;
+ 
+ impl ErrorMapper<RecraftError> for RecraftErrorMapper {
+     fn map_http_error(&self, status_code: u16, response_body: &str) -> RecraftError {
+-        match status_code {
+-            401 => ProviderError::authentication(
+-                "recraft",
+-                format!("Invalid API key: {}", response_body),
+-            ),
+-            403 => ProviderError::authentication(
+-                "recraft",
+-                format!("Permission denied: {}", response_body),
+-            ),
+-            404 => ProviderError::model_not_found(
+-                "recraft",
+-                format!("Model not found: {}", response_body),
+-            ),
+-            429 => ProviderError::rate_limit("recraft", None),
+-            500..=599 => ProviderError::api_error(
+-                "recraft",
+-                status_code,
+-                format!("Server error: {}", response_body),
+-            ),
+-            _ => ProviderError::api_error(
+-                "recraft",
+-                status_code,
+-                format!("HTTP {}: {}", status_code, response_body),
+-            ),
+-        }
++        HttpErrorMapper::map_status_code("recraft", status_code, response_body)
+     }
+ }
+ 
+diff --git a/src/core/providers/sambanova/mod.rs b/src/core/providers/sambanova/mod.rs
+index 4588eb3..0fd67fc 100644
+--- a/src/core/providers/sambanova/mod.rs
++++ b/src/core/providers/sambanova/mod.rs
+@@ -415,7 +415,7 @@ impl LLMProvider for SambanovaProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("sambanova", status, body));
++            return Err(HttpErrorMapper::map_status_code("sambanova", status, &body));
+         }
+ 
+         response
+@@ -461,7 +461,7 @@ impl LLMProvider for SambanovaProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("sambanova", status, body));
++            return Err(HttpErrorMapper::map_status_code("sambanova", status, &body));
+         }
+ 
+         // Parse SSE stream using shared infrastructure
+@@ -531,7 +531,7 @@ impl LLMProvider for SambanovaProvider {
+         if !response.status().is_success() {
+             let status = response.status().as_u16();
+             let body = response.text().await.unwrap_or_default();
+-            return Err(ProviderError::api_error("sambanova", status, body));
++            return Err(HttpErrorMapper::map_status_code("sambanova", status, &body));
+         }
+ 
+         response
+diff --git a/src/core/providers/sap_ai/mod.rs b/src/core/providers/sap_ai/mod.rs
+index 41adfc5..cce8bc0 100644
+--- a/src/core/providers/sap_ai/mod.rs
++++ b/src/core/providers/sap_ai/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig, HttpErrorMapper};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -108,31 +108,7 @@ pub struct SapAIErrorMapper;
+ 
+ impl ErrorMapper<SapAIError> for SapAIErrorMapper {
+     fn map_http_error(&self, status_code: u16, response_body: &str) -> SapAIError {
+-        match status_code {
+-            401 => ProviderError::authentication(
+-                "sap_ai",
+-                format!("Invalid API key: {}", response_body),
+-            ),
+-            403 => ProviderError::authentication(
+-                "sap_ai",
+-                format!("Permission denied: {}", response_body),
+-            ),
+-            404 => ProviderError::model_not_found(
+-                "sap_ai",
+-                format!("Model not found: {}", response_body),
+-            ),
+-            429 => ProviderError::rate_limit("sap_ai", None),
+-            500..=599 => ProviderError::api_error(
+-                "sap_ai",
+-                status_code,
+-                format!("Server error: {}", response_body),
+-            ),
+-            _ => ProviderError::api_error(
+-                "sap_ai",
+-                status_code,
+-                format!("HTTP {}: {}", status_code, response_body),
+-            ),
+-        }
++        HttpErrorMapper::map_status_code("sap_ai", status_code, response_body)
+     }
+ }
+ 
+diff --git a/src/core/providers/searxng/mod.rs b/src/core/providers/searxng/mod.rs
+index c1f992f..8820a16 100644
+--- a/src/core/providers/searxng/mod.rs
++++ b/src/core/providers/searxng/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig, HttpErrorMapper};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -105,27 +105,7 @@ pub struct SearXNGErrorMapper;
+ 
+ impl ErrorMapper<SearXNGError> for SearXNGErrorMapper {
+     fn map_http_error(&self, status_code: u16, response_body: &str) -> SearXNGError {
+-        match status_code {
+-            401 | 403 => ProviderError::authentication(
+-                "searxng",
+-                format!("Authentication failed: {}", response_body),
+-            ),
+-            404 => ProviderError::model_not_found(
+-                "searxng",
+-                format!("Endpoint not found: {}", response_body),
+-            ),
+-            429 => ProviderError::rate_limit("searxng", None),
+-            500..=599 => ProviderError::api_error(
+-                "searxng",
+-                status_code,
+-                format!("Server error: {}", response_body),
+-            ),
+-            _ => ProviderError::api_error(
+-                "searxng",
+-                status_code,
+-                format!("HTTP {}: {}", status_code, response_body),
+-            ),
+-        }
++        HttpErrorMapper::map_status_code("searxng", status_code, response_body)
+     }
+ }
+ 
+diff --git a/src/core/providers/tavily/mod.rs b/src/core/providers/tavily/mod.rs
+index c9aa355..8ebf6cf 100644
+--- a/src/core/providers/tavily/mod.rs
++++ b/src/core/providers/tavily/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig, HttpErrorMapper};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -105,31 +105,7 @@ pub struct TavilyErrorMapper;
+ 
+ impl ErrorMapper<TavilyError> for TavilyErrorMapper {
+     fn map_http_error(&self, status_code: u16, response_body: &str) -> TavilyError {
+-        match status_code {
+-            401 => ProviderError::authentication(
+-                "tavily",
+-                format!("Invalid API key: {}", response_body),
+-            ),
+-            403 => ProviderError::authentication(
+-                "tavily",
+-                format!("Permission denied: {}", response_body),
+-            ),
+-            404 => ProviderError::model_not_found(
+-                "tavily",
+-                format!("Endpoint not found: {}", response_body),
+-            ),
+-            429 => ProviderError::rate_limit("tavily", None),
+-            500..=599 => ProviderError::api_error(
+-                "tavily",
+-                status_code,
+-                format!("Server error: {}", response_body),
+-            ),
+-            _ => ProviderError::api_error(
+-                "tavily",
+-                status_code,
+-                format!("HTTP {}: {}", status_code, response_body),
+-            ),
+-        }
++        HttpErrorMapper::map_status_code("tavily", status_code, response_body)
+     }
+ }
+ 
+diff --git a/src/core/providers/topaz/mod.rs b/src/core/providers/topaz/mod.rs
+index a2fefa1..58450ec 100644
+--- a/src/core/providers/topaz/mod.rs
++++ b/src/core/providers/topaz/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig, HttpErrorMapper};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -105,31 +105,7 @@ pub struct TopazErrorMapper;
+ 
+ impl ErrorMapper<TopazError> for TopazErrorMapper {
+     fn map_http_error(&self, status_code: u16, response_body: &str) -> TopazError {
+-        match status_code {
+-            401 => ProviderError::authentication(
+-                "topaz",
+-                format!("Invalid API key: {}", response_body),
+-            ),
+-            403 => ProviderError::authentication(
+-                "topaz",
+-                format!("Permission denied: {}", response_body),
+-            ),
+-            404 => ProviderError::model_not_found(
+-                "topaz",
+-                format!("Model not found: {}", response_body),
+-            ),
+-            429 => ProviderError::rate_limit("topaz", None),
+-            500..=599 => ProviderError::api_error(
+-                "topaz",
+-                status_code,
+-                format!("Server error: {}", response_body),
+-            ),
+-            _ => ProviderError::api_error(
+-                "topaz",
+-                status_code,
+-                format!("HTTP {}: {}", status_code, response_body),
+-            ),
+-        }
++        HttpErrorMapper::map_status_code("topaz", status_code, response_body)
+     }
+ }
+ 
+diff --git a/src/core/providers/vercel_ai/mod.rs b/src/core/providers/vercel_ai/mod.rs
+index 62c82df..ac726b1 100644
+--- a/src/core/providers/vercel_ai/mod.rs
++++ b/src/core/providers/vercel_ai/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig, HttpErrorMapper};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -109,31 +109,7 @@ pub struct VercelAIErrorMapper;
+ 
+ impl ErrorMapper<VercelAIError> for VercelAIErrorMapper {
+     fn map_http_error(&self, status_code: u16, response_body: &str) -> VercelAIError {
+-        match status_code {
+-            401 => ProviderError::authentication(
+-                "vercel_ai",
+-                format!("Invalid API key: {}", response_body),
+-            ),
+-            403 => ProviderError::authentication(
+-                "vercel_ai",
+-                format!("Permission denied: {}", response_body),
+-            ),
+-            404 => ProviderError::model_not_found(
+-                "vercel_ai",
+-                format!("Model not found: {}", response_body),
+-            ),
+-            429 => ProviderError::rate_limit("vercel_ai", None),
+-            500..=599 => ProviderError::api_error(
+-                "vercel_ai",
+-                status_code,
+-                format!("Server error: {}", response_body),
+-            ),
+-            _ => ProviderError::api_error(
+-                "vercel_ai",
+-                status_code,
+-                format!("HTTP {}: {}", status_code, response_body),
+-            ),
+-        }
++        HttpErrorMapper::map_status_code("vercel_ai", status_code, response_body)
+     }
+ }
+ 
+diff --git a/src/core/providers/xiaomi_mimo/mod.rs b/src/core/providers/xiaomi_mimo/mod.rs
+index 665c05c..f6b90e2 100644
+--- a/src/core/providers/xiaomi_mimo/mod.rs
++++ b/src/core/providers/xiaomi_mimo/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig, HttpErrorMapper};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -109,31 +109,7 @@ pub struct XiaomiMIMOErrorMapper;
+ 
+ impl ErrorMapper<XiaomiMIMOError> for XiaomiMIMOErrorMapper {
+     fn map_http_error(&self, status_code: u16, response_body: &str) -> XiaomiMIMOError {
+-        match status_code {
+-            401 => ProviderError::authentication(
+-                "xiaomi_mimo",
+-                format!("Invalid API key: {}", response_body),
+-            ),
+-            403 => ProviderError::authentication(
+-                "xiaomi_mimo",
+-                format!("Permission denied: {}", response_body),
+-            ),
+-            404 => ProviderError::model_not_found(
+-                "xiaomi_mimo",
+-                format!("Model not found: {}", response_body),
+-            ),
+-            429 => ProviderError::rate_limit("xiaomi_mimo", None),
+-            500..=599 => ProviderError::api_error(
+-                "xiaomi_mimo",
+-                status_code,
+-                format!("Server error: {}", response_body),
+-            ),
+-            _ => ProviderError::api_error(
+-                "xiaomi_mimo",
+-                status_code,
+-                format!("HTTP {}: {}", status_code, response_body),
+-            ),
+-        }
++        HttpErrorMapper::map_status_code("xiaomi_mimo", status_code, response_body)
+     }
+ }
+ 
+diff --git a/src/core/providers/zhipu/mod.rs b/src/core/providers/zhipu/mod.rs
+index 2c78899..5a92842 100644
+--- a/src/core/providers/zhipu/mod.rs
++++ b/src/core/providers/zhipu/mod.rs
+@@ -7,7 +7,7 @@ use futures::Stream;
+ use serde::{Deserialize, Serialize};
+ use std::pin::Pin;
+ 
+-use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig};
++use crate::core::providers::base_provider::{BaseHttpClient, BaseProviderConfig, HttpErrorMapper};
+ use crate::core::providers::unified_provider::ProviderError;
+ use crate::core::traits::{
+     error_mapper::trait_def::ErrorMapper, provider::ProviderConfig,
+@@ -109,31 +109,7 @@ pub struct ZhipuErrorMapper;
+ 
+ impl ErrorMapper<ZhipuError> for ZhipuErrorMapper {
+     fn map_http_error(&self, status_code: u16, response_body: &str) -> ZhipuError {
+-        match status_code {
+-            401 => ProviderError::authentication(
+-                "zhipu",
+-                format!("Invalid API key: {}", response_body),
+-            ),
+-            403 => ProviderError::authentication(
+-                "zhipu",
+-                format!("Permission denied: {}", response_body),
+-            ),
+-            404 => ProviderError::model_not_found(
+-                "zhipu",
+-                format!("Model not found: {}", response_body),
+-            ),
+-            429 => ProviderError::rate_limit("zhipu", None),
+-            500..=599 => ProviderError::api_error(
+-                "zhipu",
+-                status_code,
+-                format!("Server error: {}", response_body),
+-            ),
+-            _ => ProviderError::api_error(
+-                "zhipu",
+-                status_code,
+-                format!("HTTP {}: {}", status_code, response_body),
+-            ),
+-        }
++        HttpErrorMapper::map_status_code("zhipu", status_code, response_body)
+     }
+ }
+ 

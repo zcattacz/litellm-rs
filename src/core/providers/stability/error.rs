@@ -47,7 +47,6 @@ impl ErrorMapper<ProviderError> for StabilityErrorMapper {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

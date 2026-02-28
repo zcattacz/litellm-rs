@@ -3,9 +3,8 @@
 use crate::core::models::ApiKey;
 use crate::core::models::user::types::User;
 use crate::core::types::context::RequestContext;
-use crate::server::routes::errors;
 use crate::utils::error::gateway_error::GatewayError;
-use actix_web::{HttpMessage, HttpRequest, HttpResponse, Result as ActixResult};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, ResponseError, Result as ActixResult};
 use serde::Serialize;
 use std::future::Future;
 use tracing::{debug, error};
@@ -68,9 +67,9 @@ pub async fn log_api_usage(context: &RequestContext, model: &str, tokens_used: u
 /// Eliminates the repeated pattern of:
 /// ```ignore
 /// let context = get_request_context(&req)?;
-/// match handler(&state.router, request.into_inner(), context).await {
+/// match handler(request.into_inner(), context).await {
 ///     Ok(r) => Ok(HttpResponse::Ok().json(r)),
-///     Err(e) => { error!("..."); Ok(errors::gateway_error_to_response(e)) }
+///     Err(e) => { error!("..."); Ok(e.error_response()) }
 /// }
 /// ```
 pub async fn handle_ai_request<Req, Resp, F, Fut>(
@@ -89,7 +88,7 @@ where
         Ok(response) => Ok(HttpResponse::Ok().json(response)),
         Err(e) => {
             error!("{} error: {}", error_label, e);
-            Ok(errors::gateway_error_to_response(e))
+            Ok(e.error_response())
         }
     }
 }

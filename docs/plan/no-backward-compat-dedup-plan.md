@@ -37,16 +37,16 @@
 
 ## 1. 全量步骤（文件级）
 
-## Step 0 - 基线校验
+### Step S0 - 基线校验
 
 - 状态: `completed`
 - 改动文件: 无
-- 执行命令:
+- 步骤级测试命令:
   - `cargo check`
 - 完成标准:
   - 基线可编译，后续每步可做增量对比
 
-## Step 1 - 删除重复告警实现（保留 monitoring/alerts，移除 core 重复实现）
+### Step S1 - 删除重复告警实现（保留 monitoring/alerts，移除 core 重复实现）
 
 - 状态: `completed`
 - 目标:
@@ -66,14 +66,14 @@
   - 从 `src/core/observability/mod.rs` 移除 `mod alerting;` 与 `pub use alerting::AlertManager;`
   - 删除 `src/core/alerting/` 整个目录
   - 删除 `src/core/observability/alerting.rs`
-- 步骤测试:
+- 步骤级测试命令:
   - `cargo check`
   - `cargo test --lib monitoring::alerts`
 - 完成标准:
   - 编译通过
   - 仓库中不再存在 `src/core/alerting` 与 `src/core/observability/alerting.rs`
 
-## Step 2 - 删除 legacy cache_manager（仅保留 core/cache）
+### Step S2 - 删除 legacy cache_manager（仅保留 core/cache）
 
 - 状态: `completed`
 - 目标:
@@ -89,14 +89,14 @@
   - 从 `src/core/mod.rs` 移除 `pub mod cache_manager;`
   - 删除 `src/core/cache_manager/` 整个目录
   - `benches/performance_benchmarks.rs` 中删除/替换 `cache_manager` 相关基准段，避免引用已删除模块
-- 步骤测试:
+- 步骤级测试命令:
   - `cargo check`
   - `cargo test --lib core::cache`
 - 完成标准:
   - 编译通过
   - `rg "cache_manager" src benches tests` 不再存在业务引用
 
-## Step 3 - 删除 legacy router 栈（保留 UnifiedRouter）
+### Step S3 - 删除 legacy router 栈（保留 UnifiedRouter）
 
 - 状态: `completed`
 - 目标:
@@ -131,7 +131,7 @@
   - 从 `src/core/router/tests/mod.rs` 删除 legacy 测试模块注册
   - `tests/integration/router_tests.rs` 改为仅测试 `UnifiedRouter` 与 `deployment`（移除 `LoadBalancer`/legacy strategy）
   - `benches/performance_benchmarks.rs` 改为只保留 `UnifiedRouter` 路径基准
-- 步骤测试:
+- 步骤级测试命令:
   - `cargo check`
   - `cargo test --lib core::router::tests`
   - `cargo test --test router_tests`
@@ -139,7 +139,7 @@
   - 编译通过
   - `rg "router::load_balancer|router::strategy::" src tests benches` 结果为 0
 
-## Step 4 - 删除重复请求/响应模型层（移除 core/models/request + core/models/response）
+### Step S4 - 删除重复请求/响应模型层（移除 core/models/request + core/models/response）
 
 - 状态: `completed`
 - 目标:
@@ -160,14 +160,14 @@
   - 从 `src/core/models/mod.rs` 删除 `pub mod request;` 与 `pub mod response;`
   - 删除对应文件/目录
   - 若出现编译引用，统一改到 `crate::core::types::*` 或 `crate::core::models::openai::*`
-- 步骤测试:
+- 步骤级测试命令:
   - `cargo check`
   - `cargo test --lib core::models`
 - 完成标准:
   - 编译通过
   - `rg "core::models::request|core::models::response" src tests benches examples` 为 0
 
-## Step 5 - 最终回归与计划归档
+### Step S5 - 最终回归与计划归档
 
 - 状态: `completed`
 - 目标:
@@ -178,7 +178,7 @@
   - 更新每一步状态为 `completed` 或 `blocked`
   - 记录每一步实际变更文件与测试结果
   - 汇总 breaking changes（按模块）
-- 步骤测试:
+- 步骤级测试命令:
   - `cargo check`
   - `cargo test --lib`
   - `cargo test --tests`
@@ -186,7 +186,7 @@
   - 三条命令全部通过（若失败需记录失败点和阻塞原因）
   - 计划文档完整闭环
 
-## Step 6 - 修复数据库集成测试导入路径（storage）
+### Step S6 - 修复数据库集成测试导入路径（storage）
 
 - 状态: `completed`
 - 目标:
@@ -196,13 +196,13 @@
   - `tests/integration/database_tests.rs`
 - 具体调整:
   - `use litellm_rs::config::DatabaseConfig;` -> `use litellm_rs::config::models::storage::DatabaseConfig;`
-- 步骤测试:
+- 步骤级测试命令:
   - `cargo test --test lib integration::database_tests`
 - 完成标准:
   - 数据库集成测试模块可编译执行
   - 不再出现 `config::DatabaseConfig` unresolved import
 
-## Step 7 - 修复配置校验集成测试导入路径（config::models 子模块）
+### Step S7 - 修复配置校验集成测试导入路径（config::models 子模块）
 
 - 状态: `completed`
 - 目标:
@@ -214,13 +214,13 @@
     - `gateway::GatewayConfig`
     - `provider::{HealthCheckConfig, ProviderConfig, RetryConfig}`
     - `server::{CorsConfig, ServerConfig, TlsConfig}`
-- 步骤测试:
+- 步骤级测试命令:
   - `cargo test --test lib integration::config_validation_tests`
 - 完成标准:
   - 配置校验模块可编译执行
   - 不再出现 `config::models::*` unresolved imports
 
-## Step 8 - 修复错误处理集成测试导入路径（GatewayError）
+### Step S8 - 修复错误处理集成测试导入路径（GatewayError）
 
 - 状态: `completed`
 - 目标:
@@ -229,13 +229,13 @@
   - `tests/integration/error_handling_tests.rs`
 - 具体调整:
   - `use litellm_rs::utils::error::GatewayError;` -> `use litellm_rs::GatewayError;`
-- 步骤测试:
+- 步骤级测试命令:
   - `cargo test --test lib integration::error_handling_tests`
 - 完成标准:
   - 错误处理模块可编译执行
   - 不再出现 `utils::error::GatewayError` unresolved import
 
-## Step 9 - 全量回归并闭环计划状态
+### Step S9 - 全量回归并闭环计划状态
 
 - 状态: `completed`
 - 目标:
@@ -245,7 +245,7 @@
 - 具体调整:
   - 追加 Step 6-9 执行日志
   - 记录最终验证结果与剩余风险（如有）
-- 步骤测试:
+- 步骤级测试命令:
   - `cargo check`
   - `cargo test --lib`
   - `cargo test --tests`
@@ -253,20 +253,64 @@
   - 三条命令全部通过
   - 计划文档执行日志完整闭环
 
+### Step S10 - 收敛 server audio 路径到 UnifiedRouter（移除 AppState legacy router 依赖）
+
+- 状态: `completed`
+- 目标:
+  - 消除 server 层 `ProviderRegistry` 与 `UnifiedRouter` 双路由并存，统一 audio 路径到 `UnifiedRouter`
+- 预计改动文件:
+  - `src/server/routes/ai/audio/transcriptions.rs`
+  - `src/server/routes/ai/audio/translations.rs`
+  - `src/server/routes/ai/audio/speech.rs`
+  - `src/core/audio/mod.rs`
+  - `src/core/audio/transcription.rs`
+  - `src/core/audio/translation.rs`
+  - `src/core/audio/speech.rs`
+  - `src/server/state.rs`
+  - `src/server/http.rs`
+  - `tests/e2e/audio.rs`
+- 具体调整:
+  - audio 三个路由统一改为 `select_provider_for_model` + `ProviderCapability::{AudioTranscription,AudioTranslation,TextToSpeech}`。
+  - `AudioService::new` 改为无参构造，移除 `ProviderRegistry` 依赖。
+  - `AppState` 移除 `router: ProviderRegistry` 字段；`HttpServer` 移除 legacy provider registry 初始化和注入。
+  - `tests/e2e/audio.rs` 跟随 `AudioService::new()` 新接口。
+- 步骤级测试命令:
+  - `cargo check -q`
+  - `cargo test -q core::audio::tests::`
+  - `cargo test -q server::routes::ai::`
+- 完成标准:
+  - 编译通过
+  - `rg \"state\\.router\" src/server/routes/ai/audio src/server/state.rs src/server/http.rs` 为 0 命中
+  - audio 路由不再依赖 `ProviderRegistry`
+
 ---
 
 ## 2. 执行日志（每步完成后追加）
 
-### Step 0
+- Step S0: `completed`
+- Step S1: `completed`
+- Step S2: `completed`
+- Step S3: `completed`
+- Step S4: `completed`
+- Step S5: `completed`
+- Step S6: `completed`
+- Step S7: `completed`
+- Step S8: `completed`
+- Step S9: `completed`
+- Step S10: `completed`
 
+### Log Step 0
+
+- 状态: `completed`
 - 状态变更: `in_progress -> completed`
 - 实际改动文件: 无
 - 测试命令:
   - `cargo check` ✅
 - 备注: 基线通过
 
-### Step 1
+### Log Step 1
 
+- 状态: `completed`
 - 状态变更: `pending -> in_progress -> completed`
 - 实际改动文件:
   - `src/core/mod.rs`
@@ -283,8 +327,9 @@
   - `cargo test --lib monitoring::alerts` ✅ (75 passed)
 - 结果: 完成，已移除 core 侧重复告警实现，仅保留 monitoring 告警路径
 
-### Step 2
+### Log Step 2
 
+- 状态: `completed`
 - 状态变更: `pending -> in_progress -> completed`
 - 实际改动文件:
   - `src/core/mod.rs`
@@ -298,8 +343,9 @@
   - `cargo test --lib core::cache` ✅ (126 passed)
 - 结果: 完成，`cache_manager` 已彻底下线，缓存主路径仅保留 `core/cache`
 
-### Step 3
+### Log Step 3
 
+- 状态: `completed`
 - 状态变更: `pending -> in_progress -> completed`
 - 实际改动文件:
   - `src/core/router/mod.rs`
@@ -328,8 +374,9 @@
   - 补充执行: `rg \"router::load_balancer|router::strategy::\" src tests benches examples` ✅ (0 命中)
 - 结果: 完成，legacy router 栈已物理删除，运行路径统一为 `UnifiedRouter`
 
-### Step 4
+### Log Step 4
 
+- 状态: `completed`
 - 状态变更: `pending -> in_progress -> completed`
 - 实际改动文件:
   - `src/core/models/mod.rs`
@@ -349,8 +396,9 @@
   - `rg -n \"core::models::request|core::models::response\" src tests benches examples` ✅ (0 命中)
 - 结果: 完成，重复 request/response 层已删除，模型路径收敛到 `core/types` 与 `core/models/openai`
 
-### Step 5
+### Log Step 5
 
+- 状态: `completed`
 - 状态变更: `pending -> in_progress -> blocked -> completed`
 - 实际改动文件:
   - `docs/plan/no-backward-compat-dedup-plan.md`
@@ -370,8 +418,9 @@
 - Models: 删除 `src/core/models/request.rs` 与 `src/core/models/response/*`，统一到 `core/types` 与 `core/models/openai`
 - 结果: 初次收尾时因集成测试导入错误被阻塞；该阻塞已在 Step 6-9 中解除并完成闭环。
 
-### Step 6
+### Log Step 6
 
+- 状态: `completed`
 - 状态变更: `pending -> in_progress -> completed`
 - 实际改动文件:
   - `tests/common/database.rs`
@@ -381,8 +430,9 @@
   - `cargo test --test lib integration::database_tests` ✅（5 passed）
 - 结果: 完成，数据库集成测试导入已切换到 `config::models::storage::DatabaseConfig`
 
-### Step 7
+### Log Step 7
 
+- 状态: `completed`
 - 状态变更: `pending -> in_progress -> completed`
 - 实际改动文件:
   - `tests/integration/config_validation_tests.rs`
@@ -391,8 +441,9 @@
   - `cargo test --test lib integration::config_validation_tests` ✅（31 passed）
 - 结果: 完成，配置类型导入路径已改为子模块路径，并修正 `empty_database_url` 用例（仅在 `database.enabled = true` 时断言报错）
 
-### Step 8
+### Log Step 8
 
+- 状态: `completed`
 - 状态变更: `pending -> in_progress -> completed`
 - 实际改动文件:
   - `tests/integration/error_handling_tests.rs`
@@ -400,8 +451,9 @@
   - `cargo test --test lib integration::error_handling_tests` ✅（14 passed）
 - 结果: 完成，`GatewayError` 导入统一为 crate 根导出路径 `litellm_rs::GatewayError`
 
-### Step 9
+### Log Step 9
 
+- 状态: `completed`
 - 状态变更: `pending -> in_progress -> completed`
 - 实际改动文件:
   - `docs/plan/no-backward-compat-dedup-plan.md`
@@ -410,3 +462,24 @@
   - `cargo test --lib` ✅（11917 passed）
   - `cargo test --tests` ✅（integration suite: 131 passed, 15 ignored）
 - 结果: 完成，最终回归全绿，计划文档执行状态已完整闭环。
+
+### Log Step 10
+
+- 状态: `completed`
+- 状态变更: `pending -> in_progress -> completed`
+- 实际改动文件:
+  - `src/server/routes/ai/audio/transcriptions.rs`
+  - `src/server/routes/ai/audio/translations.rs`
+  - `src/server/routes/ai/audio/speech.rs`
+  - `src/core/audio/mod.rs`
+  - `src/core/audio/transcription.rs`
+  - `src/core/audio/translation.rs`
+  - `src/core/audio/speech.rs`
+  - `src/server/state.rs`
+  - `src/server/http.rs`
+  - `tests/e2e/audio.rs`
+- 测试命令:
+  - `cargo check -q` ✅
+  - `cargo test -q core::audio::tests::` ✅（3 passed）
+  - `cargo test -q server::routes::ai::` ✅（16 passed）
+- 结果: 完成，server 侧 audio 路径已统一收敛到 `UnifiedRouter`，`AppState` 不再携带 legacy `ProviderRegistry`。

@@ -1,7 +1,7 @@
 //! Embeddings endpoint
 
 use crate::core::models::openai::{EmbeddingRequest, EmbeddingResponse};
-use crate::core::providers::ProviderRegistry;
+use crate::core::providers::ProviderError;
 use crate::core::types::{
     context::RequestContext, embedding::EmbeddingInput,
     embedding::EmbeddingRequest as CoreEmbeddingRequest, model::ProviderCapability,
@@ -33,28 +33,18 @@ pub async fn embeddings(
     .await
 }
 
-/// Handle embedding with app state (supports unified router when available)
+/// Handle embedding with app state (UnifiedRouter only)
 pub async fn handle_embedding_with_state(
     state: &AppState,
     request: EmbeddingRequest,
     context: RequestContext,
 ) -> Result<EmbeddingResponse, GatewayError> {
-    handle_embedding_internal(&state.router, state.unified_router.as_deref(), request, context).await
-}
-
-/// Handle embedding via provider pool
-#[allow(dead_code)] // Compatibility path for direct pool-based invocations/tests.
-pub async fn handle_embedding_via_pool(
-    pool: &ProviderRegistry,
-    request: EmbeddingRequest,
-    context: RequestContext,
-) -> Result<EmbeddingResponse, GatewayError> {
-    handle_embedding_internal(pool, None, request, context).await
+    let unified_router = &state.unified_router;
+    handle_embedding_internal(unified_router, request, context).await
 }
 
 async fn handle_embedding_internal(
-    pool: &ProviderRegistry,
-    unified_router: Option<&crate::core::router::UnifiedRouter>,
+    unified_router: &crate::core::router::UnifiedRouter,
     request: EmbeddingRequest,
     context: RequestContext,
 ) -> Result<EmbeddingResponse, GatewayError> {
@@ -75,15 +65,16 @@ async fn handle_embedding_internal(
         }
     };
 
-    let selection = select_provider_for_model(
-        pool,
+    // Keep provider selection for capability validation before execution.
+    select_provider_for_model(
         unified_router,
         &request.model,
         ProviderCapability::Embeddings,
     )?;
 
+    let requested_model = request.model.clone();
     let core_request = CoreEmbeddingRequest {
-        model: selection.model,
+        model: requested_model,
         input,
         user: request.user,
         encoding_format: None,
@@ -91,11 +82,41 @@ async fn handle_embedding_internal(
         task_type: None,
     };
 
-    let core_response = selection
-        .provider
-        .create_embeddings(core_request, context)
+    let requested_model = core_request.model.clone();
+    let context_for_execution = context.clone();
+    let execution = unified_router
+        .execute_with_retry(&requested_model, move |deployment_id| {
+            let core_request = core_request.clone();
+            let context = context_for_execution.clone();
+            async move {
+                let deployment =
+                    unified_router
+                        .get_deployment(&deployment_id)
+                        .ok_or_else(|| {
+                            ProviderError::other("router", "Selected deployment not found")
+                        })?;
+
+                let provider = deployment.provider.clone();
+                let selected_model = deployment.model.clone();
+                drop(deployment);
+
+                let mut request_for_provider = core_request.clone();
+                request_for_provider.model = selected_model;
+                let response = provider
+                    .create_embeddings(request_for_provider, context)
+                    .await?;
+                let tokens = response
+                    .usage
+                    .as_ref()
+                    .map(|usage| u64::from(usage.total_tokens))
+                    .unwrap_or_default();
+                Ok((response, tokens))
+            }
+        })
         .await
-        .map_err(|e| GatewayError::internal(format!("Embedding error: {}", e)))?;
+        .map_err(|(e, _)| GatewayError::Provider(e))?;
+
+    let core_response = execution.0;
 
     // Convert core response to OpenAI format
     let response = EmbeddingResponse {

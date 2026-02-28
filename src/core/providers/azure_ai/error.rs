@@ -73,7 +73,6 @@ impl ErrorMapper<ProviderError> for AzureAIErrorMapper {
     }
 }
 
-
 /// Error
 pub fn is_unsupported_feature_error(response_body: &str) -> bool {
     let unsupported_indicators = [

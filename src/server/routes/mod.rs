@@ -234,23 +234,13 @@ impl ListQuery {
 pub mod errors {
     use super::*;
     use crate::utils::error::gateway_error::GatewayError;
+    use actix_web::ResponseError;
 
-    /// Convert GatewayError to HTTP response
+    /// Convert GatewayError to HTTP response.
+    ///
+    /// Kept as a compatibility shim while routes migrate to `ResponseError` directly.
     pub fn gateway_error_to_response(error: GatewayError) -> HttpResponse {
-        let (status, message) = match error {
-            GatewayError::NotFound(msg) => (actix_web::http::StatusCode::NOT_FOUND, msg),
-            GatewayError::Auth(msg) => (actix_web::http::StatusCode::UNAUTHORIZED, msg),
-            GatewayError::Forbidden(msg) => (actix_web::http::StatusCode::FORBIDDEN, msg),
-            GatewayError::Conflict(msg) => (actix_web::http::StatusCode::CONFLICT, msg),
-            GatewayError::Validation(msg) => (actix_web::http::StatusCode::BAD_REQUEST, msg),
-            GatewayError::RateLimit(msg) => (actix_web::http::StatusCode::TOO_MANY_REQUESTS, msg),
-            _ => (
-                actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
-                "Internal server error".to_string(),
-            ),
-        };
-
-        HttpResponse::build(status).json(ApiResponse::<()>::error(message))
+        error.error_response()
     }
 
     /// Create a validation error response
