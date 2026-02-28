@@ -913,6 +913,57 @@ fn build_cloudflare_config_from_factory(
     Ok(cf_config)
 }
 
+fn build_openai_like_config_from_factory(
+    config: &serde_json::Value,
+) -> Result<openai_like::OpenAILikeConfig, ProviderError> {
+    let api_base = config_str(config, "base_url")
+        .or_else(|| config_str(config, "api_base"))
+        .ok_or_else(|| {
+            ProviderError::configuration("openai_compatible", "base_url (or api_base) is required")
+        })?;
+
+    let api_key = config_str(config, "api_key");
+    let skip_api_key = config_bool(config, "skip_api_key").unwrap_or(api_key.is_none());
+
+    let mut oai_like = if let Some(api_key) = api_key {
+        openai_like::OpenAILikeConfig::with_api_key(api_base, api_key)
+    } else {
+        openai_like::OpenAILikeConfig::new(api_base).with_skip_api_key(skip_api_key)
+    };
+
+    oai_like.skip_api_key = skip_api_key;
+    oai_like.provider_name = config_str(config, "provider_name")
+        .unwrap_or("openai_compatible")
+        .to_string();
+
+    if let Some(timeout) = config_u64(config, "timeout") {
+        oai_like.base.timeout = timeout;
+    }
+    if let Some(max_retries) = config_u32(config, "max_retries") {
+        oai_like.base.max_retries = max_retries;
+    }
+    if let Some(prefix) = config_str(config, "model_prefix") {
+        oai_like.model_prefix = Some(prefix.to_string());
+    }
+    if let Some(default_model) = config_str(config, "default_model") {
+        oai_like.default_model = Some(default_model.to_string());
+    }
+    if let Some(pass_through) = config_bool(config, "pass_through_params") {
+        oai_like.pass_through_params = pass_through;
+    }
+    if let Some(organization) = config_str(config, "organization") {
+        oai_like.base.organization = Some(organization.to_string());
+    }
+    if let Some(api_version) = config_str(config, "api_version") {
+        oai_like.base.api_version = Some(api_version.to_string());
+    }
+
+    merge_string_headers(&mut oai_like.base.headers, config, "headers");
+    merge_string_headers(&mut oai_like.custom_headers, config, "custom_headers");
+
+    Ok(oai_like)
+}
+
 // Provider factory functions
 impl Provider {
     /// Create provider from configuration asynchronously
@@ -951,70 +1002,7 @@ impl Provider {
                 Ok(Provider::Cloudflare(provider))
             }
             ProviderType::OpenAICompatible => {
-                use crate::core::providers::openai_like::OpenAILikeConfig;
-                use serde_json::Value;
-
-                let api_base = config
-                    .get("base_url")
-                    .and_then(Value::as_str)
-                    .or_else(|| config.get("api_base").and_then(Value::as_str))
-                    .ok_or_else(|| {
-                        ProviderError::configuration(
-                            "openai_compatible",
-                            "base_url (or api_base) is required",
-                        )
-                    })?;
-
-                let api_key = config.get("api_key").and_then(Value::as_str);
-                let skip_api_key = config
-                    .get("skip_api_key")
-                    .and_then(Value::as_bool)
-                    .unwrap_or(api_key.is_none());
-
-                let mut oai_like = if let Some(api_key) = api_key {
-                    OpenAILikeConfig::with_api_key(api_base, api_key)
-                } else {
-                    OpenAILikeConfig::new(api_base).with_skip_api_key(skip_api_key)
-                };
-
-                if let Some(name) = config.get("provider_name").and_then(Value::as_str) {
-                    oai_like.provider_name = name.to_string();
-                } else {
-                    oai_like.provider_name = "openai_compatible".to_string();
-                }
-
-                if let Some(timeout) = config.get("timeout").and_then(Value::as_u64) {
-                    oai_like.base.timeout = timeout;
-                }
-                if let Some(max_retries) = config.get("max_retries").and_then(Value::as_u64) {
-                    oai_like.base.max_retries = max_retries as u32;
-                }
-                if let Some(prefix) = config.get("model_prefix").and_then(Value::as_str) {
-                    oai_like.model_prefix = Some(prefix.to_string());
-                }
-                if let Some(default_model) = config.get("default_model").and_then(Value::as_str) {
-                    oai_like.default_model = Some(default_model.to_string());
-                }
-                if let Some(pass_through) = config.get("pass_through_params").and_then(Value::as_bool) {
-                    oai_like.pass_through_params = pass_through;
-                }
-
-                if let Some(base_headers) = config.get("headers").and_then(Value::as_object) {
-                    for (key, value) in base_headers {
-                        if let Some(value) = value.as_str() {
-                            oai_like.base.headers.insert(key.clone(), value.to_string());
-                        }
-                    }
-                }
-
-                if let Some(custom_headers) = config.get("custom_headers").and_then(Value::as_object) {
-                    for (key, value) in custom_headers {
-                        if let Some(value) = value.as_str() {
-                            oai_like.custom_headers.insert(key.clone(), value.to_string());
-                        }
-                    }
-                }
-
+                let oai_like = build_openai_like_config_from_factory(&config)?;
                 let provider = openai_like::OpenAILikeProvider::new(oai_like)
                     .await
                     .map_err(|e| {
@@ -1600,6 +1588,84 @@ mod tests {
                 panic!("cloudflare should be creatable from alias fields: {err}")
             });
         assert!(matches!(provider, Provider::Cloudflare(_)));
+    }
+
+    #[test]
+    fn test_build_openai_like_config_from_factory_maps_optional_fields() {
+        let config = serde_json::json!({
+            "base_url": "https://openai-like.example.test/v1",
+            "api_key": "sk-openai-like",
+            "provider_name": "custom-like",
+            "timeout": 55,
+            "max_retries": 4,
+            "model_prefix": "prefix/",
+            "default_model": "gpt-4o-mini",
+            "pass_through_params": false,
+            "skip_api_key": true,
+            "organization": "org-like",
+            "api_version": "2024-12-01",
+            "headers": {
+                "x-base-header": "base"
+            },
+            "custom_headers": {
+                "x-custom-header": "custom"
+            }
+        });
+
+        let oai_like = build_openai_like_config_from_factory(&config)
+            .unwrap_or_else(|err| panic!("openai_like config should parse: {err}"));
+
+        assert_eq!(
+            oai_like.base.api_base.as_deref(),
+            Some("https://openai-like.example.test/v1")
+        );
+        assert_eq!(oai_like.base.api_key.as_deref(), Some("sk-openai-like"));
+        assert_eq!(oai_like.provider_name, "custom-like");
+        assert_eq!(oai_like.base.timeout, 55);
+        assert_eq!(oai_like.base.max_retries, 4);
+        assert_eq!(oai_like.model_prefix.as_deref(), Some("prefix/"));
+        assert_eq!(oai_like.default_model.as_deref(), Some("gpt-4o-mini"));
+        assert!(!oai_like.pass_through_params);
+        assert!(oai_like.skip_api_key);
+        assert_eq!(oai_like.base.organization.as_deref(), Some("org-like"));
+        assert_eq!(oai_like.base.api_version.as_deref(), Some("2024-12-01"));
+        assert_eq!(
+            oai_like.base.headers.get("x-base-header").map(String::as_str),
+            Some("base")
+        );
+        assert_eq!(
+            oai_like
+                .custom_headers
+                .get("x-custom-header")
+                .map(String::as_str),
+            Some("custom")
+        );
+    }
+
+    #[test]
+    fn test_build_openai_like_config_from_factory_requires_api_base() {
+        let config = serde_json::json!({
+            "api_key": "sk-openai-like"
+        });
+
+        let err = build_openai_like_config_from_factory(&config)
+            .err()
+            .unwrap_or_else(|| panic!("missing base_url should return an error"));
+        assert!(err.to_string().contains("base_url"));
+    }
+
+    #[tokio::test]
+    async fn test_from_config_async_openai_compatible_accepts_api_base_alias() {
+        let config = serde_json::json!({
+            "api_base": "http://localhost:11434/v1",
+            "skip_api_key": true,
+            "provider_name": "local-openai-like"
+        });
+
+        let provider = Provider::from_config_async(ProviderType::OpenAICompatible, config)
+            .await
+            .unwrap_or_else(|err| panic!("openai_compatible should be creatable: {err}"));
+        assert!(matches!(provider, Provider::OpenAILike(_)));
     }
 
     #[test]
