@@ -41,6 +41,7 @@ RUN mkdir -p src/bin && \
     echo "fn main() {}" > src/main.rs && \
     echo "#![allow(dead_code)] pub fn dummy() {}" > src/lib.rs && \
     echo "fn main() {}" > src/bin/google_gateway.rs && \
+    echo "fn main() {}" > src/bin/pricing-tool.rs && \
     echo "fn main() {}" > benches/performance_benchmarks.rs && \
     echo "fn main() {}" > benches/e2e_benchmarks.rs
 
