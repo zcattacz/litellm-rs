@@ -127,6 +127,10 @@ cache:
   semantic_cache: false
   similarity_threshold: 0.95
 
+pricing:
+  # PricingService source path/URL (set to null to use service default behavior)
+  source: "config/model_prices_extended.json"
+
 rate_limit:
   enabled: true
   strategy: token_bucket

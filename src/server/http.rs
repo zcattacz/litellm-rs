@@ -17,7 +17,7 @@ use actix_web::{
     web,
 };
 use std::sync::Arc;
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 /// HTTP server
 pub struct HttpServer {
@@ -35,44 +35,19 @@ impl HttpServer {
         let storage = crate::storage::StorageLayer::new(&config.gateway.storage).await?;
         let auth =
             crate::auth::AuthSystem::new(&config.gateway.auth, Arc::new(storage.clone())).await?;
-        let mut router = crate::core::providers::ProviderRegistry::new();
 
-        // Initialize providers from config
-        if !config.gateway.providers.is_empty() {
-            for provider_config in &config.gateway.providers {
-                if !provider_config.enabled {
-                    info!("Skipping disabled provider: {}", provider_config.name);
-                    continue;
-                }
-
-                match crate::core::providers::create_provider(provider_config.clone()).await {
-                    Ok(provider) => {
-                        router.register_with_key(provider_config.name.clone(), provider);
-                        info!("Registered provider: {}", provider_config.name);
-                    }
-                    Err(e) => {
-                        warn!(
-                            "Failed to initialize provider {}: {}",
-                            provider_config.name, e
-                        );
-                    }
-                }
-            }
+        let pricing_source = if config.gateway.cache.semantic_cache {
+            None
         } else {
-            debug!("No providers configured, gateway will route based on model prefix");
-        }
-
-        let pricing = Arc::new(PricingService::new(Some(
-            "config/model_prices_extended.json".to_string(),
-        )));
+            config.gateway.pricing.source.clone()
+        };
+        let pricing = Arc::new(PricingService::new(pricing_source));
         if let Err(e) = pricing.initialize().await {
             warn!("Pricing service initial load failed: {}", e);
         } else {
             info!("Pricing service initial load completed");
         }
-        let pricing_clone: Arc<PricingService> = Arc::clone(&pricing);
-        let _pricing_task = pricing_clone.start_auto_refresh_task();
-        info!("Pricing auto-refresh task started");
+        info!("Pricing auto-refresh task is managed by on-demand refresh checks");
 
         let runtime_router_config =
             crate::core::router::gateway_config::runtime_router_config_from_gateway(
@@ -85,13 +60,15 @@ impl HttpServer {
         )
         .await
         .map_err(|e| {
-            GatewayError::Config(format!("Failed to initialize unified router from config: {}", e))
+            GatewayError::Config(format!(
+                "Failed to initialize unified router from config: {}",
+                e
+            ))
         })?;
 
         let state = AppState::new_with_unified_router(
             config.clone(),
             auth,
-            router,
             unified_router,
             storage,
             pricing,

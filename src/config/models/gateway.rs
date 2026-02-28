@@ -35,6 +35,8 @@ const ENV_JWT_SECRET: &str = "LITELLM_JWT_SECRET";
 const ENV_JWT_EXPIRATION: &str = "LITELLM_JWT_EXPIRATION";
 const ENV_API_KEY_HEADER: &str = "LITELLM_API_KEY_HEADER";
 const ENV_PROVIDERS: &str = "LITELLM_PROVIDERS";
+const ENV_PRICING_SOURCE: &str = "LITELLM_PRICING_SOURCE";
+const DEFAULT_PRICING_SOURCE: &str = "config/model_prices_extended.json";
 
 fn env_var(key: &str) -> Option<String> {
     env::var(key)
@@ -204,6 +206,26 @@ fn load_providers_from_env() -> crate::utils::error::gateway_error::Result<Vec<P
     Ok(providers)
 }
 
+/// Pricing source configuration
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct GatewayPricingConfig {
+    /// Optional pricing source path/URL used by PricingService::new
+    #[serde(default = "default_pricing_source")]
+    pub source: Option<String>,
+}
+
+impl Default for GatewayPricingConfig {
+    fn default() -> Self {
+        Self {
+            source: default_pricing_source(),
+        }
+    }
+}
+
+fn default_pricing_source() -> Option<String> {
+    Some(DEFAULT_PRICING_SOURCE.to_string())
+}
+
 /// Main gateway configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GatewayConfig {
@@ -228,6 +250,9 @@ pub struct GatewayConfig {
     /// Enterprise features configuration
     #[serde(default)]
     pub enterprise: EnterpriseConfig,
+    /// Pricing configuration
+    #[serde(default)]
+    pub pricing: GatewayPricingConfig,
 }
 
 impl GatewayConfig {
@@ -304,6 +329,10 @@ impl GatewayConfig {
 
         config.providers = load_providers_from_env()?;
 
+        if let Some(pricing_source) = env_var(ENV_PRICING_SOURCE) {
+            config.pricing.source = Some(pricing_source);
+        }
+
         Ok(config)
     }
 }
@@ -332,6 +361,7 @@ impl GatewayConfig {
         self.cache = self.cache.merge(other.cache);
         self.rate_limit = self.rate_limit.merge(other.rate_limit);
         self.enterprise = self.enterprise.merge(other.enterprise);
+        self.pricing = other.pricing;
 
         self
     }
@@ -416,7 +446,7 @@ mod tests {
 
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
-    const TEST_ENV_KEYS: [&str; 17] = [
+    const TEST_ENV_KEYS: [&str; 18] = [
         ENV_HOST,
         ENV_PORT,
         ENV_WORKERS,
@@ -428,6 +458,7 @@ mod tests {
         ENV_JWT_EXPIRATION,
         ENV_API_KEY_HEADER,
         ENV_PROVIDERS,
+        ENV_PRICING_SOURCE,
         "LITELLM_PROVIDER_OPENAI_TYPE",
         "LITELLM_PROVIDER_OPENAI_API_KEY",
         "LITELLM_PROVIDER_OPENAI_BASE_URL",
@@ -494,9 +525,13 @@ mod tests {
             env::set_var("LITELLM_PROVIDER_OPENAI_MODELS", "gpt-4o,gpt-4.1");
             env::set_var("LITELLM_PROVIDER_OPENAI_TAGS", "prod,primary");
             env::set_var("LITELLM_PROVIDER_OPENAI_MAX_RETRIES", "5");
+            env::set_var(ENV_PRICING_SOURCE, "/tmp/pricing-test.json");
         }
 
-        let config = GatewayConfig::from_env().unwrap();
+        let config = match GatewayConfig::from_env() {
+            Ok(config) => config,
+            Err(error) => panic!("expected GatewayConfig::from_env() to succeed: {}", error),
+        };
         assert_eq!(config.server.host, "127.0.0.1");
         assert_eq!(config.server.port, 18080);
         assert_eq!(
@@ -520,6 +555,10 @@ mod tests {
             vec!["prod".to_string(), "primary".to_string()]
         );
         assert_eq!(config.providers[0].max_retries, 5);
+        assert_eq!(
+            config.pricing.source,
+            Some("/tmp/pricing-test.json".to_string())
+        );
 
         clear_test_env();
     }
@@ -535,7 +574,10 @@ mod tests {
             env::set_var("LITELLM_PROVIDER_VLLM_TYPE", "vllm");
         }
 
-        let config = GatewayConfig::from_env().unwrap();
+        let config = match GatewayConfig::from_env() {
+            Ok(config) => config,
+            Err(error) => panic!("expected GatewayConfig::from_env() to succeed: {}", error),
+        };
         assert_eq!(config.providers.len(), 1);
         assert_eq!(config.providers[0].provider_type, "vllm");
         assert_eq!(config.providers[0].api_key, "");

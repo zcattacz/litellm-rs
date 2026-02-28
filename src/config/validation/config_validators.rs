@@ -5,7 +5,7 @@
 
 use super::ssrf::validate_url_against_ssrf;
 use super::trait_def::Validate;
-use crate::config::models::gateway::GatewayConfig;
+use crate::config::models::gateway::{GatewayConfig, GatewayPricingConfig};
 use crate::config::models::provider::{ProviderConfig, ProviderHealthCheckConfig, RetryConfig};
 use crate::config::models::server::ServerConfig;
 use std::collections::HashSet;
@@ -39,8 +39,21 @@ impl Validate for GatewayConfig {
         Validate::validate(&self.cache)?;
         Validate::validate(&self.rate_limit)?;
         Validate::validate(&self.enterprise)?;
+        Validate::validate(&self.pricing)?;
 
         debug!("Gateway configuration validation completed");
+        Ok(())
+    }
+}
+
+impl Validate for GatewayPricingConfig {
+    fn validate(&self) -> Result<(), String> {
+        if let Some(source) = &self.source {
+            if source.trim().is_empty() {
+                return Err("Pricing source cannot be empty when provided".to_string());
+            }
+        }
+
         Ok(())
     }
 }
@@ -121,11 +134,10 @@ impl Validate for ProviderConfig {
             ));
         }
 
-        let requires_api_key = crate::core::providers::registry::get_definition(
-            &provider_selector.to_lowercase(),
-        )
-        .map(|def| !def.skip_api_key)
-        .unwrap_or(true);
+        let requires_api_key =
+            crate::core::providers::registry::get_definition(&provider_selector.to_lowercase())
+                .map(|def| !def.skip_api_key)
+                .unwrap_or(true);
 
         if requires_api_key && self.api_key.is_empty() {
             return Err(format!("Provider {} API key cannot be empty", self.name));
