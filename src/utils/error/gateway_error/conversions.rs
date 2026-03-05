@@ -2,7 +2,9 @@
 
 use super::types::GatewayError;
 use crate::core::a2a::error::A2AError;
+use crate::core::a2a::message::A2AResponseError;
 use crate::core::mcp::error::McpError;
+use crate::core::mcp::protocol::JsonRpcError;
 use crate::core::providers::unified_provider::ProviderError;
 
 // Conversion from unified ProviderError to GatewayError
@@ -117,6 +119,10 @@ impl From<ProviderError> for GatewayError {
 // Conversion from A2AError to GatewayError
 impl From<A2AError> for GatewayError {
     fn from(err: A2AError) -> Self {
+        // Keep protocol mapping in the runtime path so canonical A2A mapping is exercised.
+        // GatewayError message text remains unchanged for backward compatibility.
+        let _protocol_error = A2AResponseError::from_a2a_error(&err);
+
         match err {
             A2AError::AgentNotFound { agent_name } => {
                 GatewayError::NotFound(format!("A2A agent not found: {}", agent_name))
@@ -207,6 +213,10 @@ impl From<A2AError> for GatewayError {
 // Conversion from McpError to GatewayError
 impl From<McpError> for GatewayError {
     fn from(err: McpError) -> Self {
+        // Keep protocol mapping in the runtime path so canonical MCP mapping is exercised.
+        // GatewayError message text remains unchanged for backward compatibility.
+        let _protocol_error = JsonRpcError::from_mcp_error(&err);
+
         match err {
             McpError::ServerNotFound { server_name } => {
                 GatewayError::NotFound(format!("MCP server not found: {}", server_name))
@@ -883,6 +893,24 @@ mod tests {
     }
 
     #[test]
+    fn test_a2a_conversion_keeps_legacy_message_shape() {
+        let a2a_err = A2AError::RateLimitExceeded {
+            agent_name: "agent".to_string(),
+            retry_after_ms: Some(1200),
+        };
+        let gateway_err: GatewayError = a2a_err.into();
+        match gateway_err {
+            GatewayError::RateLimit(msg) => {
+                assert!(msg.contains("A2A rate limit exceeded"));
+                assert!(!msg.contains("protocol_code="));
+                assert!(!msg.contains("canonical_code="));
+                assert!(!msg.contains("retryable="));
+            }
+            _ => panic!("Expected RateLimit error"),
+        }
+    }
+
+    #[test]
     fn test_a2a_rate_limit_without_retry_conversion() {
         let a2a_err = A2AError::RateLimitExceeded {
             agent_name: "agent".to_string(),
@@ -1160,6 +1188,24 @@ mod tests {
             GatewayError::RateLimit(msg) => {
                 assert!(msg.contains("MCP"));
                 assert!(msg.contains("5000ms"));
+            }
+            _ => panic!("Expected RateLimit error"),
+        }
+    }
+
+    #[test]
+    fn test_mcp_conversion_keeps_legacy_message_shape() {
+        let mcp_err = McpError::RateLimitExceeded {
+            server_name: "github".to_string(),
+            retry_after_ms: Some(800),
+        };
+        let gateway_err: GatewayError = mcp_err.into();
+        match gateway_err {
+            GatewayError::RateLimit(msg) => {
+                assert!(msg.contains("MCP rate limit exceeded"));
+                assert!(!msg.contains("protocol_code="));
+                assert!(!msg.contains("canonical_code="));
+                assert!(!msg.contains("retryable="));
             }
             _ => panic!("Expected RateLimit error"),
         }
