@@ -6,15 +6,17 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 impl RateLimiter {
-    /// Cleanup expired entries
+    /// Cleanup expired entries (background, no global lock — DashMap per-shard locks)
     pub async fn cleanup(&self) {
         let now = Instant::now();
         let window_start = now - self.window;
 
-        let mut entries = self.entries.write().await;
-        entries.retain(|_, entry| {
+        let limit = self.config.default_rpm as f64;
+        self.entries.retain(|_, entry| {
             entry.timestamps.retain(|&t| t > window_start);
-            !entry.timestamps.is_empty() || entry.tokens > 0.0
+            // Keep entry if it has recent timestamps OR has consumed tokens (not full bucket).
+            // A full bucket (tokens == limit) with no timestamps means the key is idle.
+            !entry.timestamps.is_empty() || entry.tokens < limit
         });
     }
 
