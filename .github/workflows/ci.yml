@@ -41,7 +41,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Run clippy
-        run: cargo clippy --all-targets --features "$FEATURES" -- -D warnings
+        run: cargo clippy --all-targets --features "$FEATURES" -- -D warnings --force-warn clippy::collapsible-if
 
       - name: Provider consistency guards
         run: |
@@ -54,6 +54,12 @@ jobs:
 
       - name: API/runtime boundary guard
         run: bash scripts/guards/check_api_runtime_boundary.sh
+
+      - name: PR scope guard
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin main --depth=1
+          bash scripts/guards/check_pr_scope.sh origin/main
 
   feature-matrix:
     name: Feature Matrix
