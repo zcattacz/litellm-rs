@@ -168,3 +168,38 @@ fn test_auth_method_clone() {
         panic!("Clone failed");
     }
 }
+
+#[tokio::test]
+async fn test_session_auth_always_rejected() {
+    // Build a real AuthSystem via the same path the server uses,
+    // then call authenticate(AuthMethod::Session(…)) and verify rejection.
+    // This guards against regressions on issue #37 (JWT-as-session bypass).
+    let mut config = crate::config::Config::default();
+    config.gateway.auth.jwt_secret = "AaaAaaAaaAaaAaaAaaAaaAaaAaaAaa1!".to_string();
+    config.gateway.storage.database.enabled = false;
+    config.gateway.storage.redis.enabled = false;
+
+    let storage = std::sync::Arc::new(
+        crate::storage::StorageLayer::new(&config.gateway.storage)
+            .await
+            .expect("failed to create storage layer for session auth test"),
+    );
+
+    let auth_system = super::system::AuthSystem::new(&config.gateway.auth, storage)
+        .await
+        .expect("failed to create AuthSystem for session auth test");
+
+    let context = RequestContext::new();
+    let result = auth_system
+        .authenticate(AuthMethod::Session("any-session-id".into()), context)
+        .await
+        .expect("authenticate() should not return Err for session auth");
+
+    assert!(!result.success, "session auth must always be rejected");
+    assert!(result.user.is_none(), "rejected session must not set user");
+    assert_eq!(
+        result.error.as_deref(),
+        Some("Session authentication is not yet implemented"),
+        "session auth error message must match expected value"
+    );
+}
