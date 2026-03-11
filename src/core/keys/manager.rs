@@ -124,15 +124,15 @@ impl KeyManager {
         }
 
         // Check expiration
-        if let Some(expires_at) = key.expires_at {
-            if Utc::now() > expires_at {
-                debug!("API key is expired");
-                return Ok(VerifyKeyResult {
-                    valid: false,
-                    key: Some(KeyInfo::from(&key)),
-                    invalid_reason: Some("API key has expired".to_string()),
-                });
-            }
+        if let Some(expires_at) = key.expires_at
+            && Utc::now() > expires_at
+        {
+            debug!("API key is expired");
+            return Ok(VerifyKeyResult {
+                valid: false,
+                key: Some(KeyInfo::from(&key)),
+                invalid_reason: Some("API key has expired".to_string()),
+            });
         }
 
         // Update last used (fire and forget)
@@ -324,21 +324,21 @@ impl KeyManager {
             ));
         }
 
-        if let Some(ref desc) = config.description {
-            if desc.len() > 1000 {
-                return Err(GatewayError::validation(
-                    "Key description cannot exceed 1000 characters",
-                ));
-            }
+        if let Some(ref desc) = config.description
+            && desc.len() > 1000
+        {
+            return Err(GatewayError::validation(
+                "Key description cannot exceed 1000 characters",
+            ));
         }
 
         // Check expiration is in the future
-        if let Some(expires_at) = config.expires_at {
-            if expires_at <= Utc::now() {
-                return Err(GatewayError::validation(
-                    "Expiration date must be in the future",
-                ));
-            }
+        if let Some(expires_at) = config.expires_at
+            && expires_at <= Utc::now()
+        {
+            return Err(GatewayError::validation(
+                "Expiration date must be in the future",
+            ));
         }
 
         Ok(())

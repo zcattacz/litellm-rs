@@ -37,11 +37,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             while let Some(chunk_result) = stream.next().await {
                 match chunk_result {
                     Ok(chunk) => {
-                        if let Some(choice) = chunk.choices.first() {
-                            if let Some(ref content) = choice.delta.content {
-                                print!("{}", content);
-                                io::stdout().flush()?;
-                            }
+                        if let Some(choice) = chunk.choices.first()
+                            && let Some(ref content) = choice.delta.content
+                        {
+                            print!("{}", content);
+                            io::stdout().flush()?;
                         }
                     }
                     Err(e) => {
@@ -129,12 +129,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             while let Some(chunk_result) = stream.next().await {
                 match chunk_result {
                     Ok(chunk) => {
-                        if let Some(choice) = chunk.choices.first() {
-                            if let Some(ref content) = choice.delta.content {
-                                print!("{}", content);
-                                io::stdout().flush()?;
-                                token_count += 1;
-                            }
+                        if let Some(choice) = chunk.choices.first()
+                            && let Some(ref content) = choice.delta.content
+                        {
+                            print!("{}", content);
+                            io::stdout().flush()?;
+                            token_count += 1;
                         }
 
                         // Show progress occasionally
@@ -168,11 +168,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             while let Some(chunk_result) = stream.next().await {
                 match chunk_result {
                     Ok(chunk) => {
-                        if let Some(choice) = chunk.choices.first() {
-                            if let Some(ref content) = choice.delta.content {
-                                print!("{}", content);
-                                io::stdout().flush()?;
-                            }
+                        if let Some(choice) = chunk.choices.first()
+                            && let Some(ref content) = choice.delta.content
+                        {
+                            print!("{}", content);
+                            io::stdout().flush()?;
                         }
                     }
                     Err(e) => {

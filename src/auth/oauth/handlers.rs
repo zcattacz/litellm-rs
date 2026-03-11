@@ -197,25 +197,25 @@ pub async fn oauth_login(
     }
 
     // Add login hint if provided
-    if let Some(hint) = &query.login_hint {
-        if !auth_url.contains("login_hint=") {
-            auth_url = format!(
-                "{}&login_hint={}",
-                auth_url,
-                url::form_urlencoded::byte_serialize(hint.as_bytes()).collect::<String>()
-            );
-        }
+    if let Some(hint) = &query.login_hint
+        && !auth_url.contains("login_hint=")
+    {
+        auth_url = format!(
+            "{}&login_hint={}",
+            auth_url,
+            url::form_urlencoded::byte_serialize(hint.as_bytes()).collect::<String>()
+        );
     }
 
     // Add prompt if provided
-    if let Some(prompt) = &query.prompt {
-        if !auth_url.contains("prompt=") {
-            auth_url = format!(
-                "{}&prompt={}",
-                auth_url,
-                url::form_urlencoded::byte_serialize(prompt.as_bytes()).collect::<String>()
-            );
-        }
+    if let Some(prompt) = &query.prompt
+        && !auth_url.contains("prompt=")
+    {
+        auth_url = format!(
+            "{}&prompt={}",
+            auth_url,
+            url::form_urlencoded::byte_serialize(prompt.as_bytes()).collect::<String>()
+        );
     }
 
     // Store client info in state

@@ -119,20 +119,20 @@ impl Team {
 
     /// Check if team is over budget
     pub fn is_over_budget(&self) -> bool {
-        if let Some(billing) = &self.billing {
-            if let Some(budget) = billing.monthly_budget {
-                return billing.current_usage >= budget;
-            }
+        if let Some(billing) = &self.billing
+            && let Some(budget) = billing.monthly_budget
+        {
+            return billing.current_usage >= budget;
         }
         false
     }
 
     /// Get remaining budget
     pub fn remaining_budget(&self) -> Option<f64> {
-        if let Some(billing) = &self.billing {
-            if let Some(budget) = billing.monthly_budget {
-                return Some((budget - billing.current_usage).max(0.0));
-            }
+        if let Some(billing) = &self.billing
+            && let Some(budget) = billing.monthly_budget
+        {
+            return Some((budget - billing.current_usage).max(0.0));
         }
         None
     }

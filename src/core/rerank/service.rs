@@ -94,13 +94,12 @@ impl RerankService {
         self.validate_request(&request)?;
 
         // Check cache if enabled
-        if self.enable_cache {
-            if let Some(cache) = &self.cache {
-                if let Some(cached) = cache.get(&request).await {
-                    debug!("Rerank cache hit for query: {}", request.query);
-                    return Ok(cached);
-                }
-            }
+        if self.enable_cache
+            && let Some(cache) = &self.cache
+            && let Some(cached) = cache.get(&request).await
+        {
+            debug!("Rerank cache hit for query: {}", request.query);
+            return Ok(cached);
         }
 
         // Determine provider from model name
@@ -115,10 +114,10 @@ impl RerankService {
             })??;
 
         // Cache result if enabled
-        if self.enable_cache {
-            if let Some(cache) = &self.cache {
-                cache.set(&request, &response).await;
-            }
+        if self.enable_cache
+            && let Some(cache) = &self.cache
+        {
+            cache.set(&request, &response).await;
         }
 
         let elapsed = start.elapsed();
@@ -152,12 +151,12 @@ impl RerankService {
             ));
         }
 
-        if let Some(top_n) = request.top_n {
-            if top_n == 0 {
-                return Err(GatewayError::BadRequest(
-                    "top_n must be greater than 0".to_string(),
-                ));
-            }
+        if let Some(top_n) = request.top_n
+            && top_n == 0
+        {
+            return Err(GatewayError::BadRequest(
+                "top_n must be greater than 0".to_string(),
+            ));
         }
 
         Ok(())

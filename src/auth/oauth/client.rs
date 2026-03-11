@@ -86,14 +86,14 @@ impl OAuthClient {
         ];
 
         // Add PKCE parameters if enabled
-        if self.config.use_pkce {
-            if let Some(challenge) = state.code_challenge() {
-                params.push(("code_challenge", challenge));
-                params.push((
-                    "code_challenge_method",
-                    PkceChallengeMethod::S256.to_string(),
-                ));
-            }
+        if self.config.use_pkce
+            && let Some(challenge) = state.code_challenge()
+        {
+            params.push(("code_challenge", challenge));
+            params.push((
+                "code_challenge_method",
+                PkceChallengeMethod::S256.to_string(),
+            ));
         }
 
         // Add nonce for OIDC

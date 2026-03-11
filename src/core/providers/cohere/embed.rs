@@ -160,47 +160,44 @@ impl CohereEmbeddingHandler {
     /// Extract embeddings from the response
     fn extract_embeddings(embeddings: &Value) -> Result<Vec<Vec<f32>>, CohereError> {
         // Try float first (most common)
-        if let Some(float_embeddings) = embeddings.get("float") {
-            if let Some(arr) = float_embeddings.as_array() {
-                return arr
-                    .iter()
-                    .map(|emb| {
-                        emb.as_array()
-                            .map(|v| {
-                                v.iter()
-                                    .filter_map(|n| n.as_f64().map(|f| f as f32))
-                                    .collect()
-                            })
-                            .ok_or_else(|| {
-                                super::error::cohere_response_parsing("Invalid embedding format")
-                            })
-                    })
-                    .collect();
-            }
+        if let Some(float_embeddings) = embeddings.get("float")
+            && let Some(arr) = float_embeddings.as_array()
+        {
+            return arr
+                .iter()
+                .map(|emb| {
+                    emb.as_array()
+                        .map(|v| {
+                            v.iter()
+                                .filter_map(|n| n.as_f64().map(|f| f as f32))
+                                .collect()
+                        })
+                        .ok_or_else(|| {
+                            super::error::cohere_response_parsing("Invalid embedding format")
+                        })
+                })
+                .collect();
         }
 
         // Fallback: try to parse embeddings directly as a nested array
-        if let Some(arr) = embeddings.as_array() {
-            if let Some(first) = arr.first() {
-                if first.is_array() {
-                    return arr
-                        .iter()
-                        .map(|emb| {
-                            emb.as_array()
-                                .map(|v| {
-                                    v.iter()
-                                        .filter_map(|n| n.as_f64().map(|f| f as f32))
-                                        .collect()
-                                })
-                                .ok_or_else(|| {
-                                    super::error::cohere_response_parsing(
-                                        "Invalid embedding format",
-                                    )
-                                })
+        if let Some(arr) = embeddings.as_array()
+            && let Some(first) = arr.first()
+            && first.is_array()
+        {
+            return arr
+                .iter()
+                .map(|emb| {
+                    emb.as_array()
+                        .map(|v| {
+                            v.iter()
+                                .filter_map(|n| n.as_f64().map(|f| f as f32))
+                                .collect()
                         })
-                        .collect();
-                }
-            }
+                        .ok_or_else(|| {
+                            super::error::cohere_response_parsing("Invalid embedding format")
+                        })
+                })
+                .collect();
         }
 
         Err(super::error::cohere_response_parsing(
@@ -212,16 +209,14 @@ impl CohereEmbeddingHandler {
     fn extract_usage(response_json: &Value, input_count: usize) -> Usage {
         let mut prompt_tokens = 0u32;
 
-        if let Some(meta) = response_json.get("meta") {
-            if let Some(billed_units) = meta.get("billed_units") {
-                if let Some(input_tokens) =
-                    billed_units.get("input_tokens").and_then(|v| v.as_u64())
-                {
-                    prompt_tokens = input_tokens as u32;
-                }
-                if let Some(images) = billed_units.get("images").and_then(|v| v.as_u64()) {
-                    prompt_tokens += images as u32;
-                }
+        if let Some(meta) = response_json.get("meta")
+            && let Some(billed_units) = meta.get("billed_units")
+        {
+            if let Some(input_tokens) = billed_units.get("input_tokens").and_then(|v| v.as_u64()) {
+                prompt_tokens = input_tokens as u32;
+            }
+            if let Some(images) = billed_units.get("images").and_then(|v| v.as_u64()) {
+                prompt_tokens += images as u32;
             }
         }
 

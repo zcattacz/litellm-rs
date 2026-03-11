@@ -88,14 +88,14 @@ impl DefaultRouter {
         }
 
         // Add OpenRouter provider if API key is available
-        if let Ok(api_key) = std::env::var("OPENROUTER_API_KEY") {
-            if let Some(def) = crate::core::providers::registry::get_definition("openrouter") {
-                let config = def.to_openai_like_config(Some(&api_key), None);
-                if let Ok(provider) =
-                    crate::core::providers::openai_like::OpenAILikeProvider::new(config).await
-                {
-                    provider_registry.register(Provider::OpenAILike(provider));
-                }
+        if let Ok(api_key) = std::env::var("OPENROUTER_API_KEY")
+            && let Some(def) = crate::core::providers::registry::get_definition("openrouter")
+        {
+            let config = def.to_openai_like_config(Some(&api_key), None);
+            if let Ok(provider) =
+                crate::core::providers::openai_like::OpenAILikeProvider::new(config).await
+            {
+                provider_registry.register(Provider::OpenAILike(provider));
             }
         }
 
@@ -139,26 +139,26 @@ impl DefaultRouter {
         }
 
         // Add DeepSeek provider if API key is available
-        if let Ok(api_key) = std::env::var("DEEPSEEK_API_KEY") {
-            if let Some(def) = crate::core::providers::registry::get_definition("deepseek") {
-                let config = def.to_openai_like_config(Some(&api_key), None);
-                if let Ok(provider) =
-                    crate::core::providers::openai_like::OpenAILikeProvider::new(config).await
-                {
-                    provider_registry.register(Provider::OpenAILike(provider));
-                }
+        if let Ok(api_key) = std::env::var("DEEPSEEK_API_KEY")
+            && let Some(def) = crate::core::providers::registry::get_definition("deepseek")
+        {
+            let config = def.to_openai_like_config(Some(&api_key), None);
+            if let Ok(provider) =
+                crate::core::providers::openai_like::OpenAILikeProvider::new(config).await
+            {
+                provider_registry.register(Provider::OpenAILike(provider));
             }
         }
 
         // Add Groq provider if API key is available
-        if let Ok(api_key) = std::env::var("GROQ_API_KEY") {
-            if let Some(def) = crate::core::providers::registry::get_definition("groq") {
-                let config = def.to_openai_like_config(Some(&api_key), None);
-                if let Ok(provider) =
-                    crate::core::providers::openai_like::OpenAILikeProvider::new(config).await
-                {
-                    provider_registry.register(Provider::OpenAILike(provider));
-                }
+        if let Ok(api_key) = std::env::var("GROQ_API_KEY")
+            && let Some(def) = crate::core::providers::registry::get_definition("groq")
+        {
+            let config = def.to_openai_like_config(Some(&api_key), None);
+            if let Ok(provider) =
+                crate::core::providers::openai_like::OpenAILikeProvider::new(config).await
+            {
+                provider_registry.register(Provider::OpenAILike(provider));
             }
         }
 

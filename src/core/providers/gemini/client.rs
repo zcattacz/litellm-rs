@@ -164,10 +164,10 @@ impl GeminiClient {
         headers.push(header_static("Content-Type", "application/json"));
 
         // Vertex AI uses Bearer token, Google AI Studio uses API key as query parameter
-        if self.config.use_vertex_ai {
-            if let Some(api_key) = &self.config.api_key {
-                headers.push(header("Authorization", format!("Bearer {}", api_key)));
-            }
+        if self.config.use_vertex_ai
+            && let Some(api_key) = &self.config.api_key
+        {
+            headers.push(header("Authorization", format!("Bearer {}", api_key)));
         }
 
         // Add custom headers
@@ -238,17 +238,13 @@ impl GeminiClient {
             .messages
             .iter()
             .find(|m| m.role == MessageRole::System)
+            && let Some(system_text) = system_msg.content.as_ref()
+            && let Some(first_content) = contents.first_mut()
+            && let Some(parts) = first_content
+                .get_mut("parts")
+                .and_then(|p| p.as_array_mut())
         {
-            if let Some(system_text) = system_msg.content.as_ref() {
-                if let Some(first_content) = contents.first_mut() {
-                    if let Some(parts) = first_content
-                        .get_mut("parts")
-                        .and_then(|p| p.as_array_mut())
-                    {
-                        parts.insert(0, json!({"text": format!("System: {}", system_text)}));
-                    }
-                }
-            }
+            parts.insert(0, json!({"text": format!("System: {}", system_text)}));
         }
 
         let mut gemini_request = json!({

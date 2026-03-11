@@ -118,10 +118,10 @@ impl SecretManager for EnvSecretManager {
             secrets.push(SecretMetadata::new(secret_name));
 
             // Check max results
-            if let Some(max) = options.max_results {
-                if secrets.len() >= max {
-                    break;
-                }
+            if let Some(max) = options.max_results
+                && secrets.len() >= max
+            {
+                break;
             }
         }
 

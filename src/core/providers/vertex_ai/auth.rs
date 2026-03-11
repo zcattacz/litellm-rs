@@ -198,10 +198,10 @@ impl VertexAuth {
         // Check cache first
         {
             let cache = self.token_cache.read().await;
-            if let Some(ref token) = *cache {
-                if !token.is_expired() {
-                    return Ok(token.token.clone());
-                }
+            if let Some(ref token) = *cache
+                && !token.is_expired()
+            {
+                return Ok(token.token.clone());
             }
         }
 

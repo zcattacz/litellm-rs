@@ -122,11 +122,11 @@ impl ApiKeyHandler {
         }
 
         // Check if key is expired
-        if let Some(expires_at) = api_key.expires_at {
-            if Utc::now() > expires_at {
-                debug!("API key is expired");
-                return Ok(None);
-            }
+        if let Some(expires_at) = api_key.expires_at
+            && Utc::now() > expires_at
+        {
+            debug!("API key is expired");
+            return Ok(None);
         }
 
         // Get associated user if any
@@ -183,15 +183,15 @@ impl ApiKeyHandler {
         }
 
         // Check if key is expired
-        if let Some(expires_at) = api_key.expires_at {
-            if Utc::now() > expires_at {
-                return Ok(ApiKeyVerification {
-                    api_key,
-                    user: None,
-                    is_valid: false,
-                    invalid_reason: Some("API key is expired".to_string()),
-                });
-            }
+        if let Some(expires_at) = api_key.expires_at
+            && Utc::now() > expires_at
+        {
+            return Ok(ApiKeyVerification {
+                api_key,
+                user: None,
+                is_valid: false,
+                invalid_reason: Some("API key is expired".to_string()),
+            });
         }
 
         // Get associated user if any
@@ -202,15 +202,15 @@ impl ApiKeyHandler {
         };
 
         // Check if user is active (if associated)
-        if let Some(ref user) = user {
-            if !user.is_active() {
-                return Ok(ApiKeyVerification {
-                    api_key,
-                    user: Some(user.clone()),
-                    is_valid: false,
-                    invalid_reason: Some("Associated user is inactive".to_string()),
-                });
-            }
+        if let Some(ref user) = user
+            && !user.is_active()
+        {
+            return Ok(ApiKeyVerification {
+                api_key,
+                user: Some(user.clone()),
+                is_valid: false,
+                invalid_reason: Some("Associated user is inactive".to_string()),
+            });
         }
 
         // Update last used timestamp

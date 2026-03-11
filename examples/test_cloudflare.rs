@@ -73,10 +73,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match provider.chat_completion(request.clone(), context).await {
         Ok(response) => {
             println!("\nResponse:");
-            if let Some(choice) = response.choices.first() {
-                if let Some(ref content) = choice.message.content {
-                    println!("{}", content);
-                }
+            if let Some(choice) = response.choices.first()
+                && let Some(ref content) = choice.message.content
+            {
+                println!("{}", content);
             }
         }
         Err(e) => {
@@ -108,10 +108,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         Ok(response) => {
             println!("\nMistral Response:");
-            if let Some(choice) = response.choices.first() {
-                if let Some(ref content) = choice.message.content {
-                    println!("{}", content);
-                }
+            if let Some(choice) = response.choices.first()
+                && let Some(ref content) = choice.message.content
+            {
+                println!("{}", content);
             }
         }
         Err(e) => {
@@ -143,10 +143,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         Ok(response) => {
             println!("\nCode Llama Response:");
-            if let Some(choice) = response.choices.first() {
-                if let Some(ref content) = choice.message.content {
-                    println!("{}", content);
-                }
+            if let Some(choice) = response.choices.first()
+                && let Some(ref content) = choice.message.content
+            {
+                println!("{}", content);
             }
         }
         Err(e) => {

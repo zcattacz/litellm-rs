@@ -159,10 +159,10 @@ impl WatsonxProvider {
         // Check cached token
         {
             let cache = self.token_cache.read().await;
-            if let Some(cached) = cache.as_ref() {
-                if cached.expires_at > std::time::Instant::now() {
-                    return Ok(cached.token.clone());
-                }
+            if let Some(cached) = cache.as_ref()
+                && cached.expires_at > std::time::Instant::now()
+            {
+                return Ok(cached.token.clone());
             }
         }
 

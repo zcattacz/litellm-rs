@@ -126,26 +126,26 @@ impl StabilityProvider {
         response: StabilityImageResponse,
     ) -> Result<ImageGenerationResponse, ProviderError> {
         // Check for errors
-        if let Some(errors) = &response.errors {
-            if !errors.is_empty() {
-                return Err(ProviderError::api_error(
-                    "stability",
-                    400,
-                    errors.join(", "),
-                ));
-            }
+        if let Some(errors) = &response.errors
+            && !errors.is_empty()
+        {
+            return Err(ProviderError::api_error(
+                "stability",
+                400,
+                errors.join(", "),
+            ));
         }
 
         // Check finish reason
-        if let Some(ref reason) = response.finish_reason {
-            if reason == "CONTENT_FILTERED" {
-                return Err(ProviderError::content_filtered(
-                    "stability",
-                    "Content was filtered by Stability AI safety systems",
-                    None,
-                    Some(false),
-                ));
-            }
+        if let Some(ref reason) = response.finish_reason
+            && reason == "CONTENT_FILTERED"
+        {
+            return Err(ProviderError::content_filtered(
+                "stability",
+                "Content was filtered by Stability AI safety systems",
+                None,
+                Some(false),
+            ));
         }
 
         let mut data = Vec::new();
@@ -213,13 +213,10 @@ impl LLMProvider for StabilityProvider {
         for (key, value) in params {
             match key.as_str() {
                 "size" => {
-                    if let Some(size_str) = value.as_str() {
-                        if let Some(ratio) = registry.size_to_aspect_ratio(size_str) {
-                            mapped.insert(
-                                "aspect_ratio".to_string(),
-                                Value::String(ratio.to_string()),
-                            );
-                        }
+                    if let Some(size_str) = value.as_str()
+                        && let Some(ratio) = registry.size_to_aspect_ratio(size_str)
+                    {
+                        mapped.insert("aspect_ratio".to_string(), Value::String(ratio.to_string()));
                     }
                 }
                 "n" => {

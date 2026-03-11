@@ -344,11 +344,12 @@ impl OidcProvider {
         ];
 
         // Add PKCE if supported
-        if self.config.use_pkce && self.discovery.supports_pkce() {
-            if let Some(challenge) = state.code_challenge() {
-                params.push(("code_challenge", challenge));
-                params.push(("code_challenge_method", "S256".to_string()));
-            }
+        if self.config.use_pkce
+            && self.discovery.supports_pkce()
+            && let Some(challenge) = state.code_challenge()
+        {
+            params.push(("code_challenge", challenge));
+            params.push(("code_challenge_method", "S256".to_string()));
         }
 
         // Add nonce

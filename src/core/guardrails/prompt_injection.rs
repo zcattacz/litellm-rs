@@ -300,16 +300,16 @@ impl Guardrail for PromptInjectionGuardrail {
         ];
 
         for pattern in leak_patterns {
-            if let Ok(regex) = Regex::new(pattern) {
-                if regex.is_match(content) {
-                    let violation = Violation::new(
-                        ViolationType::PromptInjection,
-                        "Potential system prompt leakage detected in output",
-                    )
-                    .with_severity(0.8);
+            if let Ok(regex) = Regex::new(pattern)
+                && regex.is_match(content)
+            {
+                let violation = Violation::new(
+                    ViolationType::PromptInjection,
+                    "Potential system prompt leakage detected in output",
+                )
+                .with_severity(0.8);
 
-                    return Ok(CheckResult::block(vec![violation]));
-                }
+                return Ok(CheckResult::block(vec![violation]));
             }
         }
 

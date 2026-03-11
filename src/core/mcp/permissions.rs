@@ -283,22 +283,22 @@ impl PermissionManager {
         org_id: Option<&str>,
     ) -> &PermissionPolicy {
         // Priority: API key > Team > Organization > Default
-        if let Some(key) = api_key {
-            if let Some(policy) = self.key_policies.get(key) {
-                return policy;
-            }
+        if let Some(key) = api_key
+            && let Some(policy) = self.key_policies.get(key)
+        {
+            return policy;
         }
 
-        if let Some(team) = team_id {
-            if let Some(policy) = self.team_policies.get(team) {
-                return policy;
-            }
+        if let Some(team) = team_id
+            && let Some(policy) = self.team_policies.get(team)
+        {
+            return policy;
         }
 
-        if let Some(org) = org_id {
-            if let Some(policy) = self.org_policies.get(org) {
-                return policy;
-            }
+        if let Some(org) = org_id
+            && let Some(policy) = self.org_policies.get(org)
+        {
+            return policy;
         }
 
         &self.default_policy

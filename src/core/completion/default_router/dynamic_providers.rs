@@ -245,15 +245,15 @@ impl DefaultRouter {
         config.base.api_base = Some(api_base.to_string());
 
         // Also check environment variables
-        if config.base.api_key.is_none() {
-            if let Ok(key) = std::env::var("AZURE_AI_API_KEY") {
-                config.base.api_key = Some(key);
-            }
+        if config.base.api_key.is_none()
+            && let Ok(key) = std::env::var("AZURE_AI_API_KEY")
+        {
+            config.base.api_key = Some(key);
         }
-        if config.base.api_base.is_none() {
-            if let Ok(base) = std::env::var("AZURE_AI_API_BASE") {
-                config.base.api_base = Some(base);
-            }
+        if config.base.api_base.is_none()
+            && let Ok(base) = std::env::var("AZURE_AI_API_BASE")
+        {
+            config.base.api_base = Some(base);
         }
 
         let provider = AzureAIProvider::new(config).map_err(|e| {

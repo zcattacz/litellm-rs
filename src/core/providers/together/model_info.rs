@@ -643,11 +643,11 @@ pub fn get_pricing_category(model_name: &str) -> Option<&'static str> {
     let mut params: Option<u32> = None;
 
     for word in model_lower.split(|c: char| !c.is_alphanumeric()) {
-        if word.ends_with('b') {
-            if let Ok(num) = word.trim_end_matches('b').parse::<u32>() {
-                params = Some(num);
-                break;
-            }
+        if word.ends_with('b')
+            && let Ok(num) = word.trim_end_matches('b').parse::<u32>()
+        {
+            params = Some(num);
+            break;
         }
     }
 

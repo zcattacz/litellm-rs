@@ -187,12 +187,11 @@ impl AzureResponseHandler {
     // Private helper methods
     fn extract_filters_from_json(&self, json: &serde_json::Value) -> Option<ContentFilterResults> {
         // Look for content filter results in various locations
-        if let Some(choices) = json.get("choices").and_then(|c| c.as_array()) {
-            if let Some(first_choice) = choices.first() {
-                if let Some(filters) = first_choice.get("content_filter_results") {
-                    return serde_json::from_value(filters.clone()).ok();
-                }
-            }
+        if let Some(choices) = json.get("choices").and_then(|c| c.as_array())
+            && let Some(first_choice) = choices.first()
+            && let Some(filters) = first_choice.get("content_filter_results")
+        {
+            return serde_json::from_value(filters.clone()).ok();
         }
 
         // Check root level

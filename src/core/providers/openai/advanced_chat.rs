@@ -374,13 +374,13 @@ impl AdvancedChatUtils {
                 });
             }
 
-            if let Some(max_reasoning) = reasoning_config.max_reasoning_tokens {
-                if max_reasoning > 20000 {
-                    return Err(ProviderError::InvalidRequest {
-                        provider: "openai",
-                        message: "max_reasoning_tokens cannot exceed 20000".to_string(),
-                    });
-                }
+            if let Some(max_reasoning) = reasoning_config.max_reasoning_tokens
+                && max_reasoning > 20000
+            {
+                return Err(ProviderError::InvalidRequest {
+                    provider: "openai",
+                    message: "max_reasoning_tokens cannot exceed 20000".to_string(),
+                });
             }
         }
 
@@ -393,22 +393,22 @@ impl AdvancedChatUtils {
         }
 
         // Standard parameter validation
-        if let Some(temp) = request.temperature {
-            if !(0.0..=2.0).contains(&temp) {
-                return Err(ProviderError::InvalidRequest {
-                    provider: "openai",
-                    message: "temperature must be between 0.0 and 2.0".to_string(),
-                });
-            }
+        if let Some(temp) = request.temperature
+            && !(0.0..=2.0).contains(&temp)
+        {
+            return Err(ProviderError::InvalidRequest {
+                provider: "openai",
+                message: "temperature must be between 0.0 and 2.0".to_string(),
+            });
         }
 
-        if let Some(n) = request.n {
-            if n == 0 || n > 128 {
-                return Err(ProviderError::InvalidRequest {
-                    provider: "openai",
-                    message: "n must be between 1 and 128".to_string(),
-                });
-            }
+        if let Some(n) = request.n
+            && (n == 0 || n > 128)
+        {
+            return Err(ProviderError::InvalidRequest {
+                provider: "openai",
+                message: "n must be between 1 and 128".to_string(),
+            });
         }
 
         Ok(())

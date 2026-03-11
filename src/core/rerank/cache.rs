@@ -50,10 +50,10 @@ impl RerankCache {
         let key = Self::cache_key(request);
         let entries = self.entries.read().await;
 
-        if let Some(entry) = entries.get(&key) {
-            if entry.created_at.elapsed() < entry.ttl {
-                return Some(entry.response.clone());
-            }
+        if let Some(entry) = entries.get(&key)
+            && entry.created_at.elapsed() < entry.ttl
+        {
+            return Some(entry.response.clone());
         }
         None
     }
@@ -69,10 +69,10 @@ impl RerankCache {
             entries.retain(|_, entry| entry.created_at.elapsed() < entry.ttl);
 
             // If still at capacity, remove random entry
-            if entries.len() >= self.max_size {
-                if let Some(key_to_remove) = entries.keys().next().cloned() {
-                    entries.remove(&key_to_remove);
-                }
+            if entries.len() >= self.max_size
+                && let Some(key_to_remove) = entries.keys().next().cloned()
+            {
+                entries.remove(&key_to_remove);
             }
         }
 

@@ -249,10 +249,10 @@ impl OllamaProvider {
             }
 
             // Handle tool call id for tool messages
-            if msg.role == MessageRole::Tool {
-                if let Some(name) = &msg.name {
-                    message["name"] = serde_json::json!(name);
-                }
+            if msg.role == MessageRole::Tool
+                && let Some(name) = &msg.name
+            {
+                message["name"] = serde_json::json!(name);
             }
 
             messages.push(message);
@@ -317,10 +317,10 @@ impl OllamaProvider {
         }
 
         // Add response format if set
-        if let Some(format) = &request.response_format {
-            if format.format_type == "json_object" {
-                body["format"] = serde_json::json!("json");
-            }
+        if let Some(format) = &request.response_format
+            && format.format_type == "json_object"
+        {
+            body["format"] = serde_json::json!("json");
         }
 
         // Add keep_alive if set in config

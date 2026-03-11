@@ -128,10 +128,11 @@ impl GuardrailConfig {
 
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), String> {
-        if let Some(ref moderation) = self.openai_moderation {
-            if moderation.enabled && moderation.api_key.is_none() {
-                return Err("OpenAI moderation enabled but no API key provided".to_string());
-            }
+        if let Some(ref moderation) = self.openai_moderation
+            && moderation.enabled
+            && moderation.api_key.is_none()
+        {
+            return Err("OpenAI moderation enabled but no API key provided".to_string());
         }
         Ok(())
     }

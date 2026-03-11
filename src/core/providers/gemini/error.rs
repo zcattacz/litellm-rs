@@ -84,38 +84,34 @@ impl GeminiErrorMapper {
         }
 
         // Error
-        if let Some(message) = response.get("message") {
-            if let Some(msg_str) = message.as_str() {
-                return ProviderError::api_error("gemini", 500, msg_str);
-            }
+        if let Some(message) = response.get("message")
+            && let Some(msg_str) = message.as_str()
+        {
+            return ProviderError::api_error("gemini", 500, msg_str);
         }
 
         // Error
-        if let Some(candidates) = response.get("candidates") {
-            if let Some(candidate) = candidates.as_array().and_then(|c| c.first()) {
-                if let Some(finish_reason) = candidate.get("finishReason").and_then(|r| r.as_str())
-                {
-                    return match finish_reason {
-                        "SAFETY" => ProviderError::invalid_request(
-                            "gemini",
-                            "Content blocked by safety filters",
-                        ),
-                        "RECITATION" => ProviderError::invalid_request(
-                            "gemini",
-                            "Content blocked due to recitation",
-                        ),
-                        "MAX_TOKENS" => {
-                            ProviderError::invalid_request("gemini", "Maximum token limit reached")
-                        }
-                        "STOP" => ProviderError::api_error("gemini", 200, "Generation completed"),
-                        _ => ProviderError::api_error(
-                            "gemini",
-                            500,
-                            format!("Unknown finish reason: {}", finish_reason),
-                        ),
-                    };
+        if let Some(candidates) = response.get("candidates")
+            && let Some(candidate) = candidates.as_array().and_then(|c| c.first())
+            && let Some(finish_reason) = candidate.get("finishReason").and_then(|r| r.as_str())
+        {
+            return match finish_reason {
+                "SAFETY" => {
+                    ProviderError::invalid_request("gemini", "Content blocked by safety filters")
                 }
-            }
+                "RECITATION" => {
+                    ProviderError::invalid_request("gemini", "Content blocked due to recitation")
+                }
+                "MAX_TOKENS" => {
+                    ProviderError::invalid_request("gemini", "Maximum token limit reached")
+                }
+                "STOP" => ProviderError::api_error("gemini", 200, "Generation completed"),
+                _ => ProviderError::api_error(
+                    "gemini",
+                    500,
+                    format!("Unknown finish reason: {}", finish_reason),
+                ),
+            };
         }
 
         // Default
@@ -130,12 +126,12 @@ impl GeminiErrorMapper {
         }
 
         // Check
-        if let Some(details) = error.get("details") {
-            if let Some(details_array) = details.as_array() {
-                for detail in details_array {
-                    if let Some(retry_after) = detail.get("retry_after") {
-                        return retry_after.as_u64();
-                    }
+        if let Some(details) = error.get("details")
+            && let Some(details_array) = details.as_array()
+        {
+            for detail in details_array {
+                if let Some(retry_after) = detail.get("retry_after") {
+                    return retry_after.as_u64();
                 }
             }
         }
