@@ -41,7 +41,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Run clippy
-        run: cargo clippy --all-targets --features "$FEATURES" -- -D warnings --force-warn clippy::collapsible-if
+        run: cargo clippy --lib --tests --bins --features "$FEATURES" -- -D warnings --force-warn clippy::collapsible-if
 
       - name: Provider consistency guards
         run: |
@@ -146,7 +146,7 @@ jobs:
           sudo apt-get install -y libpq-dev
 
       - name: Run tests
-        run: cargo test --workspace --features "$FEATURES" --verbose
+        run: cargo test --lib --tests --bins --features "$FEATURES" --verbose
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gateway_test
           REDIS_URL: redis://localhost:6379

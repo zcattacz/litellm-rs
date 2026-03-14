@@ -61,16 +61,7 @@ impl Default for GaladrielConfig {
 
 impl ProviderConfig for GaladrielConfig {
     fn validate(&self) -> Result<(), String> {
-        if self.api_key.is_empty() {
-            return Err("Galadriel API key is required".to_string());
-        }
-        if self.timeout_seconds == 0 {
-            return Err("Timeout must be greater than 0".to_string());
-        }
-        if self.max_retries > 10 {
-            return Err("Max retries should not exceed 10".to_string());
-        }
-        Ok(())
+        self.validate_standard("Galadriel")
     }
 
     fn api_key(&self) -> Option<&str> {
@@ -322,33 +313,10 @@ impl LLMProvider for GaladrielProvider {
             return Err(HttpErrorMapper::map_status_code("galadriel", status, &body));
         }
 
-        use crate::core::providers::base::sse::{OpenAICompatibleTransformer, UnifiedSSEParser};
-        use futures::StreamExt;
-
-        let transformer = OpenAICompatibleTransformer::new("galadriel");
-        let parser = UnifiedSSEParser::new(transformer);
-
-        let byte_stream = response.bytes_stream();
-        let stream = byte_stream
-            .scan((parser, Vec::new()), |(parser, buffer), bytes_result| {
-                futures::future::ready(match bytes_result {
-                    Ok(bytes) => match parser.process_bytes(&bytes) {
-                        Ok(chunks) => {
-                            *buffer = chunks;
-                            Some(Ok(buffer.clone()))
-                        }
-                        Err(e) => Some(Err(e)),
-                    },
-                    Err(e) => Some(Err(ProviderError::network("galadriel", e.to_string()))),
-                })
-            })
-            .map(|result| match result {
-                Ok(chunks) => chunks.into_iter().map(Ok).collect::<Vec<_>>(),
-                Err(e) => vec![Err(e)],
-            })
-            .flat_map(futures::stream::iter);
-
-        Ok(Box::pin(stream))
+        Ok(crate::core::providers::base::create_provider_sse_stream(
+            response,
+            "galadriel",
+        ))
     }
 
     async fn embeddings(

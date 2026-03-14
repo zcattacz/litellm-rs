@@ -69,13 +69,66 @@ impl ResponseError for GatewayError {
                     "PROVIDER_AUTH_ERROR",
                     provider_error.to_string(),
                 ),
-                _ => (
+                ProviderError::Network { .. } => (
+                    actix_web::http::StatusCode::BAD_GATEWAY,
+                    "PROVIDER_NETWORK_ERROR",
+                    provider_error.to_string(),
+                ),
+                ProviderError::Configuration { .. }
+                | ProviderError::Serialization { .. }
+                | ProviderError::TransformationError { .. } => (
+                    actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    "PROVIDER_INTERNAL_ERROR",
+                    provider_error.to_string(),
+                ),
+                ProviderError::ContextLengthExceeded { .. }
+                | ProviderError::ContentFiltered { .. }
+                | ProviderError::TokenLimitExceeded { .. } => (
+                    actix_web::http::StatusCode::BAD_REQUEST,
+                    "PROVIDER_REQUEST_ERROR",
+                    provider_error.to_string(),
+                ),
+                ProviderError::NotSupported { .. }
+                | ProviderError::NotImplemented { .. }
+                | ProviderError::FeatureDisabled { .. } => (
+                    actix_web::http::StatusCode::NOT_IMPLEMENTED,
+                    "PROVIDER_NOT_IMPLEMENTED",
+                    provider_error.to_string(),
+                ),
+                ProviderError::DeploymentError { .. } => (
+                    actix_web::http::StatusCode::NOT_FOUND,
+                    "DEPLOYMENT_NOT_FOUND",
+                    provider_error.to_string(),
+                ),
+                ProviderError::ResponseParsing { .. } | ProviderError::Streaming { .. } => (
+                    actix_web::http::StatusCode::BAD_GATEWAY,
+                    "PROVIDER_RESPONSE_ERROR",
+                    provider_error.to_string(),
+                ),
+                ProviderError::RoutingError { .. } => (
+                    actix_web::http::StatusCode::SERVICE_UNAVAILABLE,
+                    "PROVIDER_ROUTING_ERROR",
+                    provider_error.to_string(),
+                ),
+                ProviderError::ApiError { status, .. } => (
+                    actix_web::http::StatusCode::from_u16(*status)
+                        .unwrap_or(actix_web::http::StatusCode::BAD_GATEWAY),
+                    "PROVIDER_API_ERROR",
+                    provider_error.to_string(),
+                ),
+                ProviderError::Cancelled { .. } => (
+                    actix_web::http::StatusCode::from_u16(499)
+                        .unwrap_or(actix_web::http::StatusCode::BAD_REQUEST),
+                    "PROVIDER_CANCELLED",
+                    provider_error.to_string(),
+                ),
+                ProviderError::Other { .. } => (
                     actix_web::http::StatusCode::BAD_GATEWAY,
                     "PROVIDER_ERROR",
                     provider_error.to_string(),
                 ),
             },
-            GatewayError::RateLimit(_) => (
+            GatewayError::RateLimit { .. } => (
                 actix_web::http::StatusCode::TOO_MANY_REQUESTS,
                 "RATE_LIMIT_EXCEEDED",
                 self.to_string(),
@@ -181,7 +234,28 @@ impl ResponseError for GatewayError {
             },
         };
 
-        HttpResponse::build(status_code).json(error_response)
+        let mut builder = HttpResponse::build(status_code);
+
+        // Add rate limit headers for 429 responses
+        if let GatewayError::RateLimit {
+            retry_after,
+            rpm_limit,
+            tpm_limit,
+            ..
+        } = self
+        {
+            if let Some(secs) = retry_after {
+                builder.insert_header(("Retry-After", secs.to_string()));
+            }
+            if let Some(rpm) = rpm_limit {
+                builder.insert_header(("X-RateLimit-Limit-Requests", rpm.to_string()));
+            }
+            if let Some(tpm) = tpm_limit {
+                builder.insert_header(("X-RateLimit-Limit-Tokens", tpm.to_string()));
+            }
+        }
+
+        builder.json(error_response)
     }
 }
 
@@ -367,9 +441,41 @@ mod tests {
 
     #[test]
     fn test_gateway_error_rate_limit_response() {
-        let error = GatewayError::RateLimit("Rate limit exceeded".to_string());
+        let error = GatewayError::RateLimit {
+            message: "Rate limit exceeded".to_string(),
+            retry_after: Some(60),
+            rpm_limit: Some(100),
+            tpm_limit: Some(50000),
+        };
         let response = error.error_response();
         assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(
+            response
+                .headers()
+                .get("Retry-After")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            "60"
+        );
+        assert_eq!(
+            response
+                .headers()
+                .get("X-RateLimit-Limit-Requests")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            "100"
+        );
+        assert_eq!(
+            response
+                .headers()
+                .get("X-RateLimit-Limit-Tokens")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            "50000"
+        );
     }
 
     #[test]
@@ -568,11 +674,92 @@ mod tests {
     }
 
     #[test]
-    fn test_provider_error_other_response() {
+    fn test_provider_error_api_error_passthrough() {
         let provider_error = ProviderError::ApiError {
             provider: "unknown",
             status: 418,
             message: "I'm a teapot".to_string(),
+        };
+        let error = GatewayError::Provider(provider_error);
+        let response = error.error_response();
+        assert_eq!(response.status().as_u16(), 418);
+    }
+
+    #[test]
+    fn test_provider_error_api_error_invalid_status_fallback() {
+        let provider_error = ProviderError::ApiError {
+            provider: "unknown",
+            status: 0,
+            message: "Invalid status".to_string(),
+        };
+        let error = GatewayError::Provider(provider_error);
+        let response = error.error_response();
+        assert_eq!(response.status(), StatusCode::BAD_GATEWAY);
+    }
+
+    #[test]
+    fn test_provider_error_context_length_response() {
+        let provider_error = ProviderError::ContextLengthExceeded {
+            provider: "openai",
+            max: 8192,
+            actual: 10000,
+        };
+        let error = GatewayError::Provider(provider_error);
+        let response = error.error_response();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn test_provider_error_not_supported_response() {
+        let provider_error = ProviderError::NotSupported {
+            provider: "openai",
+            feature: "vision".to_string(),
+        };
+        let error = GatewayError::Provider(provider_error);
+        let response = error.error_response();
+        assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
+    }
+
+    #[test]
+    fn test_provider_error_configuration_response() {
+        let provider_error = ProviderError::Configuration {
+            provider: "azure",
+            message: "Missing deployment".to_string(),
+        };
+        let error = GatewayError::Provider(provider_error);
+        let response = error.error_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_provider_error_deployment_response() {
+        let provider_error = ProviderError::DeploymentError {
+            provider: "azure",
+            deployment: "gpt-4-east".to_string(),
+            message: "Deployment not found".to_string(),
+        };
+        let error = GatewayError::Provider(provider_error);
+        let response = error.error_response();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn test_provider_error_routing_response() {
+        let provider_error = ProviderError::RoutingError {
+            provider: "openrouter",
+            attempted_providers: vec!["openai".to_string(), "anthropic".to_string()],
+            message: "All providers failed".to_string(),
+        };
+        let error = GatewayError::Provider(provider_error);
+        let response = error.error_response();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[test]
+    fn test_provider_error_other_variant_response() {
+        let provider_error = ProviderError::Other {
+            provider: "custom",
+            message: "Unknown error".to_string(),
         };
         let error = GatewayError::Provider(provider_error);
         let response = error.error_response();
@@ -617,10 +804,7 @@ mod tests {
                 GatewayError::Validation("test".to_string()),
             ),
             ("NOT_FOUND", GatewayError::NotFound("test".to_string())),
-            (
-                "RATE_LIMIT_EXCEEDED",
-                GatewayError::RateLimit("test".to_string()),
-            ),
+            ("RATE_LIMIT_EXCEEDED", GatewayError::rate_limit("test")),
         ];
 
         for (_expected_code, error) in error_codes {
