@@ -23,25 +23,7 @@ Most users use this project as a unified API library, not as a gateway server. S
 litellm-rs = { version = "0.4", default-features = false, features = ["lite"] }
 ```
 
-```bash
-# In this repository (lightweight defaults)
-make build
-make test
-```
-
-When you need gateway capabilities, move to `standard` profile:
-
-```bash
-make build-standard
-make test-standard
-```
-
-Use full feature validation only before release or in nightly CI:
-
-```bash
-make build-full
-make test-full
-```
+For crate users, no `make` is required.
 
 ## Usage
 
@@ -52,9 +34,6 @@ use litellm_rs::{completion, user_message, system_message};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Set your API key
-    std::env::set_var("OPENAI_API_KEY", "sk-...");
-
     let response = completion(
         "gpt-4",
         vec![
@@ -71,19 +50,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### As a Gateway Server
 
+#### Run from source repository
+
 ```bash
-# Install
-cargo install litellm-rs
-
-# Prepare config (in this repository)
+git clone https://github.com/majiayu000/litellm-rs.git
+cd litellm-rs
 cp config/gateway.yaml.example config/gateway.yaml
-
-# Run (auto-loads config/gateway.yaml)
-gateway
-
-# Alternative when running from source repo
 cargo run --bin gateway
 ```
+
+#### Install binary and run
+
+```bash
+cargo install litellm-rs --bin gateway
+mkdir -p config
+curl -L https://raw.githubusercontent.com/majiayu000/litellm-rs/main/config/gateway.yaml.example -o config/gateway.yaml
+gateway
+```
+
+Notes:
+
+- `gateway` and `google-gateway` binaries require `storage` feature at build time.
+- Default features include `sqlite`, so default `cargo run`/`cargo install` satisfy this requirement.
 
 ## Installation
 
@@ -100,7 +88,7 @@ litellm-rs = { version = "0.4", default-features = false }
 [dependencies]
 litellm-rs = { version = "0.4", default-features = false, features = ["lite"] }
 
-# Gateway server without storage
+# Gateway modules in library context (not standalone gateway binary runtime)
 [dependencies]
 litellm-rs = { version = "0.4", default-features = false, features = ["gateway"] }
 ```
@@ -216,21 +204,21 @@ while let Some(chunk) = stream.next().await {
 
 ### Build/test uses too much CPU or memory
 
-- Use API-only defaults first: `make build`, `make test`
-- Limit local parallelism: `DEV_BUILD_JOBS=4 DEV_TEST_THREADS=4 make test`
-- For direct Cargo use: `cargo test --lib --tests --no-default-features --features "lite"`
+- Use API-only defaults first: `cargo test --lib --tests --no-default-features --features "lite"`
+- Limit local parallelism when needed: `CARGO_BUILD_JOBS=4 cargo test --lib --tests --no-default-features --features "lite" -- --test-threads=4`
 - Avoid `--all-features` unless you are doing release/nightly validation
 
 ### I only need provider API aggregation, not gateway
 
 - Prefer `default-features = false` with `features = ["lite"]`
-- Use gateway commands only when you need HTTP server/auth/storage middleware
+- Use gateway runtime commands only when you need HTTP server/auth/storage middleware
 
 ## Documentation
 
 - [API Documentation](https://docs.rs/litellm-rs)
+- [Documentation Index](./docs/README.md)
 - [Configuration Guide](./config/gateway.yaml.example)
-- [Examples](./examples/)
+- [Examples](./examples/README.md)
 
 ## Contributing
 
