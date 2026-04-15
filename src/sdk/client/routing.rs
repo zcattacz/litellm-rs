@@ -41,6 +41,8 @@ impl LLMClient {
 }
 
 // Load balancer implementation
+use std::sync::atomic::Ordering;
+
 use super::types::LoadBalancer;
 
 impl LoadBalancer {
@@ -59,8 +61,9 @@ impl LoadBalancer {
 
         match self.strategy {
             LoadBalancingStrategy::RoundRobin => {
-                // Simple round-robin: select first available provider
-                Ok(enabled_providers[0])
+                let idx = self.round_robin_counter.fetch_add(1, Ordering::Relaxed)
+                    % enabled_providers.len();
+                Ok(enabled_providers[idx])
             }
             LoadBalancingStrategy::WeightedRandom => {
                 // Weighted random selection
